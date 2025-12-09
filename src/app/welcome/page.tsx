@@ -33,6 +33,12 @@ export default function WelcomePage() {
         router.push('/provinces');
     };
 
+    const handleRegister = () => {
+        setIsLoading(true);
+        router.push('/registerexamcode');
+    };
+
+
     // ✅ New function to show exam results
     const handleShowresults = () => {
         setIsLoading(true);
@@ -144,7 +150,7 @@ export default function WelcomePage() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel className="font-khmer">បោះបង់</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleConfirm} className="font-khmer">
+                                        <AlertDialogAction onClick={handleRegister} className="font-khmer">
                                             បន្ត
                                         </AlertDialogAction>
                                     </AlertDialogFooter>
