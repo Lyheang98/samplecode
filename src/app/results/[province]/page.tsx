@@ -478,7 +478,6 @@ export default function ProvinceResultsPage() {
                 <FileDown className="h-4 w-4" /> ទាញយក CSV
               </Button>
             </div>
-
             {/* Pagination Info */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
               <p className="text-sm text-gray-600">
@@ -536,7 +535,6 @@ export default function ProvinceResultsPage() {
                 </tbody>
               </table>
             </div>
-
             {rowsPerPage !== ALL_DATA_VALUE && (
               <div className="flex justify-center gap-3">
                 <Button size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>មុន</Button>
