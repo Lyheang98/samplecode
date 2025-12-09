@@ -408,7 +408,7 @@ export default function ProvinceResultsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
       {/* Navigation */}
-      <div className="max-w-7xl mx-auto flex justify-between sm:justify-start sm:gap-4 mb-6">
+      <div className="max-w-7xl mx-auto flex justify-around sm:justify-around sm:gap-4 mb-6">
         <Link href="/results"><button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><ArrowLeft className="h-4 w-4" />ត្រឡប់</button></Link>
         <Link href="/welcome"><button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><Home className="h-4 w-4" />ទំព័រដើម</button></Link>
       </div>
