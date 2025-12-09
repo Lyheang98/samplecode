@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   // Static generation and caching
   output: 'standalone', // Optimize for production deployment
   trailingSlash: false, // Consistent URL structure
+  devServer: { port: 5173 },
   
   // Image optimization
   images: {

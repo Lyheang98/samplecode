@@ -1,152 +1,149 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home } from "lucide-react";
-import Image from "next/image";
+// app/provinces/page.tsx
 import Link from "next/link";
+import Image from "next/image";
+import { ArrowLeft, Home } from "lucide-react";
 
-interface Province {
-  province: string; // matches your API structure
+// API config
+import { API_BASE, MOCK_USERNAME, MOCK_PASSWORD } from "../../../api/api";
+
+const TOKEN_URL = `${API_BASE}/api/token/`;
+const RESULTS_URL = `${API_BASE}/api/v1/result/full-results/`;
+
+// Province Image Map
+const provinceImageMap: Record<string, string> = {
+  "ខេត្តបន្ទាយមានជ័យ": "/image/provinces/BanTeay Meanchey.jpg",
+  "ខេត្តបាត់ដំបង": "/image/provinces/battambang.jpg",
+  "ខេត្តកំពង់ឆ្នាំង": "/image/provinces/kampong-chhnang.jpg",
+  "ខេត្តពោធិ៍សាត់": "/image/provinces/pursat.jpg",
+  "ខេត្តប៉ៃលិន": "/image/provinces/pailin.jpg",
+  "ខេត្តឧត្តរមានជ័យ": "/image/provinces/oddar-meanchey.jpg",
+  "ខេត្តកំពត": "/image/provinces/kampot.jpg",
+  "ខេត្តកោះកុង": "/image/provinces/koh-kong.jpg",
+  "ខេត្តព្រះសីហនុ": "/image/provinces/preah-sihanouk.jpg",
+  "ខេត្តតាកែវ": "/image/provinces/takev.jpg",
+  "ខេត្តកែប": "/image/provinces/kep.jpg",
+  "ខេត្តកណ្តាល": "/image/provinces/kandal.jpg",
+  "ខេត្តមណ្ឌលគិរី": "/image/provinces/mondulkiri.jpg",
+  "ខេត្តរតនគិរី": "/image/provinces/ratanakiri.jpg",
+  "ខេត្តស្វាយរៀង": "/image/provinces/svay-rieng.jpg",
+  "ខេត្តត្បូងឃ្មុំ": "/image/provinces/tboung-khmum.jpg",
+  "រាជធានីភ្នំពេញ": "/image/provinces/phnom-penh.jpg",
+  "ខេត្តកំពង់ចាម": "/image/provinces/kampong-cham.jpg",
+  "ខេត្តក្រចេះ": "/image/provinces/kratie.jpg",
+  "ខេត្តកំពង់ស្ពឺ": "/image/provinces/kampong-speu.jpg",
+  "ខេត្តស្ទឹងត្រែង": "/image/provinces/stung-treng.jpg",
+  "ខេត្តព្រះវិហារ": "/image/provinces/preah-vihear.jpg",
+  "ខេត្តកំពង់ធំ": "/image/provinces/kampong-thom.jpg",
+  "ខេត្តព្រៃវែង": "/image/provinces/prey-veang.jpg",
+  "ខេត្តសៀមរាប": "/image/provinces/siem-reap.jpg",
+};
+
+// Login API
+async function getAccessToken() {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: MOCK_USERNAME,
+      password: MOCK_PASSWORD,
+    }),
+    credentials: "omit",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Login failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.access;
 }
 
-const API_BASE = "http://10.1.79.47:8000";
-const TOKEN_URL = `${API_BASE}/api/token/`;
-const RESULTS_URL = `${API_BASE}/api/v1/filters/provinces/`;
-const MOCK_USERNAME = "admin";
-const MOCK_PASSWORD = "admin123";
+// Fetch provinces list
+async function getProvinces(): Promise<string[]> {
+  const token = await getAccessToken();
 
-const image_province = [
-  { ខេត្តបន្ទាយមានជ័យ: "/image_province/BanTeay Meanchey.jpg" },
-  { ខេត្តបាត់ដំបង: "/image_province/battambang.jpg" },
-  { ខេត្តកំពង់ឆ្នាំង: "/image_province/kampong-chhnang.jpg" },
-  { ខេត្តពោធិ៍សាត់: "/image_province/pursat.jpg" },
-  { ខេត្តប៉ៃលិន: "/image_province/pailin.jpg" },
-  { ខេត្តឧត្តរមានជ័យ: "/image_province/oddar-meanchey.jpg" },
-  { ខេត្តកំពត: "/image_province/kampot.jpg" },
-  { ខេត្តកោះកុង: "/image_province/koh-kong.jpg" },
-  { ខេត្តព្រះសីហនុ: "/image_province/preah-sihanouk.jpg" },
-  { ខេត្តតាកែវ: "/image_province/takev.jpg" },
-  { ខេត្តកែប: "/image_province/kep.jpg" },
-  { ខេត្តកណ្តាល: "/image_province/kandal.jpg" },
-  { ខេត្តមណ្ឌលគិរី: "/image_province/mondulkiri.jpg" },
-  { ខេត្តរតនគិរី: "/image_province/ratanakiri.jpg" },
-  { ខេត្តស្វាយរៀង: "/image_province/svay-rieng.jpg" },
-  { ខេត្តត្បូងឃ្មុំ: "/image_province/tboung-khmum.jpg" },
-  { រាជធានីភ្នំពេញ: "/image_province/phnom-penh.jpg" },
-  { ខេត្តកំពង់ចាម: "/image_province/kampong-cham.jpg" },
-  { ខេត្តក្រចេះ: "/image_province/kratie.jpg" },
-  { ខេត្តកំពង់ស្ពឺ: "/image_province/kampong-speu.jpg" },
-  { ខេត្តស្ទឹងត្រែង: "/image_province/stung-treng.jpg" },
-  { ខេត្តព្រះវិហារ: "/image_province/preah-vihear.jpg" },
-  { ខេត្តកំពង់ធំ: "/image_province/kampong-thom.jpg" },
-  { ខេត្តព្រៃវែង: "/image_province/prey-veang.jpg" },
-  { ខេត្តសៀមរាប: "/image_province/siem-reap.jpg" },
-];
+  const res = await fetch(RESULTS_URL, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    credentials: "omit",
+    cache: "no-store",
+  });
 
-const provinceImageMap: { [key: string]: string } = image_province.reduce(
-  (acc, current) => {
-    const key = Object.keys(current)[0];
-    acc[key] = Object.values(current)[0];
-    return acc;
-  },
-  {} as { [key: string]: string }
-);
-// -------------------------------------------------------------------
+  if (!res.ok) {
+    throw new Error(`Failed to fetch: ${res.status}`);
+  }
 
-export default function ResultsPage() {
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  // 1. Add new state for unique province names
-  const [uniqueProvinces, setUniqueProvinces] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const data = await res.json();
+  const results = data.results || data;
 
-  useEffect(() => {
-    async function fetchProvinces() {
-      try {
-        // Step 1: get access token
-        const tokenRes = await fetch(TOKEN_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: MOCK_USERNAME,
-            password: MOCK_PASSWORD,
-          }),
-        });
+  return Array.from(
+    new Set(results.map((item: any) => item.province_name).filter(Boolean))
+  ).sort();
+}
 
-        if (!tokenRes.ok) throw new Error("Failed to get token");
+export default async function ProvincesPage() {
+  let provinces: string[] = [];
+  let error: string | null = null;
 
-        const tokenData = await tokenRes.json();
-        const accessToken = tokenData.access;
+  try {
+    provinces = await getProvinces();
+  } catch (err) {
+    error = "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ។ សូមព្យាយាមម្តងទៀត។";
+  }
 
-        // Step 2: fetch provinces
-        const res = await fetch(RESULTS_URL, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (!res.ok) throw new Error(`Error fetching data (${res.status})`);
-
-        const data: Province[] = await res.json();
-
-        // 2. Process data to get unique province names
-        const provinceNames = data.map((item) => item.province);
-        // Use Set to automatically filter out duplicates
-        const uniqueNames = Array.from(new Set(provinceNames));
-
-        setProvinces(data); // update original provinces data
-        setUniqueProvinces(uniqueNames); // update unique provinces state
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProvinces();
-  }, []);
-
-  // --- Helper function to get the image path ---
-  const getImagePath = (provinceName: string): string | undefined => {
-    // Look up the image path using the province name
-    return provinceImageMap[provinceName];
-  };
-  // ---------------------------------------------
+  const createSlug = (name: string) => encodeURIComponent(name.trim());
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 py-4">
-      {/* Header */}
-      <div className="mb-6 px-4">
-        {/* Navigation Buttons - CORRECTED: justify-between by default (phone), sm:justify-around (desktop) */}
-        <div className="flex justify-between sm:justify-around items-center mb-4 md:mb-6">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-100 py-8 px-4">
+      <div className="max-w-7xl mx-auto overflow-x-hidden">
+
+        {/* Navigation */}
+        <div className="flex justify-between sm:justify-around items-center mb-4 md:mb-6 max-w-full">
+
+          {/* SMALL RESPONSIVE BUTTONS */}
           <Link href="/welcome">
-            <button className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 sm:px-4 text-xs sm:text-sm font-medium transition-colors">
-              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="sm:inline">ត្រឡប់</span>
+            <button className="
+              flex items-center gap-2 sm:gap-3
+              bg-blue-600 hover:bg-blue-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg sm:rounded-xl
+              shadow-lg transition
+            ">
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" /> ត្រឡប់
             </button>
           </Link>
+
           <Link href="/welcome">
-            <button className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 sm:px-4 text-xs sm:text-sm font-medium transition-colors">
-              <Home className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="sm:inline">ទំព័រដើម</span>
+            <button className="
+              flex items-center gap-2 sm:gap-3
+              bg-green-600 hover:bg-green-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg sm:rounded-xl
+              shadow-lg transition
+            ">
+              <Home className="w-3 h-3 sm:w-4 sm:h-4" /> ទំព័រដើម
             </button>
           </Link>
         </div>
 
-        {/* Header Content - Centered */}
-        <header className="text-center">
+        {/* Header */}
+        <header className="text-center max-w-full">
           <div className="flex justify-center mb-4 sm:mb-6">
             <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-md ring-1 ring-gray-200">
               <div className="rounded-lg sm:rounded-xl bg-blue-50 p-1.5 sm:p-2 md:p-3 ring-1 ring-blue-100">
                 <Image
                   src="/moeys-logo.png"
                   alt="MoEYS Logo"
-                  width={40}
-                  height={40}
+                  width={48}
+                  height={48}
                   className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
-                  priority
                 />
               </div>
               <div className="text-gray-900 font-semibold text-xs sm:text-sm md:text-base leading-snug text-left whitespace-normal">
@@ -154,6 +151,7 @@ export default function ResultsPage() {
               </div>
             </div>
           </div>
+
           <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight px-2">
             ទិន្នន័យសិស្សប្រឡង Online តាម
             <span className="text-blue-600"> MoEYS EdTech App</span>
@@ -162,59 +160,59 @@ export default function ResultsPage() {
             សូមជ្រើសរើសខេត្ត ដើម្បីមើលលទ្ធផលប្រឡងរបស់សិស្ស
           </p>
         </header>
-      </div>
 
-      {/* Page content */}
-      <div className="py-2 px-4 max-w-6xl mx-auto space-y-6">
-        {loading ? (
-          <p className="text-center text-gray-500">កំពុងផ្ទុកទិន្នន័យ...</p>
-        ) : error ? (
-          <p className="text-center text-red-500">{error}</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {/* 3. Map over the new uniqueProvinces array */}
-            {uniqueProvinces.map((provinceName) => {
-              const imagePath = getImagePath(provinceName);
-              const isPhnomPenh = provinceName === "រាជធានីភ្នំពេញ"; // Check for Phnom Penh specifically
+        {/* Provinces Grid */}
+        <div className="py-8 max-w-full overflow-x-hidden">
+          {error ? (
+            <div className="text-center py-32">
+              <p className="text-3xl font-bold text-red-600 mb-4">មានបញ្ហា!</p>
+              <p className="text-xl text-gray-700">{error}</p>
+            </div>
+          ) : provinces.length === 0 ? (
+            <div className="text-center py-32">
+              <p className="text-2xl text-gray-600">កំពុងផ្ទុកទិន្នន័យខេត្ត...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-full">
+              {provinces.map((provinceName) => {
+                const imagePath = provinceImageMap[provinceName];
+                const href = `/results/${createSlug(provinceName)}`;
 
-              return (
-                <Link
-                  href={`/results/${provinceName
-                    .replace(/\s+/g, "-")
-                    .toLowerCase()}`}
-                  key={provinceName}
-                >
-                  <Card className="group border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-600 transition bg-white cursor-pointer overflow-hidden">
-                    {imagePath ? (
-                      // --- Modification starts here ---
-                      <>
-                        <div className="relative w-full aspect-square overflow-hidden">
+                return (
+                  <Link href={href} key={provinceName}>
+                    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-blue-500 cursor-pointer max-w-full">
+                      {imagePath ? (
+                        <div className="aspect-square relative bg-gray-100">
                           <Image
                             src={imagePath}
-                            alt={`Image of ${provinceName}`}
+                            alt={provinceName}
                             fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            sizes="(max-width: 768px) 50vw, 20vw"
+                            className="object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         </div>
-                        {/* Style the button-like text below the image */}
-                        <div className="flex justify-center items-center py-3 bg-blue-600 group-hover:bg-blue-700 transition text-white font-semibold text-lg">
-                          {provinceName}
+                      ) : (
+                        <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center p-4">
+                          <span className="text-center text-gray-700 font-bold text-lg whitespace-normal break-words">
+                            {provinceName}
+                          </span>
                         </div>
-                      </>
-                    ) : (
-                      // Fallback: If no image is found, use the original Card style
-                      <CardContent className="flex justify-center items-center h-32">
-                        <span className="text-lg text-center font-semibold">
-                          {provinceName}
-                        </span>
-                      </CardContent>
-                    )}
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                      )}
+                      <div className="p-5 bg-gradient-to-r from-blue-600 to-blue-700 group-hover:from-blue-700 group-hover:to-blue-800 text-white text-center font-bold text-lg transition whitespace-normal break-words">
+                        {provinceName}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <footer className="text-center mt-16 text-gray-500 text-sm">
+          <p>© 2025 MoEYS EdTech - GEIP ICT Team. All rights reserved.</p>
+        </footer>
       </div>
     </div>
   );

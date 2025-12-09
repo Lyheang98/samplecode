@@ -1,16 +1,24 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Download, Search, RefreshCw, ArrowLeft, Home } from "lucide-react";
+import {
+  Download,
+  Search,
+  RefreshCw,
+  ArrowLeft,
+  Home,
+  X,
+  Filter,
+  FileDown,
+} from "lucide-react";
+import { API_BASE, MOCK_USERNAME, MOCK_PASSWORD } from "../../../../api/api.js";
 
-// --- UI Component Definitions (Replaced external imports for compilation) ---
+// --- UI Components (unchanged) ---
 const Card = ({ className = "", children }) => (
-  <div
-    className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}
-  >
+  <div className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}>
     {children}
   </div>
 );
@@ -28,28 +36,17 @@ const Button = ({
   let baseStyles =
     "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
 
-  // Size variants
-  if (size === "sm") {
-    baseStyles += " h-9 px-3 text-xs";
-  } else {
-    baseStyles += " h-10 px-4 py-2";
-  }
+  if (size === "sm") baseStyles += " h-9 px-3 text-xs";
+  else baseStyles += " h-10 px-4 py-2";
 
-  // Variant styles
-  if (variant === "default") {
-    baseStyles += " bg-blue-600 text-white hover:bg-blue-700";
-  } else if (variant === "outline") {
-    baseStyles +=
-      " border border-input bg-background hover:bg-accent hover:text-accent-foreground";
-  } else if (variant === "ghost") {
+  if (variant === "default") baseStyles += " bg-blue-600 text-white hover:bg-blue-700";
+  else if (variant === "outline")
+    baseStyles += " border border-input bg-background hover:bg-accent hover:text-accent-foreground";
+  else if (variant === "ghost")
     baseStyles += " hover:bg-accent hover:text-accent-foreground";
-  }
 
-  // Custom style overrides for the green download button
-  if (className.includes("bg-green-500")) {
-    baseStyles = baseStyles
-      .replace(/bg-blue-600/, "")
-      .replace(/hover:bg-blue-700/, "");
+  if (className.includes("bg-green-500") || className.includes("bg-red-500")) {
+    baseStyles = baseStyles.replace(/bg-blue-600/, "").replace(/hover:bg-blue-700/, "");
   }
 
   return (
@@ -77,916 +74,500 @@ const Input = ({
     value={value}
     onChange={onChange}
     onKeyDown={onKeyDown}
-    className={`flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    className={`flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
   />
 );
 
-// --- Type Definitions ---
-interface Result {
-  id: number;
-  student_id: string;
-  full_name: string;
-  gender: string;
-  school: string;
-  district: string;
-  province: string;
-  phone_number: string;
-  subject: string;
-  score: number;
-  grade: string; // School Class Level (e.g., Grade 7, Grade 12)
-  exam_class: string; // Exam Class (e.g., 12 - វិទ្យាសាស្ត្រ)
-  result: string; // ជាប់/ធ្លាក់ (Pass/Fail)
-  rank: string;
-  level: string; // Achievement Grade (A, B, C, etc. or និទ្ទេស)
-  exam_year?: number; // Used for filtering
-  exam_month?: number; // Used for filtering
-}
-
 // --- Constants ---
-const API_BASE = "http://10.1.79.47:8000";
 const TOKEN_URL = `${API_BASE}/api/token/`;
-const MOCK_USERNAME = "admin";
-const MOCK_PASSWORD = "admin123";
-
-// Month map used to convert Khmer month names in the UI dropdown to their numeric API value
 const MONTH_NAME_TO_INT = {
-  មករា: 1,
-  កុម្ភៈ: 2,
-  មីនា: 3,
-  មេសា: 4,
-  ឧសភា: 5,
-  មិថុនា: 6,
-  កក្កដា: 7,
-  សីហា: 8,
-  កញ្ញា: 9,
-  តុលា: 10,
-  វិច្ឆិកា: 11,
-  ធ្នូ: 12,
+  មករា: 1, កុម្ភៈ: 2, មីនា: 3, មេសា: 4, ឧសភា: 5, មិថុនា: 6,
+  កក្កដា: 7, សីហា: 8, កញ្ញា: 9, តុលា: 10, វិច្ឆិកា: 11, ធ្នូ: 12,
 };
 const ALL_DATA_VALUE = "all";
 
-// Decode the dynamic [province] segment into a human-readable province name
 const decodeProvinceName = (slug: string | string[] | undefined) => {
   if (!slug) return "";
   const value = Array.isArray(slug) ? slug[slug.length - 1] : slug;
-  // 1) decode URI (for Khmer or spaces encoded as %20)
-  const decoded = decodeURIComponent(value);
-  // 2) convert hyphen-based slugs into spaced names
-  return decoded.replace(/-/g, " ");
+  return decodeURIComponent(value);
 };
 
-// --- Main Component ---
+const toIntegerScore = (scoreStr: any) => {
+  if (typeof scoreStr === "string") {
+    const cleaned = scoreStr.split(".")[0];
+    return parseInt(cleaned, 10) || 0;
+  }
+  return Math.floor(Number(scoreStr)) || 0;
+};
+const toAverage = (avgStr: any) => {
+  if (typeof avgStr === "string") return parseFloat(avgStr).toFixed(2);
+  return Number(avgStr).toFixed(2);
+};
+
 export default function ProvinceResultsPage() {
-  const params = useParams<{ province?: string }>();
+  const params = useParams();
+  const province_name = useMemo(() => decodeProvinceName(params?.province), [params?.province]);
 
-  const province_name = useMemo(() => {
-    return decodeProvinceName(params?.province);
-  }, [params]);
-
-  // --- State for Data and Filters ---
-  const [results, setResults] = useState<Result[]>([]);
-  const [filtered, setFiltered] = useState<Result[]>([]);
+  // States
+  const [allResults, setAllResults] = useState<any[]>([]); // Master dataset
+  const [filteredResults, setFilteredResults] = useState<any[]>([]); // Displayed dataset
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
 
-  // Filter Selection States
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
-  const [selectedSchool, setSelectedSchool] = useState<string>("");
-  const [selectedClassLevel, setSelectedClassLevel] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedGender, setSelectedGender] = useState<string>("");
-  const [selectedAchievement, setSelectedAchievement] = useState<string>("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState("");
+  const [selectedClassLevel, setSelectedClassLevel] = useState("");
+  const [selectedGender, setSelectedGender] = useState("");
+  const [selectedAchievement, setSelectedAchievement] = useState("");
+  const [selectedYear, setSelectedYear] = useState("2025");
+  const [selectedMonth, setSelectedMonth] = useState("ធ្នូ");
 
-  // State for Year and Month Filters
-  const [selectedYear, setSelectedYear] = useState<string>("2025"); // Default to 2025
-  const [selectedMonth, setSelectedMonth] = useState<string>("វិច្ឆិកា"); // Default to វិច្ឆិកា (November)
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(30);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
 
-  // Filter Option States
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
-  const [schoolOptions, setSchoolOptions] = useState<string[]>([]);
+  const [schoolOptions, setSchoolOptions] = useState<{ id: string; name: string }[]>([]);
   const [classLevelOptions, setClassLevelOptions] = useState<string[]>([]);
-  const [subjectOptions, setSubjectOptions] = useState<string[]>([]);
+
   const genderOptions = ["ប្រុស", "ស្រី"];
   const achievementOptions = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const yearfilterOptions = ["2025", "2026", "2027"];
   const monthfilterOptions = [
-    "មករា",
-    "កុម្ភៈ",
-    "មីនា",
-    "មេសា",
-    "ឧសភា",
-    "មិថុនា",
-    "កក្កដា",
-    "សីហា",
-    "កញ្ញា",
-    "តុលា",
-    "វិច្ឆិកា",
-    "ធ្នូ",
+    "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
+    "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
   ];
   const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, ALL_DATA_VALUE];
 
-  // --- API Functions ---
-
-  // Fetches a JWT Access Token
   const getAccessToken = useCallback(async () => {
-    const tokenRes = await fetch(TOKEN_URL, {
+    const res = await fetch(TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: MOCK_USERNAME,
-        password: MOCK_PASSWORD,
-      }),
+      body: JSON.stringify({ username: MOCK_USERNAME, password: MOCK_PASSWORD }),
     });
-    if (!tokenRes.ok) throw new Error("Failed to get token");
-    const tokenData = await tokenRes.json();
-    return tokenData.access;
+    if (!res.ok) throw new Error("Failed to get token");
+    const data = await res.json();
+    return data.access;
   }, []);
 
-  // Constructs the most specific URL based on selected filters
-  const buildResultsUrl = useCallback(() => {
-    // API parameters must be URI encoded, especially for Khmer names
-    const encodedProvince = encodeURIComponent(province_name);
-    let url = `${API_BASE}/api/v1/filters/provinces/${encodedProvince}/`;
-    let queryParams = new URLSearchParams();
-
-    if (selectedDistrict) {
-      const encodedDistrict = encodeURIComponent(selectedDistrict);
-      url += `districts/${encodedDistrict}/`;
-    }
-    if (selectedSchool) {
-      const encodedSchool = encodeURIComponent(selectedSchool);
-      url += `schools/${encodedSchool}/`;
-    }
-    if (selectedClassLevel) {
-      const encodedClassLevel = encodeURIComponent(selectedClassLevel);
-      url += `grades/${encodedClassLevel}/`;
-    }
-    if (selectedSubject) {
-      const encodedSubject = encodeURIComponent(selectedSubject);
-      url += `subject/${encodedSubject}/`;
-    }
-
-    // Add Year and Month filters as query parameters (API will handle this if implemented)
-    if (selectedYear) {
-      queryParams.append("year", selectedYear);
-    }
-    if (selectedMonth) {
-      const monthNumber =
-        MONTH_NAME_TO_INT[selectedMonth as keyof typeof MONTH_NAME_TO_INT];
-      if (monthNumber) {
-        queryParams.append("month", String(monthNumber));
-      }
-    }
-
-    const queryString = queryParams.toString();
-    if (queryString) {
-      url += `?${queryString}`;
-    }
-
-    return url;
-  }, [
-    province_name,
-    selectedDistrict,
-    selectedSchool,
-    selectedClassLevel,
-    selectedSubject,
-    selectedYear,
-    selectedMonth,
-  ]);
-
-  // Fetches Dropdown Options (Districts, Schools, Class Levels, Subjects)
-  const fetchFilterOptions = useCallback(async () => {
+  // Fetch the COMPLETE dataset for the province ONCE
+  const fetchAllData = useCallback(async () => {
     if (!province_name) return;
-    setIsFetchingOptions(true);
+    setLoading(true);
+    setError("");
+
+    const url = `${API_BASE}/api/v1/result/full-results/${encodeURIComponent(province_name)}/`;
+    console.log("Fetching ALL data for province →", url);
 
     try {
-      const accessToken = await getAccessToken();
-      const encodedProvince = encodeURIComponent(province_name);
-
-      // 1. Fetch Districts
-      const districtUrl = `${API_BASE}/api/v1/filters/provinces/${encodedProvince}/districts/`;
-      const districtRes = await fetch(districtUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const token = await getAccessToken();
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const districtData: { district: string }[] = await districtRes.json();
-      const uniqueDistricts = Array.from(
-        new Set(districtData.map((d) => d.district).filter(Boolean))
-      ).sort();
-      setDistrictOptions(uniqueDistricts);
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`API ${res.status}: ${txt || res.statusText}`);
+      }
+
+      const json = await res.json();
+      const rawData = Array.isArray(json) ? json : json.results || json.data || [];
+
+      const mapped = rawData.map((r: any) => ({
+        id: `${r.student_ID || ""}${r.geip_school_ID || ""}`,
+        student_id: r.student_ID || "",
+        full_name: `${r.last_name || ""} ${r.first_name || ""}`.trim(),
+        gender: r.gender || "",
+        school: r.school_name || "",
+        district: r.district_name || "",
+        province: r.province_name || "",
+        phone_number: r.phone_number || "",
+        score: toIntegerScore(r.total_score ?? r.score ?? 0),
+        average: toAverage(r.total_average ?? r.average ?? "0"),
+        grade: r.grade || "",
+        exam_class: r.room || "",
+        rank: r.current_rank || r.rank || "",
+        level: r.overall_level || r.level || "",
+        result: r.overall_result || r.result || "",
+        // Add year and month fields
+        exam_year: r.exam_year || new Date().getFullYear().toString(),
+        exam_month: r.exam_month || new Date().getMonth() + 1,
+      }));
+
+      setAllResults(mapped);
+      // Initial display will be handled by the filter effect
+    } catch (err: any) {
+      setError(`បរាជ័យក្នុងការផ្ទុកទិន្នន័យ: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [province_name, getAccessToken]);
+
+  // Fetch filter options based on the full dataset
+  const fetchFilterOptions = useCallback(() => {
+    if (allResults.length === 0) return;
+    setIsFetchingOptions(true);
+    try {
+      // 1. Districts
+      const districts = [...new Set(allResults.map((d: any) => d.district).filter(Boolean))].sort();
+      setDistrictOptions(districts);
 
       if (!selectedDistrict) {
         setSchoolOptions([]);
         setClassLevelOptions([]);
-        setSubjectOptions([]);
         setIsFetchingOptions(false);
         return;
       }
 
-      const encodedDistrict = encodeURIComponent(selectedDistrict);
+      // 2. Schools (filtered by selectedDistrict)
+      let schools: { id: string; name: string }[] = [];
+      if (selectedDistrict) {
+        const schoolSet = new Set<string>();
 
-      // 2. Fetch Schools
-      const schoolUrl = `${API_BASE}/api/v1/filters/provinces/${encodedProvince}/districts/${encodedDistrict}/schools/`;
-      const schoolRes = await fetch(schoolUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const schoolData: { school: string }[] = await schoolRes.json();
-      const uniqueSchools = Array.from(
-        new Set(schoolData.map((s) => s.school).filter(Boolean))
-      ).sort();
-      setSchoolOptions(uniqueSchools);
-
-      if (!selectedSchool) {
-        setClassLevelOptions([]);
-        setSubjectOptions([]);
-        setIsFetchingOptions(false);
-        return;
+        allResults
+          .filter((s: any) => s.district === selectedDistrict)
+          .forEach((s: any) => {
+            if (s.school) {
+              schoolSet.add(s.school);
+            }
+          });
+        
+        schools = Array.from(schoolSet.keys())
+          .map(name => ({ id: name, name: name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
       }
+      setSchoolOptions(schools);
 
-      const encodedSchool = encodeURIComponent(selectedSchool);
-
-      // 3. Fetch Class Levels (Grades 7, 12, etc.)
-      const classLevelUrl = `${API_BASE}/api/v1/filters/provinces/${encodedProvince}/districts/${encodedDistrict}/schools/${encodedSchool}/grades/`;
-      const classLevelRes = await fetch(classLevelUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const classLevelData: { grade: string }[] = await classLevelRes.json();
-      const uniqueClassLevels = Array.from(
-        new Set(classLevelData.map((g) => g.grade).filter(Boolean))
-      ).sort();
-      setClassLevelOptions(uniqueClassLevels);
-
-      if (!selectedClassLevel) {
-        setSubjectOptions([]);
-        setIsFetchingOptions(false);
-        return;
+      // 3. Grades (filtered by selectedDistrict AND selectedSchool)
+      let grades: string[] = [];
+      if (selectedDistrict && selectedSchool) {
+        grades = [...new Set(
+          allResults
+            .filter(g => g.district === selectedDistrict && g.school === selectedSchool)
+            .map((g: any) => String(g.grade ?? "")).filter(Boolean)
+        )].sort();
       }
-
-      const encodedClassLevel = encodeURIComponent(selectedClassLevel);
-
-      // 4. Fetch Subjects
-      const subjectUrl = `${API_BASE}/api/v1/filters/provinces/${encodedProvince}/districts/${encodedDistrict}/schools/${encodedSchool}/grades/${encodedClassLevel}/subjects/`;
-      const subjectRes = await fetch(subjectUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const subjectData: { subject: string }[] = await subjectRes.json();
-      const uniqueSubjects = Array.from(
-        new Set(subjectData.map((s) => s.subject).filter(Boolean))
-      ).sort();
-      setSubjectOptions(uniqueSubjects);
+      setClassLevelOptions(grades);
     } catch (err) {
-      console.error("Error fetching filter options:", err);
+      console.error("Error loading filters:", err);
     } finally {
       setIsFetchingOptions(false);
     }
+  }, [allResults, selectedDistrict, selectedSchool]);
+
+  // --- MAIN FILTERING LOGIC ---
+  // This effect runs whenever any filter or search term changes
+  useEffect(() => {
+    let tempFiltered = allResults;
+
+    // Apply dropdown filters
+    if (selectedDistrict) {
+      tempFiltered = tempFiltered.filter(r => r.district === selectedDistrict);
+    }
+    if (selectedSchool) {
+      tempFiltered = tempFiltered.filter(r => r.school === selectedSchool);
+    }
+    if (selectedClassLevel) {
+      tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
+    }
+    if (selectedGender) {
+      tempFiltered = tempFiltered.filter(r => r.gender === selectedGender);
+    }
+    if (selectedAchievement) {
+      tempFiltered = tempFiltered.filter(r => r.level === selectedAchievement);
+    }
+    
+    // FIX: Add year and month filtering
+    if (selectedYear) {
+      tempFiltered = tempFiltered.filter(r => String(r.exam_year) === selectedYear);
+    }
+    if (selectedMonth) {
+      const monthInt = MONTH_NAME_TO_INT[selectedMonth];
+      if (monthInt) {
+        tempFiltered = tempFiltered.filter(r => {
+          const examMonth = parseInt(r.exam_month);
+          return !isNaN(examMonth) && examMonth === monthInt;
+        });
+      }
+    }
+
+    // Apply search filter
+    if (searchValue.trim()) {
+      const val = searchValue.trim().toLowerCase();
+      tempFiltered = tempFiltered.filter(
+        (r) =>
+          r.full_name.toLowerCase().includes(val) ||
+          r.student_id.includes(val) ||
+          r.school.toLowerCase().includes(val)
+      );
+    }
+
+    setFilteredResults(tempFiltered);
+    setCurrentPage(1); // Reset to first page on filter
   }, [
-    province_name,
+    allResults,
+    searchValue,
     selectedDistrict,
     selectedSchool,
     selectedClassLevel,
-    getAccessToken,
-  ]);
-
-  // Main Data Fetching Function
-  const fetchData = useCallback(async () => {
-    if (!province_name) return;
-
-    setLoading(true);
-    setError("");
-
-    // Build the URL based on current selections
-    const fetchUrl = buildResultsUrl();
-
-    try {
-      const accessToken = await getAccessToken();
-
-      const res = await fetch(fetchUrl, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!res.ok)
-        throw new Error(`Error fetching data (${res.status}) from ${fetchUrl}`);
-
-      let data: Result[] = await res.json();
-
-      // ----------------------------------------------------
-      // ⭐ BUG FIX: Apply client-side filters for Year, Month, Gender, and Achievement Grade
-      // This guarantees the UI displays correct data even if the API's query params fail.
-      // ----------------------------------------------------
-
-      if (selectedYear) {
-        const targetYear = Number(selectedYear);
-        data = data.filter((r) => r.exam_year === targetYear);
-      }
-
-      if (selectedMonth) {
-        const targetMonth =
-          MONTH_NAME_TO_INT[selectedMonth as keyof typeof MONTH_NAME_TO_INT];
-        data = data.filter((r) => r.exam_month === targetMonth);
-      }
-
-      if (selectedGender) {
-        data = data.filter((r) => r.gender === selectedGender);
-      }
-      
-      if (selectedAchievement) {
-        const target = selectedAchievement.trim();
-        // BUG FIX: Achievement Grade (ថ្នាក់រៀន) filters against r.exam_class
-        data = data.filter((r) => (r.exam_class ?? "").toString().trim() === target);
-      }
-
-      setResults(data);
-      setFiltered(data);
-      setCurrentPage(1);
-    } catch (err: any) {
-      console.error("Fetch Error:", err);
-      setError(
-        `បរាជ័យក្នុងការផ្ទុកលទ្ធផលសម្រាប់ ${province_name}: ${err.message}`
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    province_name,
     selectedGender,
     selectedAchievement,
     selectedYear,
     selectedMonth,
-    buildResultsUrl,
-    getAccessToken,
   ]);
 
-  // NEW: Auto-filter whenever Year, Month, Gender, or Achievement Grade changes
+  // --- EFFECTS ---
+  // 1. Initial data fetch when the province name is available
   useEffect(() => {
     if (province_name) {
-      fetchData();
+      fetchAllData();
     }
-  }, [
-    selectedYear,
-    selectedMonth,
-    selectedGender,
-    selectedAchievement,
-    province_name,
-    fetchData,
-  ]);
+  }, [province_name, fetchAllData]);
 
-  // Fetch filter options whenever a higher-level filter changes
+  // 2. Load filter options when the main data or district/school selection changes
   useEffect(() => {
     fetchFilterOptions();
   }, [fetchFilterOptions]);
 
-  // --- Handler Functions ---
-
-  function handleFilter() {
-    // This is now primarily used for District/School/Class/Subject changes,
-    // as Year/Month/Gender/Achievement are auto-triggered by the useEffect above.
-    setCurrentPage(1);
-    fetchData();
-  }
-
-  function handleSearch() {
-    if (!searchValue.trim()) {
-      setFiltered(results);
-      setCurrentPage(1);
-      return;
-    }
-    const value = searchValue.trim().toLowerCase();
-
-    const filteredData = results.filter(
-      (r) =>
-        r.full_name.toLowerCase().includes(value) ||
-        r.student_id.toLowerCase().includes(value) ||
-        r.school.toLowerCase().includes(value)
-    );
-
-    setFiltered(filteredData);
-    setCurrentPage(1);
-  }
-
-  function handleDownloadCSV() {
-    const csvContent = [
-      [
-        "ID",
-        "Student ID",
-        "Full Name",
-        "Gender",
-        "Subject",
-        "School",
-        "District",
-        "Province",
-        "Phone",
-        "Score",
-        "Grade", // School Class Level (r.grade)
-        "Class", // Exam Class (r.exam_class)
-        "Rank",
-        "Level", // Achievement Grade (r.level)
-        "Result",
-      ]
-        .map((h) => `"${h}"`)
-        .join(","),
-      ...filtered.map((r) =>
-        [
-          r.id,
-          r.student_id,
-          r.full_name,
-          r.gender,
-          r.subject,
-          r.school,
-          r.district,
-          r.province,
-          r.phone_number,
-          r.score,
-          r.grade,
-          r.exam_class,
-          r.rank,
-          r.level,
-          r.result,
-        ]
-          .map((field) => `"${field}"`)
-          .join(",")
-      ),
-    ].join("\n");
-
-    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], {
-      type: "text/csv;charset=utf-8;",
-    }); // Added UTF-8 BOM
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${province_name}_results_filtered.csv`;
-    link.click();
-  }
-
-  // Custom Select component for Tailwind styling
-  const SelectFilter = ({
-    label,
-    value,
-    onChange,
-    options,
-    disabled = false,
-  }: {
-    label: string;
-    value: string | number;
-    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-    options: (string | number)[];
-    disabled?: boolean;
-  }) => (
-    <div className="relative w-full sm:w-auto">
-      <select
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className="w-full sm:min-w-[120px] bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none transition duration-150 ease-in-out cursor-pointer disabled:opacity-50 disabled:bg-gray-100"
-        aria-label={label}
-      >
-        <option value="">{label}</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option === ALL_DATA_VALUE ? "ទិន្នន័យទាំងអស់" : option}
-          </option>
-        ))}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-        <svg
-          className="fill-current h-4 w-4"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-        </svg>
-      </div>
-    </div>
-  );
-
-  // Pagination calculations now use rowsPerPage state
-  const totalPages =
-    rowsPerPage === ALL_DATA_VALUE
-      ? 1
-      : Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-
-  useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  const paginatedResults = useMemo(() => {
-    if (rowsPerPage === ALL_DATA_VALUE) {
-      return filtered;
-    }
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    return filtered.slice(startIndex, startIndex + rowsPerPage);
-  }, [filtered, currentPage, rowsPerPage]);
-
-  const handlePageChange = (direction: "prev" | "next") => {
-    if (rowsPerPage === ALL_DATA_VALUE) return;
-    setCurrentPage((prev) => {
-      if (direction === "prev") {
-        return Math.max(1, prev - 1);
-      }
-      return Math.min(totalPages, prev + 1);
-    });
+  // --- HANDLERS ---
+  const handleClearFilters = () => {
+    setSelectedDistrict("");
+    setSelectedSchool("");
+    setSelectedClassLevel("");
+    setSelectedGender("");
+    setSelectedAchievement("");
+    setSelectedYear("2025");
+    setSelectedMonth("ធ្នូ");
+    setSearchValue("");
   };
 
-  const displayStart = filtered.length
-    ? (currentPage - 1) * rowsPerPage + 1
-    : 0;
-  const displayEnd = filtered.length
-    ? Math.min(currentPage * rowsPerPage, filtered.length)
-    : 0;
+  const handleDownloadCSV = () => {
+    const headers = [
+      "ID", "Student ID", "Full Name", "Gender", "School", "District", "Province",
+      "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"
+    ];
+    const rows = filteredResults.map(r => [
+      r.id, r.student_id, r.full_name, r.gender, r.school, r.district, r.province,
+      r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month
+    ]);
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    // Add BOM for proper Cambodian character (Unicode) display in Excel
+    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${province_name}_results.csv`;
+    link.click();
+  };
 
-  // Use current selected month and year for the header
-  const headerDateText =
-    selectedMonth || selectedYear ? (
-      <>
-        ទិន្នន័យសិស្សក្នុង
-        {selectedMonth && (
-          <>
-            ខែ <span className="text-blue-600 font-bold">{selectedMonth}</span>
-          </>
-        )}
-        {selectedYear && (
-          <>
-            {selectedMonth ? " " : ""}ឆ្នាំ{" "}
-            <span className="text-blue-600 font-bold">{selectedYear}</span>
-          </>
-        )}
-      </>
-    ) : (
-      "ទិន្នន័យលទ្ធផលសិស្ស"
-    );
+  // --- LOGIC ---
+  const totalPages = rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil(filteredResults.length / rowsPerPage));
+  const paginated = useMemo(() => {
+    if (rowsPerPage === ALL_DATA_VALUE) return filteredResults;
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredResults.slice(start, start + rowsPerPage);
+  }, [filteredResults, currentPage, rowsPerPage]);
 
-  if (loading && !results.length)
+  const displayStart = filteredResults.length ? (currentPage - 1) * rowsPerPage + 1 : 0;
+  const displayEnd = filteredResults.length ? Math.min(currentPage * rowsPerPage, filteredResults.length) : 0;
+
+  const headerDateText = selectedMonth || selectedYear ? (
+    <>ទិន្នន័យសិស្សក្នុង {selectedMonth && <>ខែ <span className="text-blue-600 font-bold">{selectedMonth}</span></>} {selectedYear && <>{selectedMonth ? " " : ""}ឆ្នាំ <span className="text-blue-600 font-bold">{selectedYear}</span></>}</>
+  ) : "ទិន្នន័យលទ្ធផលសិស្ស";
+
+  if (loading && !allResults.length) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
-        <div className="flex flex-col items-center gap-4 rounded-2xl bg-white/80 px-6 py-8 shadow-lg backdrop-blur">
-          <div className="h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-          <p className="text-lg font-semibold text-blue-700">
-            កំពុងផ្ទុកទិន្នន័យសិស្ស
-          </p>
-          <p className="text-sm text-gray-500">
-            សូមរង់ចាំបន្តិច… ការទាញយកទិន្នន័យកំពុងដំណើរការ។
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
+          <p className="text-xl font-semibold text-gray-700 mt-4">កំពុងផ្ទុកទិន្នន័យ...</p>
         </div>
       </div>
     );
-  if (error)
+  }
+
+  if (error) {
     return (
-      <h2 className="text-center text-red-600 mt-10 text-xl">
-        មានបញ្ហា៖ {error}
-      </h2>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 via-pink-50 to-orange-50">
+        <div className="text-center max-w-lg bg-white rounded-2xl shadow-2xl p-8 border-2 border-red-100">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <X className="h-10 w-10 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-red-600 mb-3">មានបញ្ហា</h2>
+          <p className="text-gray-700 mb-8">{error}</p>
+          <Link href="/results">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg">
+              <ArrowLeft className="inline h-4 w-4 mr-2" /> ត្រឡប់ទៅជ្រើសរើសខេត្ត
+            </button>
+          </Link>
+        </div>
+      </div>
     );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-4 sm:p-8">
-      {/* Navigation Buttons */}
-      <div className="flex justify-between sm:justify-around items-center mb-4 md:mb-6">
-        <Link href="/results">
-          <button className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 sm:px-4 text-xs sm:text-sm font-medium transition-colors">
-            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="sm:inline">ត្រឡប់</span>
-          </button>
-        </Link>
-        <Link href="/welcome">
-          <button className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 sm:px-4 text-xs sm:text-sm font-medium transition-colors">
-            <Home className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="sm:inline">ទំព័រដើម</span>
-          </button>
-        </Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
+      {/* Navigation */}
+      <div className="max-w-7xl mx-auto flex justify-between sm:justify-start sm:gap-4 mb-6">
+        <Link href="/results"><button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><ArrowLeft className="h-4 w-4" />ត្រឡប់</button></Link>
+        <Link href="/welcome"><button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><Home className="h-4 w-4" />ទំព័រដើម</button></Link>
       </div>
 
-      {/* Header with Logo and Title */}
-      <header className="text-center mb-6">
-        <div className="flex justify-center mb-4">
-          <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-md ring-1 ring-gray-200">
-            <div className="rounded-xl bg-blue-50 p-2 sm:p-3 ring-1 ring-blue-100">
-              <Image
-                src="/moeys-logo.png"
-                alt="MoEYS Logo"
-                width={40}
-                height={40}
-                className="h-10 w-10 sm:h-12 sm:w-12"
-                priority
-              />
+      {/* Header */}
+      <header className="text-center mb-8 max-w-7xl mx-auto">
+        <div className="flex justify-center mb-6">
+          <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl shadow-xl">
+            <div className="rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5">
+              <Image src="/moeys-logo.png" alt="Logo" width={48} height={48} />
             </div>
-            <div className="text-gray-900 font-semibold text-sm sm:text-base leading-snug text-left whitespace-normal">
-              MoEYS EdTech - GEIP ICT Team
-            </div>
+            <div className="font-bold">MoEYS EdTech - GEIP ICT Team</div>
           </div>
         </div>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
-          លទ្ធផលប្រឡងរបស់សិស្សក្នុង{" "}
-          <span className="text-blue-600">{province_name}</span>
+        <h1 className="text-4xl font-extrabold">
+          លទ្ធផលប្រឡងរបស់សិស្សក្នុង <span className="text-blue-600">{province_name}</span>
         </h1>
-        {/* UPDATED: Dynamic Date Display */}
-        <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-          {headerDateText}
-        </p>
+        <p className="text-xl text-gray-600 mt-2">{headerDateText}</p>
       </header>
-      <Card className="bg-white shadow-xl rounded-lg relative">
-        {loading && results.length > 0 && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
-            <div className="h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-            <p className="mt-4 text-blue-700 font-medium">
-              កំពុងបង្ហាញទិន្នន័យថ្មី...
-            </p>
-          </div>
-        )}
-        <CardContent className="p-4 space-y-4">
-          {/* --- Filter Controls Section --- */}
-          <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg border">
-            {/* Year Filter (API Query Param & Client-side filtered) */}
-            <SelectFilter
-              label="ឆ្នាំ"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              options={yearfilterOptions}
-            />
 
-            {/* Month Filter (API Query Param & Client-side filtered) */}
-            <SelectFilter
-              label="ខែ"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              options={monthfilterOptions}
-            />
+      <div className="max-w-7xl mx-auto">
+        <Card className="bg-white shadow-lg">
+          <CardContent className="p-5 space-y-6">
+            {/* Filters */}
+            <div className="bg-gray-50 rounded-xl p-4 border">
+              <div className="flex items-center gap-2 mb-3"><Filter className="h-5 w-5 text-blue-600" /><h3 className="font-semibold">ការច្រោះយកទិន្នន័យ</h3></div>
+              <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+                <SelectFilter label="ឆ្នាំ" value={selectedYear} onChange={e => setSelectedYear(e.target.value)} options={yearfilterOptions} />
+                <SelectFilter label="ខែ" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} options={monthfilterOptions} />
+                <SelectFilter label="ភេទ" value={selectedGender} onChange={e => setSelectedGender(e.target.value)} options={genderOptions} />
+                <SelectFilter 
+                  label="ស្រុក" 
+                  value={selectedDistrict} 
+                  onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); }} 
+                  options={districtOptions} 
+                />
+                <SelectFilter 
+                  label="សាលារៀន" 
+                  value={selectedSchool} 
+                  onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); }} 
+                  options={schoolOptions.map(s => s.name)} 
+                  disabled={!selectedDistrict || isFetchingOptions} 
+                />
+                <SelectFilter 
+                  label="កម្រិតថ្នាក់" 
+                  value={selectedClassLevel} 
+                  onChange={e => setSelectedClassLevel(e.target.value)} 
+                  options={classLevelOptions} 
+                  disabled={!selectedSchool || isFetchingOptions} 
+                />
+                <SelectFilter label="និទ្ទេស" value={selectedAchievement} onChange={e => setSelectedAchievement(e.target.value)} options={achievementOptions} />
+                
+                {/* The filter button is no longer needed, but a clear button is essential */}
+                <Button onClick={handleClearFilters} className="bg-red-500 hover:bg-red-600 text-white border-0">
+                  <X className="h-4 w-4" /> លុបច្រោះ
+                </Button>
+              </div>
+            </div>
 
-            {/* Gender Filter (Client-side) */}
-            <SelectFilter
-              label="ភេទ"
-              value={selectedGender}
-              onChange={(e) => setSelectedGender(e.target.value)}
-              options={genderOptions}
-            />
-
-            {/* District Filter (API) */}
-            <SelectFilter
-              label="ស្រុក"
-              value={selectedDistrict}
-              onChange={(e) => {
-                setSelectedDistrict(e.target.value);
-                // Reset lower-level filters when district changes
-                setSelectedSchool("");
-                setSelectedClassLevel("");
-                setSelectedSubject("");
-                setSelectedAchievement("");
-              }}
-              options={districtOptions}
-            />
-
-            {/* School Filter (API) */}
-            <SelectFilter
-              label="សាលារៀន"
-              value={selectedSchool}
-              onChange={(e) => {
-                setSelectedSchool(e.target.value);
-                // Reset lower-level filters when school changes
-                setSelectedClassLevel("");
-                setSelectedSubject("");
-                setSelectedAchievement("");
-              }}
-              options={schoolOptions}
-              disabled={
-                !selectedDistrict ||
-                schoolOptions.length === 0 ||
-                isFetchingOptions
-              }
-            />
-
-            {/* School Class Level Filter (API) - Renamed from 'ថ្នាក់' to 'កម្រិតថ្នាក់' */}
-            <SelectFilter
-              label="កម្រិតថ្នាក់"
-              value={selectedClassLevel}
-              onChange={(e) => {
-                setSelectedClassLevel(e.target.value);
-                // Reset lower-level filters when class level changes
-                setSelectedSubject("");
-                setSelectedAchievement("");
-              }}
-              options={classLevelOptions}
-              disabled={
-                !selectedSchool ||
-                classLevelOptions.length === 0 ||
-                isFetchingOptions
-              }
-            />
-
-            {/* Achievement Grade Filter (Client-side) */}
-            <SelectFilter
-              label="ថ្នាក់រៀន"
-              value={selectedAchievement}
-              onChange={(e) => setSelectedAchievement(e.target.value)}
-              options={achievementOptions}
-              disabled={!selectedClassLevel}
-            />
-
-            {/* Subject Filter (API) */}
-            <SelectFilter
-              label="មុខវិជ្ជា"
-              value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              options={subjectOptions}
-              disabled={
-                !selectedClassLevel ||
-                subjectOptions.length === 0 ||
-                isFetchingOptions
-              }
-            />
-
-            {/* Filter Button */}
-            <Button
-              onClick={handleFilter}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center"
-              disabled={loading || isFetchingOptions}
-            >
-              {loading || isFetchingOptions ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4 mr-2" />
-              )}
-              {loading || isFetchingOptions ? "កំពុងផ្ទុក..." : "ច្រោះទិន្នន័យ"}
-            </Button>
-          </div>
-
-          {/* --- Search and Download Controls --- */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center mt-4">
-            <div className="flex gap-2 items-center w-full sm:w-auto">
-              <Input
-                placeholder="ស្វែងរកឈ្មោះសិស្ស ឬសាលារៀន..."
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                className="w-full sm:w-64"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSearch();
-                }}
-              />
-              <Button
-                onClick={handleSearch}
-                variant="outline"
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                ស្វែងរក
+            {/* Search & Download */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-blue-50 rounded-lg p-4">
+              <div className="relative flex-1 sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input placeholder="ស្វែងរកឈ្មោះ ឬ អត្តលេខ..." value={searchValue} onChange={e => setSearchValue(e.target.value)} className="pl-9" />
+              </div>
+              <Button onClick={handleDownloadCSV} className="bg-green-500 hover:bg-green-600 text-white">
+                <FileDown className="h-4 w-4" /> ទាញយក CSV
               </Button>
             </div>
 
-            <Button
-              variant="outline"
-              onClick={handleDownloadCSV}
-              className="w-full sm:w-auto bg-green-500 text-white hover:bg-green-600"
-            >
-              <Download className="h-4 w-4 mr-2" /> ទាញយក CSV
-            </Button>
-          </div>
-
-          {/* --- Pagination Info & Control --- */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t">
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-gray-600 whitespace-nowrap">
-                បង្ហាញ {displayStart} - {displayEnd} ក្នុងចំណោម{" "}
-                {filtered.length.toLocaleString()} សិស្ស
+            {/* Pagination Info */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+              <p className="text-sm text-gray-600">
+                បង្ហាញ {displayStart} - {displayEnd} ក្នុងចំណោម {filteredResults.length.toLocaleString()}
               </p>
-              {/* Rows Per Page Select */}
-              <SelectFilter
-                label="បង្ហាញ"
-                value={rowsPerPage}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setRowsPerPage(
-                    value === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(value)
-                  );
-                  setCurrentPage(1); // Reset page on limit change
-                }}
-                options={rowsPerPageOptions}
-              />
+              <SelectFilter label="បង្ហាញ" value={rowsPerPage} onChange={e => { const v = e.target.value; setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); setCurrentPage(1); }} options={rowsPerPageOptions} />
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto border rounded-lg">
+              <table className="min-w-full text-sm">
+                <thead className="bg-blue-600 text-white">
+                  <tr>
+                    <th className="px-4 py-3 text-left">អត្តលេខ</th>
+                    <th className="px-4 py-3 text-left">ឈ្មោះសិស្ស</th>
+                    <th className="px-4 py-3 text-center">ភេទ</th>
+                    <th className="px-4 py-3 text-center">ថ្នាក់</th>
+                    <th className="px-4 py-3 text-center">ថ្នាក់រៀន</th>
+                    <th className="px-4 py-3 text-left">សាលា</th>
+                    <th className="px-4 py-3 text-center">ស្រុក</th>
+                    <th className="px-4 py-3 text-center">ខេត្ត</th>
+                    <th className="px-4 py-3 text-center">ទូរស័ព្ទ</th>
+                    <th className="px-4 py-3 text-center">ពិន្ទុ</th>
+                    <th className="px-4 py-3 text-center">មធ្យម</th>
+                    <th className="px-4 py-3 text-center">ចំណាត់</th>
+                    <th className="px-4 py-3 text-center">និទ្ទេស</th>
+                    <th className="px-4 py-3 text-center">លទ្ធផល</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginated.length > 0 ? paginated.map((r, i) => (
+                    <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                      <td className="px-4 py-3 text-center font-mono">{r.student_id}</td>
+                      <td className="px-4 py-3">{r.full_name}</td>
+                      <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{r.gender}</span></td>
+                      <td className="px-4 py-3 text-center font-bold">{r.grade}</td>
+                      <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.exam_class}</td>
+                      <td className="px-4 py-3">{r.school}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">{r.district}</td>
+                      <td className="px-4 py-3 text-center text-blue-600 font-bold">{r.province}</td>
+                      <td className="px-4 py-3 text-center">{r.phone_number}</td>
+                      <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.score}</td>
+                      <td className="px-4 py-3 text-center font-semibold">{r.average}</td>
+                      <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-bold">{r.rank}</span></td>
+                      <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold">{r.level}</span></td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-4 py-1.5 rounded-full font-bold ${r.result === "ជាប់" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                          {r.result}
+                        </span>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={14} className="text-center py-16 text-gray-500">មិនមានទិន្នន័យ</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
             {rowsPerPage !== ALL_DATA_VALUE && (
-              <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handlePageChange("prev")}
-                  disabled={currentPage === 1 || loading}
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                >
-                  មុន
-                </Button>
-                <span className="text-sm font-semibold text-gray-700">
-                  ទំព័រ {currentPage} / {totalPages}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handlePageChange("next")}
-                  disabled={currentPage === totalPages || loading}
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                >
-                  បន្ទាប់
-                </Button>
+              <div className="flex justify-center gap-3">
+                <Button size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>មុន</Button>
+                <span className="py-2 px-4">ទំព័រ {currentPage} / {totalPages}</span>
+                <Button size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>បន្ទាប់</Button>
               </div>
             )}
-          </div>
-
-          {/* --- Results Table --- */}
-          <div className="overflow-x-auto mt-6">
-            <table className="min-w-full border text-sm rounded-lg overflow-hidden">
-              <thead className="bg-blue-600 text-white sticky top-0">
-                <tr>
-                  <th className="px-3 py-3 border border-blue-700">អត្តលេខ</th>
-                  <th className="px-3 py-3 border border-blue-700">
-                    ឈ្មោះសិស្ស
-                  </th>
-                  <th className="px-3 py-3 border border-blue-700">ភេទ</th>
-                  <th className="px-3 py-3 border border-blue-700">
-                    កម្រិតថ្នាក់
-                  </th>{" "}
-                  {/* Displays r.grade */}
-                  <th className="px-3 py-3 border border-blue-700">
-                    ថ្នាក់រៀន
-                  </th>
-                  <th className="px-3 py-3 border border-blue-700">
-                    មុខវិជ្ជា
-                  </th>
-                  <th className="px-3 py-3 border border-blue-700">សាលារៀន</th>
-                  <th className="px-3 py-3 border border-blue-700">ស្រុក</th>
-                  <th className="px-3 py-3 border border-blue-700">ខេត្ត</th>
-                  <th className="px-3 py-3 border border-blue-700">
-                    លេខទូរស័ព្ទ
-                  </th>
-                  <th className="px-3 py-3 border border-blue-700">ពិន្ទុ</th>
-                  <th className="px-3 py-3 border border-blue-700">
-                    ចំណាត់ថ្នាក់
-                  </th>
-                  <th className="px-3 py-3 border border-blue-700">និទ្ទេស</th>
-                  <th className="px-3 py-3 border border-blue-700">លទ្ធផល</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedResults.length > 0
-                  ? paginatedResults.map((r) => (
-                      <tr
-                        key={r.id}
-                        className="hover:bg-blue-50/50 even:bg-gray-50"
-                      >
-                        <td className="px-3 py-2 border text-center font-mono">
-                          {r.student_id}
-                        </td>
-                        <td className="px-3 py-2 border">{r.full_name}</td>
-                        <td className="px-3 py-2 border text-center">
-                          {r.gender}
-                        </td>
-                        <td className="px-3 py-2 border">{r.grade}</td>
-                        <td className="px-3 py-2 border">{r.exam_class}</td>
-                        <td className="px-3 py-2 border">{r.subject}</td>
-                        <td className="px-3 py-2 border">{r.school}</td>
-                        <td className="px-3 py-2 border text-center">
-                          {r.district}
-                        </td>
-                        <td className="px-3 py-2 border text-center font-bold">
-                          {r.province}
-                        </td>
-                        <td className="px-3 py-2 border text-center">
-                          {r.phone_number}
-                        </td>
-                        <td className="px-3 py-2 border text-center">
-                          {r.score}
-                        </td>
-                        <td className="px-3 py-2 border text-center">
-                          {r.rank}
-                        </td>
-                        <td className="px-3 py-2 border text-center">
-                          {r.level}
-                        </td>
-                        <td
-                          className={`px-3 py-2 border text-center font-extrabold ${
-                            r.result === "ជាប់"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {r.result}
-                        </td>
-                      </tr>
-                    ))
-                  : !loading && (
-                      <tr>
-                        <td
-                          colSpan={14}
-                          className="text-center py-8 text-gray-500 bg-white"
-                        >
-                          មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌដែលបានជ្រើសរើសទេ។
-                        </td>
-                      </tr>
-                    )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+
+const SelectFilter = ({ label, value, onChange, options, disabled = false }: any) => (
+  <div className="relative">
+    <select
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      className="bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm appearance-none cursor-pointer disabled:opacity-50"
+    >
+      <option value="">{label}</option>
+      {options.map((opt: any) => (
+        <option key={typeof opt === "object" ? opt.id || opt.name : opt} value={typeof opt === "object" ? opt.name || opt : opt}>
+          {typeof opt === "object" ? opt.name || opt : opt}
+        </option>
+      ))}
+    </select>
+    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293l4.5 4.5 4.5-4.5L15.707 8 10 13.707 4.293 8z" /></svg>
+    </div>
+  </div>
+);
