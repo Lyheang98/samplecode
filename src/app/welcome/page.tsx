@@ -14,7 +14,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Globe, Award } from 'lucide-react';
+import { BookOpen, Globe, Award, FileText } from 'lucide-react';
 import Image from 'next/image';
 
 export default function WelcomePage() {
@@ -68,10 +68,10 @@ export default function WelcomePage() {
                         </div>
                     </div>
                     <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 leading-tight">
-                        ប្រឡងតេស្តស្ដង់ដារ MoEYS EdTech
+                         MoEYS EdTech
                     </h1>
                     <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-                        ប្រឡងតេស្តស្ដង់ដារ MoEYS EdTech តាម online សម្រាប់សិស្សានុសិស្ស
+                        ប្រព័ន្ធគ្រប់គ្រងទិន្នន័យ MoEYS EdTech សម្រាប់សិស្សានុសិស្ស
                     </p>
                 </header>
 
@@ -80,29 +80,29 @@ export default function WelcomePage() {
                     <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
                         <CardHeader className="text-center pb-6 sm:pb-8">
                             <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 sm:mb-3">
-                                ស្វាគមន៍មកកាន់ប្រព័ន្ធប្រឡងតេស្តស្តង់ដារថ្នាក់ទី ៨
+                                ប្រព័ន្ធប្រឡងតេស្ត និងលទ្ធផលរបស់សិស្សអនុវិស័យមធ្យមសិក្សា
                             </CardTitle>
                             <p className="text-base sm:text-lg text-gray-600">
-                                ជ្រើសរើសខេត្ត និងមុខវិជ្ជាដើម្បីចាប់ផ្ដើមប្រឡងតេស្ត
+                                អនុវត្តទាំង ២៥ ខេត្ត និងរាជធានី
                             </p>
                         </CardHeader>
 
                         <CardContent className="space-y-6 sm:space-y-8">
                             {/* Features */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-5 sm:mb-8">
-                                <div className="text-center">
+                                {/* <div className="text-center">
                                     <div className="bg-blue-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                                         <Globe className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                                     </div>
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">ខេត្តទាំង ២៥</h3>
-                                    <p className="text-sm sm:text-base text-gray-600">ជ្រើសរើសខេត្តរបស់អ្នក</p>
-                                </div>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">ខេត្ត និងរាជធានី</h3>
+                                    <p className="text-sm sm:text-base text-gray-600">២៤​ខេត្ត​ និង ១រាជធានី</p>
+                                </div> */}
                                 <div className="text-center">
                                     <div className="bg-green-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                                         <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                                     </div>
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">មុខវិជ្ជា ៣</h3>
-                                    <p className="text-sm sm:text-base text-gray-600">គណិតវិទ្យា រូបវិទ្យា ភាសាខ្មែរ</p>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">មុខវិជ្ជា ១០</h3>
+                                    <p className="text-sm sm:text-base text-gray-600">វិទ្យាសាស្រ្តពិត វិទ្យាសាស្រ្តសង្គម ភាសាបរទេស</p>
                                 </div>
                                 <div className="text-center">
                                     <div className="bg-purple-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
@@ -110,6 +110,13 @@ export default function WelcomePage() {
                                     </div>
                                     <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">ប្រឡងតេស្ត Online</h3>
                                     <p className="text-sm sm:text-base text-gray-600">ប្រឡងតេស្តតាមប្រព័ន្ធប្រឡងគម្រោង GEIP</p>
+                                </div>
+                                <div className="text-center">
+                                    <div className="bg-blue-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                                        <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+                                    </div>
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">មើលទ្ធផលប្រឡងតេស្ត</h3>
+                                    <p className="text-sm sm:text-base text-gray-600">លទ្ធផលប្រឡងតេស្តកម្រិតមធ្យមសិក្សា</p>
                                 </div>
                             </div>
 
@@ -121,16 +128,16 @@ export default function WelcomePage() {
                                     size="lg"
                                     className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 sm:px-12 py-5 sm:py-6 text-lg sm:text-xl font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
                                 >
-                                    {isLoading ? 'កំពុងផ្ទុក...' : 'ចាប់ផ្ដើមប្រឡងតេស្ត'}
+                                    {isLoading ? 'កំពុងផ្ទុក...' : 'ចូលប្រឡង'}
                                 </Button>
 
                                 <Button
                                     onClick={handleShowresults}
                                     disabled={isLoading}
                                     size="lg"
-                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 sm:px-12 py-5 sm:py-6 text-lg sm:text-xl font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
+                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-5 sm:px-12 py-5 sm:py-6 text-lg sm:text-xl font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
                                 >
-                                    {isLoading ? 'កំពុងផ្ទុក...' : 'មើលលទ្ធផលប្រឡងតេស្ត'}
+                                    {isLoading ? 'កំពុងផ្ទុក...' : 'មើលលទ្ធផល'}
                                 </Button>
                             </div>
 
@@ -141,11 +148,11 @@ export default function WelcomePage() {
                                         <div className="flex items-center justify-center mb-2">
                                             <Image src="/moeys-logo.png" alt="MoEYS Logo" width={64} height={64} className="h-16 w-16" />
                                         </div>
-                                        <AlertDialogTitle className="font-khmer">សូមសិស្សានុសិស្សត្រៀមគណនី Gmail មុនចាប់ផ្ដើម</AlertDialogTitle>
+                                        <AlertDialogTitle className="font-khmer">សម្គាល់៖</AlertDialogTitle>
                                         <AlertDialogDescription className="font-khmer leading-7">
-                                            ដើម្បីចូលរួមប្រឡងតេស្ត ត្រូវការ<strong> គណនី Gmail </strong>ដើម្បីភ្ជាប់ទៅតាមប្រព័ន្ធប្រឡងនៅពេលដែលចាប់ផ្ដើម។
+                                            សិស្សានុសិស្សគ្រប់រូប ត្រូវមាន<strong> គណនី Gmail </strong>ដើម្បីភ្ជាប់ទៅតាមប្រព័ន្ធប្រឡង។
                                             <br />
-                                            សូមធ្វើការចូលគណនី Gmail នៅក្នុងការប្រឡងនៅពេលបន្តិចទៀតនេះ។
+                                            សូមបង្កើតគណនី Gmail ប្រសិនបើមិនទាន់មានទេ។
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -163,7 +170,7 @@ export default function WelcomePage() {
                                 <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-gray-600">
                                     <div className="flex items-start space-x-2 sm:space-x-3">
                                         <span className="bg-blue-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 mt-0.5">1</span>
-                                        <span>ជ្រើសរើសខេត្តរបស់អ្នក</span>
+                                        <span>ចុះឈ្មោះយកកូដដើម្បីចូលប្រឡង</span>
                                     </div>
                                     <div className="flex items-start space-x-2 sm:space-x-3">
                                         <span className="bg-blue-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 mt-0.5">2</span>
@@ -171,7 +178,11 @@ export default function WelcomePage() {
                                     </div>
                                     <div className="flex items-start space-x-2 sm:space-x-3">
                                         <span className="bg-blue-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 mt-0.5">3</span>
-                                        <span>ចាប់ផ្ដើមប្រឡងតេស្តតាមប្រព័ន្ធប្រឡងគម្រោង GEIP</span>
+                                        <span>បំពេញលេខកូដ ៤ ខ្ទង់ឲ្យបានត្រឹម ដើម្បីចូលរួមប្រឡងតេស្ត</span>
+                                    </div>
+                                     <div className="flex items-start space-x-2 sm:space-x-3">
+                                        <span className="bg-blue-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 mt-0.5">4</span>
+                                        <span>យកកូដប្រឡងទៅបំពេញក្នុងទម្រង់ប្រឡង</span>
                                     </div>
                                 </div>
                             </div>

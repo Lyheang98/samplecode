@@ -21,6 +21,10 @@
     "paths": {
       "@/*": ["./src/*"]
     },
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ],
     "plugins": [
       {
         "name": "next"
@@ -31,8 +35,10 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
-  ],
+    "**/*.tsx",
+    "src/app/(auth)/register-exam-code/page.jsx",
+    "types/**/*.d.ts"
+, "src/app/admin/page.tsx"  ],
   "exclude": [
     "node_modules"
   ]
