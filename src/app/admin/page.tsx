@@ -15,7 +15,8 @@ import {
   School,
   Clock,
   Eye,
-  EyeOff
+  EyeOff,
+  Trash2
 } from "lucide-react";
 
 // Provinces data
@@ -41,7 +42,7 @@ const PROVINCES = [
   { id: "19", name: "ខេត្តស្ទឹងត្រែង" },
   { id: "20", name: "ខេត្តស្វាយរៀង" },
   { id: "21", name: "ខេត្តតាកែវ" },
-  { id: "22", name: "ខេត្តឧត្តរមានជ័យ" },
+  { id: "22", name: "ខេត្តឧត្ដរមានជ័យ" },
   { id: "23", name: "ខេត្តកែប" },
   { id: "24", name: "ខេត្តប៉ៃលិន" },
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
@@ -109,7 +110,7 @@ export default function AdminDashboard() {
     PROVINCES.map(p => ({ 
       ...p, 
       isActive: true,
-      examDeadline: "2024-12-31" // Default deadline
+      examDeadline: "2024-12-31"
     }))
   );
   
@@ -118,7 +119,7 @@ export default function AdminDashboard() {
     GRADES.map(g => ({ 
       grade: g, 
       isActive: true,
-      examDeadline: "2024-12-31" // Default deadline
+      examDeadline: "2024-12-31"
     }))
   );
   
@@ -151,6 +152,36 @@ export default function AdminDashboard() {
   
   // State for active tab
   const [activeTab, setActiveTab] = useState<"provinces" | "grades" | "passwords" | "examCodes">("provinces");
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const loadSettings = () => {
+      try {
+        const savedSettings = localStorage.getItem('examSystemSettings');
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
+          
+          if (settings.provinces) setProvinces(settings.provinces);
+          if (settings.grades) setGrades(settings.grades);
+          if (settings.subjectPasswords) {
+            const convertedPasswords: Record<string, SubjectPassword> = {};
+            Object.entries(settings.subjectPasswords).forEach(([subject, password]) => {
+              convertedPasswords[subject] = { 
+                password: password as string, 
+                showPassword: false 
+              };
+            });
+            setSubjectPasswords(convertedPasswords);
+          }
+          if (settings.examCodes) setExamCodes(settings.examCodes);
+        }
+      } catch (error) {
+        console.error("Error loading settings from localStorage:", error);
+      }
+    };
+    
+    loadSettings();
+  }, []);
 
   // Toggle province active status
   const toggleProvince = (provinceId: string): void => {
@@ -234,16 +265,12 @@ export default function AdminDashboard() {
     setExamCodes(prev => prev.filter(c => c.id !== codeId));
   };
 
-  // Save all settings
+  // Save all settings to localStorage
   const saveSettings = async (): Promise<void> => {
     setLoading(true);
     setSaveMessage("");
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real implementation, you would send this data to your API
       const settingsData = {
         provinces: provinces,
         grades: grades,
@@ -254,7 +281,7 @@ export default function AdminDashboard() {
         examCodes: examCodes
       };
       
-      console.log("Saving settings:", settingsData);
+      localStorage.setItem('examSystemSettings', JSON.stringify(settingsData));
       
       setSaveMessage("ការកំណត់ត្រូវបានរក្សាទុកដោយជោគជ័យ!");
       setMessageType("success");
@@ -265,7 +292,6 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
       
-      // Clear message after 5 seconds
       setTimeout(() => {
         setSaveMessage("");
       }, 5000);
@@ -307,7 +333,6 @@ export default function AdminDashboard() {
           <p className="text-gray-600 mt-2">គ្រប់គ្រងការចូលប្រើប្រាស់ប្រឡងតាមខេត្ត ថ្នាក់ និងមុខវិជ្ជា</p>
         </header>
 
-        {/* Success/Error Message */}
         {saveMessage && (
           <div className={`mb-6 p-4 rounded-lg flex items-center ${
             messageType === "success" 
@@ -323,7 +348,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Tab Navigation */}
         <div className="bg-white rounded-xl shadow-md mb-6">
           <div className="flex border-b">
             <button
@@ -374,7 +398,6 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-8">
-          {/* Province Controls */}
           {activeTab === "provinces" && (
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between mb-6">
@@ -399,25 +422,17 @@ export default function AdminDashboard() {
               </div>
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  បើក/បិទការអនុញ្ញាតឱ្យប្រឡងតាមខេត្ត។ ខេត្តដែលត្រូវបានបិទនឹងមិនអាចចូលប្រើប្រព័ន្ធប្រឡងបានទេ។
+                  បើក/បិទការអនុញ្ញាតឱ្យប្រឡងតាមខេត្ត។ ខេត្តដែលត្រូវបានបិទនឹងមិនអាចូលប្រើប្រព័ន្ធប្រឡងបានទេ។
                 </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ខេត្ត/ក្រុង
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ស្ថានភាព
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        កាលបរិច្ឆេទប្រឡង
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        សកម្មភាព
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ខេត្ត/ក្រុង</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ស្ថានភាព</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">កាលបរិច្ឆេទប្រឡង</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">សកម្មភាព</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -444,7 +459,7 @@ export default function AdminDashboard() {
                               className="text-sm border border-gray-300 rounded-md px-2 py-1 w-36"
                             />
                             {isDateInPast(province.examDeadline) && (
-                              <AlertCircle className="ml-2 h-4 w-4 text-red-500"  />
+                              <AlertCircle className="ml-2 h-4 w-4 text-red-500" />
                             )}
                           </div>
                         </td>
@@ -471,7 +486,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Grade Controls */}
           {activeTab === "grades" && (
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between mb-6">
@@ -496,25 +510,17 @@ export default function AdminDashboard() {
               </div>
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  បើក/បិទការអនុញ្ញាតឱ្យប្រឡងតាមថ្នាក់។ ថ្នាក់ដែលត្រូវបានបិទនឹងមិនអាចចូលរួមប្រឡងបានទេ។
+                  បើក/បិទការអនុញ្ញាតឱ្យប្រឡងតាមថ្នាក់។ ថ្នាក់ដែលត្រូវបានបិទនឹងមិនអាចូលរួមប្រឡងបានទេ។
                 </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ថ្នាក់
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ស្ថានភាព
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        កាលបរិច្ឆេទប្រឡង
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        សកម្មភាព
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ថ្នាក់</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ស្ថានភាព</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">កាលបរិច្ឆេទប្រឡង</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">សកម្មភាព</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -568,7 +574,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Subject Password Controls */}
           {activeTab === "passwords" && (
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center mb-6">
@@ -611,7 +616,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Exam Code Controls */}
           {activeTab === "examCodes" && (
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center mb-6">
@@ -620,11 +624,10 @@ export default function AdminDashboard() {
               </div>
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  បង្កើត និងគ្រប់គ្រងកូដប្រឡងសម្រាប់ការប្រឡងផ្សេងៗ។ កូដប្រឡងអាចត្រូវបានបើក/បិទតាមតម្រូវការ។
+                  បង្កើត និងគ្រប់គ្រងកូដប្រឡងសម្រាប់ការប្រឡងផ្សេងៗ។ កូដប្រឡងអាចត្រូវបានបើក/បិតតាមតម្រូវការ។
                 </p>
               </div>
               
-              {/* Add New Exam Code Form */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-medium mb-3">បង្កើតកូដប្រឡងថ្មី</h3>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -653,23 +656,14 @@ export default function AdminDashboard() {
                 </div>
               </div>
               
-              {/* Exam Codes List */}
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        កូដប្រឡង
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ការពិពណ៌នា
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ស្ថានភាព
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        សកម្មភាព
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">កូដប្រឡង</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ការពិពណ៌នា</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ស្ថានភាព</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">សកម្មភាព</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -710,9 +704,7 @@ export default function AdminDashboard() {
                               className="text-red-600 hover:text-red-900"
                               onClick={() => deleteExamCode(examCode.id)}
                             >
-                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
+                              <Trash2 className="h-5 w-5" />
                             </button>
                           </div>
                         </td>
@@ -725,7 +717,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Save Button */}
         <div className="mt-8 flex justify-center">
           <button
             onClick={saveSettings}

@@ -14,14 +14,10 @@ import {
   EyeOff,
 } from "lucide-react";
 
-// Import utility to get the correct exam link
 import { getExamLink } from "@/utils/examLinks";
 
-// UI Components (simplified)
 const Card = ({ children, className = "" }: any) => (
-  <div
-    className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}
-  >
+  <div className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}>
     {children}
   </div>
 );
@@ -44,7 +40,6 @@ const Button = ({
   </button>
 );
 
-// Fixed Input component to properly handle custom onChange
 const Input = ({ value, onChange, type = "text", placeholder, className = "", ...props }: any) => (
   <input
     type={type}
@@ -67,20 +62,6 @@ interface SubjectSelectionProps {
   handleBackToCode: () => void;
 }
 
-// Password mapping for each subject
-const SUBJECT_PASSWORDS: { [key: string]: string } = {
-  "ភាសាខ្មែរ": "1234",
-  "គណិតវិទ្យា": "5678",
-  "រូបវិទ្យា": "9012",
-  "គីមីវិទ្យា": "3456",
-  "ជីវវិទ្យា": "7890",
-  "ប្រវត្តិវិទ្យា": "2345",
-  "ភូមិវិទ្យា": "6789",
-  "សីលធម៌-ពលរដ្ឋវិជ្ជា": "0123",
-  "ផែនដីវិទ្យា": "4567",
-  "អង់គ្លេស": "8901",
-};
-
 export default function SubjectSelection({
   selectedStudent,
   selectedSchool,
@@ -91,29 +72,51 @@ export default function SubjectSelection({
   PROVINCES,
   handleBackToCode,
 }: SubjectSelectionProps) {
-  // Subject selection states
   const [scienceStream, setScienceStream] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [examLink, setExamLink] = useState("");
   
-  // Password verification states
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordVerified, setPasswordVerified] = useState(false);
   
-  // Loading state for exam link fetching
   const [linkLoading, setLinkLoading] = useState(false);
+  const [subjectPasswords, setSubjectPasswords] = useState<Record<string, string>>({});
 
-  // --- Fetch exam link from utility ---
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('examSystemSettings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        if (settings.subjectPasswords) {
+          setSubjectPasswords(settings.subjectPasswords);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading passwords from localStorage:", error);
+      setSubjectPasswords({
+        "ភាសាខ្មែរ": "1234",
+        "គណិតវិទ្យា": "5678",
+        "រូបវិទ្យា": "9012",
+        "គីមីវិទ្យា": "3456",
+        "ជីវវិទ្យា": "7890",
+        "ប្រវត្តិវិទ្យា": "2345",
+        "ភូមិវិទ្យា": "6789",
+        "សីលធម៌-ពលរដ្ឋវិជ្ជា": "0123",
+        "ផែនដីវិទ្យា": "4567",
+        "អង់គ្លេស": "8901",
+      });
+    }
+  }, []);
+
   const fetchExamLink = useCallback(async () => {
     if (!selectedProvinceId || !selectedGrade || !selectedSubject) {
       setExamLink("");
       return;
     }
 
-    // For grades 11-12, check if science stream is selected
     if ((selectedGrade === "11" || selectedGrade === "12") && !scienceStream) {
       setExamLink("");
       return;
@@ -136,68 +139,55 @@ export default function SubjectSelection({
     }
   }, [selectedProvinceId, selectedGrade, selectedSubject, scienceStream]);
 
-  // --- UPDATED: useEffect to trigger link fetching ---
   useEffect(() => {
     fetchExamLink();
   }, [fetchExamLink]);
 
-  // Verify password
   const verifyPassword = useCallback(() => {
     if (!password) {
       setPasswordError("សូមបញ្ចូលលេខសម្ងាត់");
       return;
     }
 
-    // Get password for the selected subject
-    const subjectPassword = SUBJECT_PASSWORDS[selectedSubject];
+    const subjectPassword = subjectPasswords[selectedSubject];
 
     if (password === subjectPassword) {
       setPasswordVerified(true);
       setShowPasswordModal(false);
       setPasswordError("");
-      // Open the exam link in a new tab
       if (examLink) {
         window.open(examLink, '_blank');
       }
     } else {
       setPasswordError("លេខសម្ងាត់មិនត្រឹមត្រូវ");
     }
-  }, [password, selectedSubject, examLink]);
+  }, [password, selectedSubject, examLink, subjectPasswords]);
 
-  // Handle click on exam link button
   const handleExamLinkClick = useCallback(() => {
     if (passwordVerified) {
-      // If password is already verified, open the link directly
       if (examLink) {
         window.open(examLink, '_blank');
       }
     } else {
-      // Otherwise, show the password modal
       setShowPasswordModal(true);
       setPasswordError("");
     }
   }, [passwordVerified, examLink]);
 
-  // Handle password input change - only allow numbers
   const handlePasswordChange = useCallback((value: string) => {
-    // Filter out non-numeric characters
     const numericValue = value.replace(/[^0-9]/g, '');
-    // Limit to 4 digits
     const truncatedValue = numericValue.slice(0, 4);
     setPassword(truncatedValue);
   }, []);
 
-  // Get subjects based on grade and science stream
   const getSubjects = () => {
     if (!selectedGrade) return [];
 
-    // For grades 11-12, we need to consider the science stream
     if (selectedGrade === "11" || selectedGrade === "12") {
       if (!scienceStream) return [];
       return SUBJECTS[selectedGrade as keyof typeof SUBJECTS] || [];
     }
 
-    // For other grades, just return the subjects
     return SUBJECTS[selectedGrade as keyof typeof SUBJECTS] || [];
   };
 
@@ -206,12 +196,10 @@ export default function SubjectSelection({
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8 rounded-xl">
       <div className="max-w-7xl mx-auto">
-        {/* 3D Header with elegant design */}
         <div className="text-center" style={{ perspective: "1000px" }}>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-3">
-          {/* Student Information Card - 3D Premium Design */}
           <Card className="shadow-2xl bg-white/80 backdrop-blur-sm border-0 overflow-hidden transform transition-all duration-300 hover:shadow-xl" style={{ transformStyle: "preserve-3d" }}>
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white transform transition-all duration-300 hover:shadow-inner">
               <div className="flex items-center">
@@ -226,7 +214,6 @@ export default function SubjectSelection({
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Student Name - 3D Effect */}
               <div className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105">
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-indigo-600 rounded-r-full"></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -241,7 +228,6 @@ export default function SubjectSelection({
                 </div>
               </div>
 
-              {/* School - 3D Effect */}
               <div className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105">
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500 to-emerald-600 rounded-r-full"></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -256,7 +242,6 @@ export default function SubjectSelection({
                 </div>
               </div>
 
-              {/* Grade - 3D Effect */}
               <div className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105">
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-pink-600 rounded-r-full"></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -271,7 +256,6 @@ export default function SubjectSelection({
                 </div>
               </div>
 
-              {/* Province - 3D Effect */}
               <div className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105">
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-500 to-orange-600 rounded-r-full"></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -288,13 +272,12 @@ export default function SubjectSelection({
                 </div>
               </div>
 
-              {/* Exam Code - 3D Special Highlight */}
               <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 p-4 shadow-xl transform transition-all duration-300 hover:scale-105 hover:shadow-2xl">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
                 <div className="relative flex items-center">
                   <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 mr-3 shadow-md transform transition-all duration-300 hover:scale-110">
-                    <BookOpen className="h-5 w-5" />
+                    <BookOpen className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-1">
                     <div className="text-xs text-blue-100 uppercase tracking-wide">កូដប្រឡង</div>
@@ -307,7 +290,6 @@ export default function SubjectSelection({
               </div>
             </div>
 
-            {/* Science Stream Selection - 3D Premium Design */}
             {(selectedGrade === "11" || selectedGrade === "12") && (
               <div className="px-6 pb-6">
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 transform transition-all duration-300 hover:shadow-lg hover:scale-105">
@@ -372,7 +354,6 @@ export default function SubjectSelection({
             </div>
           </Card>
 
-          {/* Subject Selection Card - 3D Premium Design */}
           <Card className="shadow-2xl bg-white/80 backdrop-blur-sm border-0 overflow-hidden transform transition-all duration-300 hover:shadow-xl" style={{ transformStyle: "preserve-3d" }}>
             <div className="bg-gradient-to-r from-green-600 to-emerald-700 p-6 text-white transform transition-all duration-300 hover:shadow-inner">
               <div className="flex items-center justify-between">
@@ -411,7 +392,7 @@ export default function SubjectSelection({
                           key={subject}
                           onClick={() => {
                             setSelectedSubject(subject);
-                            setPasswordVerified(false); // Reset password verification when changing subject
+                            setPasswordVerified(false);
                           }}
                           className={`${
                             selectedSubject === subject
@@ -455,7 +436,6 @@ export default function SubjectSelection({
                     )}
                   </div>
 
-                  {/* Exam Link Display - 3D Premium Design */}
                   {selectedSubject && (
                     <div className="mt-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
                       <div className="flex items-center mb-4">
@@ -511,7 +491,6 @@ export default function SubjectSelection({
         </div>
       </div>
 
-      {/* Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all duration-300 scale-100">
