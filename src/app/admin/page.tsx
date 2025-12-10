@@ -1,7 +1,22 @@
-// app/admin/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { 
+  Shield, 
+  BookOpen, 
+  MapPin, 
+  Save, 
+  CheckCircle, 
+  AlertCircle,
+  Calendar,
+  Lock,
+  Settings,
+  Users,
+  School,
+  Clock,
+  Eye,
+  EyeOff
+} from "lucide-react";
 
 // Provinces data
 const PROVINCES = [
@@ -49,15 +64,31 @@ const SUBJECTS = [
   "អង់គ្លេស"
 ];
 
+// Default subject passwords
+const DEFAULT_SUBJECT_PASSWORDS: { [key: string]: string } = {
+  "ភាសាខ្មែរ": "1234",
+  "គណិតវិទ្យា": "5678",
+  "រូបវិទ្យា": "9012",
+  "គីមីវិទ្យា": "3456",
+  "ជីវវិទ្យា": "7890",
+  "ប្រវត្តិវិទ្យា": "2345",
+  "ភូមិវិទ្យា": "6789",
+  "សីលធម៌-ពលរដ្ឋវិជ្ជា": "0123",
+  "ផែនដីវិទ្យា": "4567",
+  "អង់គ្លេស": "8901",
+};
+
 interface Province {
   id: string;
   name: string;
   isActive: boolean;
+  examDeadline: string;
 }
 
 interface Grade {
   grade: string;
   isActive: boolean;
+  examDeadline: string;
 }
 
 interface SubjectPassword {
@@ -65,28 +96,61 @@ interface SubjectPassword {
   showPassword: boolean;
 }
 
+interface ExamCode {
+  id: string;
+  code: string;
+  isActive: boolean;
+  description: string;
+}
+
 export default function AdminDashboard() {
   // State for province controls
   const [provinces, setProvinces] = useState<Province[]>(
-    PROVINCES.map(p => ({ ...p, isActive: true }))
+    PROVINCES.map(p => ({ 
+      ...p, 
+      isActive: true,
+      examDeadline: "2024-12-31" // Default deadline
+    }))
   );
   
   // State for grade controls
   const [grades, setGrades] = useState<Grade[]>(
-    GRADES.map(g => ({ grade: g, isActive: true }))
+    GRADES.map(g => ({ 
+      grade: g, 
+      isActive: true,
+      examDeadline: "2024-12-31" // Default deadline
+    }))
   );
   
   // State for subject passwords
   const [subjectPasswords, setSubjectPasswords] = useState<Record<string, SubjectPassword>>(
     SUBJECTS.reduce((acc, subject) => {
-      acc[subject] = { password: "", showPassword: false };
+      acc[subject] = { 
+        password: DEFAULT_SUBJECT_PASSWORDS[subject], 
+        showPassword: false 
+      };
       return acc;
     }, {} as Record<string, SubjectPassword>)
   );
   
+  // State for exam codes
+  const [examCodes, setExamCodes] = useState<ExamCode[]>([
+    { id: "1", code: "EXAM1", isActive: true, description: "ប្រឡងទី 1 - ភាសាខ្មែរ" },
+    { id: "2", code: "EXAM2", isActive: true, description: "ប្រឡងទី 2 - គណិតវិទ្យា" },
+    { id: "3", code: "EXAM3", isActive: false, description: "ប្រឡងទី 3 - វិទ្យាសាស្រ្ត" },
+  ]);
+  
+  // State for new exam code
+  const [newExamCode, setNewExamCode] = useState("");
+  const [newExamDescription, setNewExamDescription] = useState("");
+  
   // Loading and saving states
   const [loading, setLoading] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string>("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
+  
+  // State for active tab
+  const [activeTab, setActiveTab] = useState<"provinces" | "grades" | "passwords" | "examCodes">("provinces");
 
   // Toggle province active status
   const toggleProvince = (provinceId: string): void => {
@@ -97,11 +161,29 @@ export default function AdminDashboard() {
     );
   };
 
+  // Update province deadline
+  const updateProvinceDeadline = (provinceId: string, deadline: string): void => {
+    setProvinces(prev => 
+      prev.map(p => 
+        p.id === provinceId ? { ...p, examDeadline: deadline } : p
+      )
+    );
+  };
+
   // Toggle grade active status
   const toggleGrade = (grade: string): void => {
     setGrades(prev => 
       prev.map(g => 
         g.grade === grade ? { ...g, isActive: !g.isActive } : g
+      )
+    );
+  };
+
+  // Update grade deadline
+  const updateGradeDeadline = (grade: string, deadline: string): void => {
+    setGrades(prev => 
+      prev.map(g => 
+        g.grade === grade ? { ...g, examDeadline: deadline } : g
       )
     );
   };
@@ -122,6 +204,36 @@ export default function AdminDashboard() {
     }));
   };
 
+  // Toggle exam code active status
+  const toggleExamCode = (codeId: string): void => {
+    setExamCodes(prev => 
+      prev.map(c => 
+        c.id === codeId ? { ...c, isActive: !c.isActive } : c
+      )
+    );
+  };
+
+  // Add new exam code
+  const addExamCode = (): void => {
+    if (!newExamCode.trim()) return;
+    
+    const newCode: ExamCode = {
+      id: Date.now().toString(),
+      code: newExamCode,
+      description: newExamDescription,
+      isActive: true
+    };
+    
+    setExamCodes(prev => [...prev, newCode]);
+    setNewExamCode("");
+    setNewExamDescription("");
+  };
+
+  // Delete exam code
+  const deleteExamCode = (codeId: string): void => {
+    setExamCodes(prev => prev.filter(c => c.id !== codeId));
+  };
+
   // Save all settings
   const saveSettings = async (): Promise<void> => {
     setLoading(true);
@@ -131,13 +243,55 @@ export default function AdminDashboard() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // In a real implementation, you would send this data to your API
+      const settingsData = {
+        provinces: provinces,
+        grades: grades,
+        subjectPasswords: Object.entries(subjectPasswords).reduce((acc, [subject, { password }]) => {
+          acc[subject] = password;
+          return acc;
+        }, {} as Record<string, string>),
+        examCodes: examCodes
+      };
+      
+      console.log("Saving settings:", settingsData);
+      
       setSaveMessage("ការកំណត់ត្រូវបានរក្សាទុកដោយជោគជ័យ!");
+      setMessageType("success");
     } catch (error) {
       console.error("Error saving settings:", error);
       setSaveMessage("មានបញ្ហាក្នុងការរក្សាទុកការកំណត់។ សូមព្យាយាមម្តងទៀត។");
+      setMessageType("error");
     } finally {
       setLoading(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setSaveMessage("");
+      }, 5000);
     }
+  };
+
+  // Toggle all provinces
+  const toggleAllProvinces = (active: boolean): void => {
+    setProvinces(prev => 
+      prev.map(p => ({ ...p, isActive: active }))
+    );
+  };
+
+  // Toggle all grades
+  const toggleAllGrades = (active: boolean): void => {
+    setGrades(prev => 
+      prev.map(g => ({ ...g, isActive: active }))
+    );
+  };
+
+  // Check if a date is in the past
+  const isDateInPast = (dateString: string): boolean => {
+    const date = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
   };
 
   return (
@@ -146,148 +300,437 @@ export default function AdminDashboard() {
         <header className="text-center mb-10">
           <div className="flex justify-center mb-4">
             <div className="bg-blue-600 text-white rounded-full p-4">
-              <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
+              <Shield className="h-10 w-10" />
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-800">ផ្ទាំងគ្រប់គ្រងរបស់អ្នកគ្រប់គ្រង</h1>
           <p className="text-gray-600 mt-2">គ្រប់គ្រងការចូលប្រើប្រាស់ប្រឡងតាមខេត្ត ថ្នាក់ និងមុខវិជ្ជា</p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Province Controls */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center mb-6">
-              <svg className="h-6 w-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <h2 className="text-xl font-bold text-gray-800">គ្រប់គ្រងខេត្ត</h2>
-            </div>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {provinces.map((province: Province) => (
-                <div key={province.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium">{province.name}</span>
-                  <div className="flex items-center">
-                    <span className="text-sm mr-3 text-gray-600">
-                      {province.isActive ? "អនុញ្ញាតឱ្យប្រឡង" : "មិនអនុញ្ញាតឱ្យប្រឡង"}
-                    </span>
-                    <button
-                      type="button"
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        province.isActive ? "bg-blue-600" : "bg-gray-200"
-                      } cursor-pointer`}
-                      onClick={() => toggleProvince(province.id)}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          province.isActive ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Success/Error Message */}
+        {saveMessage && (
+          <div className={`mb-6 p-4 rounded-lg flex items-center ${
+            messageType === "success" 
+              ? "bg-green-100 text-green-700" 
+              : "bg-red-100 text-red-700"
+          }`}>
+            {messageType === "success" ? (
+              <CheckCircle className="h-5 w-5 mr-2" />
+            ) : (
+              <AlertCircle className="h-5 w-5 mr-2" />
+            )}
+            {saveMessage}
           </div>
+        )}
 
-          {/* Grade Controls */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center mb-6">
-              <svg className="h-6 w-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <h2 className="text-xl font-bold text-gray-800">គ្រប់គ្រងថ្នាក់</h2>
-            </div>
-            <div className="space-y-3">
-              {grades.map(({ grade, isActive }: Grade) => (
-                <div key={grade} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium">ថ្នាក់ {grade}</span>
-                  <div className="flex items-center">
-                    <span className="text-sm mr-3 text-gray-600">
-                      {isActive ? "អនុញ្ញាតឱ្យប្រឡង" : "មិនអនុញ្ញាតឱ្យប្រឡង"}
-                    </span>
-                    <button
-                      type="button"
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        isActive ? "bg-blue-600" : "bg-gray-200"
-                      } cursor-pointer`}
-                      onClick={() => toggleGrade(grade)}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          isActive ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Subject Password Controls */}
-          <div className="bg-white rounded-xl shadow-md p-6 lg:col-span-2">
-            <div className="flex items-center mb-6">
-              <svg className="h-6 w-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <h2 className="text-xl font-bold text-gray-800">ការពារលេខសម្ងាត់មុខវិជ្ជា</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(subjectPasswords).map(([subject, { password, showPassword }]: [string, SubjectPassword]) => (
-                <div key={subject} className="p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium mb-2">{subject}</div>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => updateSubjectPassword(subject, e.target.value)}
-                      placeholder="លេខសម្ងាត់ 4 ខ្ទង់"
-                      maxLength={4}
-                      className="w-full h-10 bg-white border border-gray-300 text-gray-700 py-2 px-3 rounded-lg text-sm pr-10"
-                    />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => togglePasswordVisibility(subject)}
-                    >
-                      {showPassword ? (
-                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-2.442 9.942 9.942 0 017.963 4.442c.527 0 1.04-.055 1.545-.162M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-2.442 9.942 9.942 0 017.963 4.442c.527 0 1.04-.055 1.545-.162M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-2.442 9.942 9.942 0 017.963 4.442c.527 0 1.04-.055 1.545-.162M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      ) : (
-                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-md mb-6">
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab("provinces")}
+              className={`flex items-center px-6 py-3 font-medium text-sm ${
+                activeTab === "provinces"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              ខេត្ត
+            </button>
+            <button
+              onClick={() => setActiveTab("grades")}
+              className={`flex items-center px-6 py-3 font-medium text-sm ${
+                activeTab === "grades"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              ថ្នាក់
+            </button>
+            <button
+              onClick={() => setActiveTab("passwords")}
+              className={`flex items-center px-6 py-3 font-medium text-sm ${
+                activeTab === "passwords"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              លេខសម្ងាត់
+            </button>
+            <button
+              onClick={() => setActiveTab("examCodes")}
+              className={`flex items-center px-6 py-3 font-medium text-sm ${
+                activeTab === "examCodes"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              កូដប្រឡង
+            </button>
           </div>
         </div>
 
-        {/* Save Button and Message */}
-        <div className="mt-8 flex flex-col items-center">
-          {saveMessage && (
-            <div className={`mb-4 p-3 rounded-lg ${saveMessage.includes("ជោគជ័យ") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-              {saveMessage}
+        <div className="grid grid-cols-1 gap-8">
+          {/* Province Controls */}
+          {activeTab === "provinces" && (
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <MapPin className="h-6 w-6 text-blue-600 mr-3" />
+                  <h2 className="text-xl font-bold text-gray-800">គ្រប់គ្រងខេត្ត</h2>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleAllProvinces(true)}
+                    className="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                  >
+                    បើកទាំងអស់
+                  </button>
+                  <button
+                    onClick={() => toggleAllProvinces(false)}
+                    className="text-sm px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+                  >
+                    បិទទាំងអស់
+                  </button>
+                </div>
+              </div>
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  បើក/បិទការអនុញ្ញាតឱ្យប្រឡងតាមខេត្ត។ ខេត្តដែលត្រូវបានបិទនឹងមិនអាចចូលប្រើប្រព័ន្ធប្រឡងបានទេ។
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ខេត្ត/ក្រុង
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ស្ថានភាព
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        កាលបរិច្ឆេទប្រឡង
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        សកម្មភាព
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {provinces.map((province: Province) => (
+                      <tr key={province.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{province.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            province.isActive 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-red-100 text-red-800"
+                          }`}>
+                            {province.isActive ? "អនុញ្ញាតឱ្យប្រឡង" : "មិនអនុញ្ញាតឱ្យប្រឡង"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <input
+                              type="date"
+                              value={province.examDeadline}
+                              onChange={(e) => updateProvinceDeadline(province.id, e.target.value)}
+                              className="text-sm border border-gray-300 rounded-md px-2 py-1 w-36"
+                            />
+                            {isDateInPast(province.examDeadline) && (
+                              <AlertCircle className="ml-2 h-4 w-4 text-red-500"  />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            type="button"
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              province.isActive ? "bg-green-600" : "bg-gray-300"
+                            } cursor-pointer`}
+                            onClick={() => toggleProvince(province.id)}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                province.isActive ? "translate-x-6" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
+
+          {/* Grade Controls */}
+          {activeTab === "grades" && (
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <BookOpen className="h-6 w-6 text-blue-600 mr-3" />
+                  <h2 className="text-xl font-bold text-gray-800">គ្រប់គ្រងថ្នាក់</h2>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleAllGrades(true)}
+                    className="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                  >
+                    បើកទាំងអស់
+                  </button>
+                  <button
+                    onClick={() => toggleAllGrades(false)}
+                    className="text-sm px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+                  >
+                    បិទទាំងអស់
+                  </button>
+                </div>
+              </div>
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  បើក/បិទការអនុញ្ញាតឱ្យប្រឡងតាមថ្នាក់។ ថ្នាក់ដែលត្រូវបានបិទនឹងមិនអាចចូលរួមប្រឡងបានទេ។
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ថ្នាក់
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ស្ថានភាព
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        កាលបរិច្ឆេទប្រឡង
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        សកម្មភាព
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {grades.map(({ grade, isActive, examDeadline }: Grade) => (
+                      <tr key={grade}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">ថ្នាក់ {grade}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            isActive 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-red-100 text-red-800"
+                          }`}>
+                            {isActive ? "អនុញ្ញាតឱ្យប្រឡង" : "មិនអនុញ្ញាតឱ្យប្រឡង"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <input
+                              type="date"
+                              value={examDeadline}
+                              onChange={(e) => updateGradeDeadline(grade, e.target.value)}
+                              className="text-sm border border-gray-300 rounded-md px-2 py-1 w-36"
+                            />
+                            {isDateInPast(examDeadline) && (
+                              <AlertCircle className="ml-2 h-4 w-4 text-red-500" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            type="button"
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              isActive ? "bg-green-600" : "bg-gray-300"
+                            } cursor-pointer`}
+                            onClick={() => toggleGrade(grade)}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                isActive ? "translate-x-6" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Subject Password Controls */}
+          {activeTab === "passwords" && (
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center mb-6">
+                <Shield className="h-6 w-6 text-blue-600 mr-3" />
+                <h2 className="text-xl font-bold text-gray-800">ការពារលេខសម្ងាត់មុខវិជ្ជា</h2>
+              </div>
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  កំណត់លេខសម្ងាត់ 4 ខ្ទង់សម្រាប់មុខវិជ្ជានីមួយៗ។ សិស្សត្រូវការលេខសម្ងាត់នេះដើម្បីចូលរួមប្រឡងមុខវិជ្ជាដែលបានជ្រើសរើស។
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(subjectPasswords).map(([subject, { password, showPassword }]: [string, SubjectPassword]) => (
+                  <div key={subject} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="font-medium mb-2">{subject}</div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => updateSubjectPassword(subject, e.target.value)}
+                        placeholder="លេខសម្ងាត់ 4 ខ្ទង់"
+                        maxLength={4}
+                        className="w-full h-10 bg-white border border-gray-300 text-gray-700 py-2 px-3 rounded-lg text-sm pr-10"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={() => togglePasswordVisibility(subject)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Exam Code Controls */}
+          {activeTab === "examCodes" && (
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center mb-6">
+                <Settings className="h-6 w-6 text-blue-600 mr-3" />
+                <h2 className="text-xl font-bold text-gray-800">គ្រប់គ្រងកូដប្រឡង</h2>
+              </div>
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  បង្កើត និងគ្រប់គ្រងកូដប្រឡងសម្រាប់ការប្រឡងផ្សេងៗ។ កូដប្រឡងអាចត្រូវបានបើក/បិទតាមតម្រូវការ។
+                </p>
+              </div>
+              
+              {/* Add New Exam Code Form */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium mb-3">បង្កើតកូដប្រឡងថ្មី</h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={newExamCode}
+                    onChange={(e) => setNewExamCode(e.target.value)}
+                    placeholder="កូដប្រឡង (ត្រឹមតែ 4 តួ)"
+                    maxLength={4}
+                    className="flex-1 h-10 bg-white border border-gray-300 text-gray-700 py-2 px-3 rounded-lg text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={newExamDescription}
+                    onChange={(e) => setNewExamDescription(e.target.value)}
+                    placeholder="ការពិពណ៌នាអំពីកូដប្រឡង"
+                    className="flex-1 h-10 bg-white border border-gray-300 text-gray-700 py-2 px-3 rounded-lg text-sm"
+                  />
+                  <button
+                    onClick={addExamCode}
+                    disabled={!newExamCode.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    បង្កើត
+                  </button>
+                </div>
+              </div>
+              
+              {/* Exam Codes List */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        កូដប្រឡង
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ការពិពណ៌នា
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ស្ថានភាព
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        សកម្មភាព
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {examCodes.map((examCode: ExamCode) => (
+                      <tr key={examCode.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{examCode.code}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">{examCode.description}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            examCode.isActive 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-red-100 text-red-800"
+                          }`}>
+                            {examCode.isActive ? "សកម្ម" : "មិនសកម្ម"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                examCode.isActive ? "bg-green-600" : "bg-gray-300"
+                              } cursor-pointer`}
+                              onClick={() => toggleExamCode(examCode.id)}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  examCode.isActive ? "translate-x-6" : "translate-x-1"
+                                }`}
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              className="text-red-600 hover:text-red-900"
+                              onClick={() => deleteExamCode(examCode.id)}
+                            >
+                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Save Button */}
+        <div className="mt-8 flex justify-center">
           <button
             onClick={saveSettings}
             disabled={loading}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-10 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-12 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white"
           >
             {loading ? (
               <>
@@ -296,9 +739,7 @@ export default function AdminDashboard() {
               </>
             ) : (
               <>
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
+                <Save className="h-4 w-4 mr-2" />
                 រក្សាទុកការកំណត់
               </>
             )}
