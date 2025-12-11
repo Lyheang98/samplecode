@@ -16,10 +16,12 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
     "typeRoots": [
       "./types",
@@ -37,8 +39,10 @@
     "**/*.ts",
     "**/*.tsx",
     "src/app/(auth)/register-exam-code/page.jsx",
-    "types/**/*.d.ts"
-, "src/app/admin/page.tsx"  ],
+    "types/**/*.d.ts",
+    "src/app/admin/page.tsx",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

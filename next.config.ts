@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   // Static generation and caching
   output: 'standalone', // Optimize for production deployment
   trailingSlash: false, // Consistent URL structure
-  // devServer: { port: 5173 },
   
   // Image optimization
   images: {
@@ -24,32 +23,19 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       }
     ],
-    // Enable modern image formats
     formats: ['image/webp', 'image/avif'],
-    // Optimize image loading
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Enable lazy loading
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-
-
-
-
-
-
-
-
-  // TypeScript and ESLint configuration
+  // TypeScript configuration
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 
+  // The eslint block has been removed
 
 };
 
