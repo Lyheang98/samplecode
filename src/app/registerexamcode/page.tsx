@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import Image from 'next/image';
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Home,
@@ -145,7 +145,8 @@ const SUBJECTS = {
 // --- UI Components (Modern and Compact) ---
 const Card = ({ children, className = "", variant = "default" }: any) => {
   const variants = {
-    default: "bg-white border border-purple-100 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden",
+    default:
+      "bg-white border border-purple-100 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden",
     gradient: "relative overflow-hidden shadow-2xl",
     glass: "bg-white/90 backdrop-blur-md border border-purple-100 shadow-xl",
     success: "relative overflow-hidden shadow-2xl",
@@ -153,17 +154,22 @@ const Card = ({ children, className = "", variant = "default" }: any) => {
 
   return (
     <div
-      className={`rounded-3xl ${variants[variant as keyof typeof variants]} ${className}`}
+      className={`rounded-3xl ${
+        variants[variant as keyof typeof variants]
+      } ${className}`}
     >
       {variant === "gradient" && (
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600" />
       )}
       {variant === "success" && (
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-700 " />
+        <div className="absolute inset-0 bg-gradient-to-r 
+             from-[#107da8] 
+             via-[#107da8] 
+             to-[#107da8] 
+             rounded-lg shadow-xl" />
+
       )}
-      <div className="relative z-10">
-        {children}
-      </div>
+      <div className="relative z-10">{children}</div>
     </div>
   );
 };
@@ -176,20 +182,27 @@ const Button = ({
   variant = "primary",
   ...props
 }: any) => {
-  const baseClasses = "inline-flex items-center justify-center rounded-2xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-11 px-6 py-2 relative overflow-hidden group";
+  const baseClasses =
+    "inline-flex items-center justify-center rounded-2xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-11 px-6 py-2 relative overflow-hidden group";
 
   const variantClasses = {
-    primary: "bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 transition-all",
-    secondary: "bg-white text-purple-700 border border-purple-200 hover:bg-purple-50 shadow-md hover:shadow-lg transform hover:-translate-y-0.5",
-    success: "bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 text-white hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5",
-    ghost: "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200",
+    primary:
+      "bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 transition-all",
+    secondary:
+      "bg-white text-purple-700 border border-purple-200 hover:bg-purple-50 shadow-md hover:shadow-lg transform hover:-translate-y-0.5",
+    success:
+      "bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 text-white hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5",
+    ghost:
+      "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200",
     back: "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5",
   };
 
   return (
     <button
       onClick={onClick}
-      className={`${baseClasses} ${variantClasses[variant as keyof typeof variantClasses]} ${className}`}
+      className={`${baseClasses} ${
+        variantClasses[variant as keyof typeof variantClasses]
+      } ${className}`}
       disabled={disabled}
       type="button"
       {...props}
@@ -639,17 +652,29 @@ export default function RegisterExamCodePage() {
         </div>
 
         <header className="text-center mb-8 max-w-5xl mx-auto">
-          <div className="inline-flex items-center justify-center p-3 bg-gradient-to-r from-blue-400 via-blue-600 to-indigo-600 rounded-full mb-4 shadow-2xl">
-              <Image src="/moeys-logo.png" alt="MoEYS Logo" width={64} height={64} className="h-16 w-16" />
-          </div>
+          <header className="text-center mb-8 max-w-7xl mx-auto">
+            <div className="flex justify-center mb-6">
+              <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl shadow-xl">
+                <div className="rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5">
+                  <Image
+                    src="/moeys-logo.png"
+                    alt="Logo"
+                    width={48}
+                    height={48}
+                  />
+                </div>
+                <div className="font-bold">MoEYS EdTech - Online Exam</div>
+              </div>
+            </div>
+          </header>
           <h1 className="text-3xl p-4 font-bold bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
             {currentStep === "code"
-              ? "សូមបំពេញព័ត៍មានដើម្បីបានកូដប្រឡង"
+              ? "សូមបំពេញព័ត៍មានដើម្បីទទួលបានកូដប្រឡង"
               : "ជ្រើសរើសមុខវិជ្ជាប្រឡង"}
           </h1>
           <p className="text-gray-600 mt-2 text-lg">
             {currentStep === "code"
-              ? "ជ្រើសរើសទីតាំងនិងសិស្សដើម្បីទាញយកកូដប្រឡង"
+              ? "បញ្ជាក់៖ សូមជ្រើសរើសទីតាំង ឈ្មោះ ខេត្ត/ស្រុក/ឃុំ/ភូមិ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
               : "ជ្រើសរើសមុខវិជ្ជាដើម្បីចូលរួមប្រឡង"}
           </p>
         </header>
@@ -677,7 +702,9 @@ export default function RegisterExamCodePage() {
                     <SelectFilter
                       label=""
                       value={selectedProvinceId}
-                      onChange={(e: any) => handleProvinceChange(e.target.value)}
+                      onChange={(e: any) =>
+                        handleProvinceChange(e.target.value)
+                      }
                       options={PROVINCES.map((p) => ({
                         value: p.id,
                         name: p.name,
@@ -693,7 +720,9 @@ export default function RegisterExamCodePage() {
                     <SelectFilter
                       label=""
                       value={selectedDistrict}
-                      onChange={(e: any) => handleDistrictChange(e.target.value)}
+                      onChange={(e: any) =>
+                        handleDistrictChange(e.target.value)
+                      }
                       options={districts}
                       disabled={!selectedProvinceId}
                       loading={loadingStep === "ស្រុក"}
@@ -709,7 +738,10 @@ export default function RegisterExamCodePage() {
                       label=""
                       value={selectedSchoolId}
                       onChange={(e: any) => handleSchoolChange(e.target.value)}
-                      options={schools.map((s) => ({ value: s.id, name: s.name }))}
+                      options={schools.map((s) => ({
+                        value: s.id,
+                        name: s.name,
+                      }))}
                       disabled={!selectedDistrict}
                       loading={loadingStep === "សាលារៀន"}
                       icon={<School className="h-4 w-4 text-purple-500" />}
@@ -761,8 +793,8 @@ export default function RegisterExamCodePage() {
                           {loadingStep === `សិស្សថ្នាក់ ${selectedGrade}`
                             ? "កំពុងផ្ទុកសិស្ស..."
                             : studentOptions.length > 0
-                              ? "ជ្រើសរើសឈ្មោះសិស្ស"
-                              : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
+                            ? "ជ្រើសរើសឈ្មោះសិស្ស"
+                            : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
                         </option>
                         {studentOptions.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -787,7 +819,7 @@ export default function RegisterExamCodePage() {
                   ) : (
                     <Search className="h-5 w-5 mr-2" />
                   )}
-                  យកកូដប្រឡង
+                  បង្កើតកូដរបស់អ្នក
                 </Button>
               </Card>
 
@@ -849,9 +881,8 @@ export default function RegisterExamCodePage() {
                     </>
                   ) : (
                     <p className="text-white text-center  text-1xl leading-relaxed">
-                      សូមអនុវត្តតាមជំហានពីឆ្វេងទៅស្ដាំ៖ ជ្រើសរើសខេត្ត ស្រុក
-                      សាលារៀន ថ្នាក់
-                      និងឈ្មោះសិស្ស ដើម្បីទទួលបានកូដប្រឡង។
+                      សូមអនុវត្តតាមជំហាន៖ <p className="text-white text-start  text-1xl leading-relaxed"> <br/> ១. សូមជ្រើសរើសខេត្ត <br/> ២. ស្រុក <br/>
+                      ៣. សូមជ្រើសរើសសាលារៀន <br/> ៤. សូមជ្រើសរើសថ្នាក់ <br/> ៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។ <br/><strong className="text-yellow-300">សម្គាល់៖</strong> សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង។</p>
                     </p>
                   )}
                 </div>

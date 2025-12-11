@@ -119,6 +119,7 @@ export default function ProvinceResultsPage() {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedClassLevel, setSelectedClassLevel] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState(""); // NEW: Added room filter state
   const [selectedGender, setSelectedGender] = useState("");
   const [selectedAchievement, setSelectedAchievement] = useState("");
   const [selectedYear, setSelectedYear] = useState("2025");
@@ -130,9 +131,10 @@ export default function ProvinceResultsPage() {
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
   const [schoolOptions, setSchoolOptions] = useState<{ id: string; name: string }[]>([]);
   const [classLevelOptions, setClassLevelOptions] = useState<string[]>([]);
+  const [roomOptions, setRoomOptions] = useState<string[]>([]); // NEW: Added room options state
 
   const genderOptions = ["ប្រុស", "ស្រី"];
-  const achievementOptions = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const achievementOptions = ["A", "B", "C", "D", "E", "F"];
   const yearfilterOptions = ["2025", "2026", "2027"];
   const monthfilterOptions = [
     "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
@@ -216,6 +218,7 @@ export default function ProvinceResultsPage() {
       if (!selectedDistrict) {
         setSchoolOptions([]);
         setClassLevelOptions([]);
+        setRoomOptions([]); // NEW: Reset room options when district changes
         setIsFetchingOptions(false);
         return;
       }
@@ -249,12 +252,27 @@ export default function ProvinceResultsPage() {
         )].sort();
       }
       setClassLevelOptions(grades);
+
+      // NEW: 4. Rooms (filtered by selectedDistrict, selectedSchool, AND selectedClassLevel)
+      let rooms: string[] = [];
+      if (selectedDistrict && selectedSchool && selectedClassLevel) {
+        rooms = [...new Set(
+          allResults
+            .filter(r => 
+              r.district === selectedDistrict && 
+              r.school === selectedSchool && 
+              r.grade === selectedClassLevel
+            )
+            .map((r: any) => String(r.exam_class ?? "")).filter(Boolean)
+        )].sort();
+      }
+      setRoomOptions(rooms);
     } catch (err) {
       console.error("Error loading filters:", err);
     } finally {
       setIsFetchingOptions(false);
     }
-  }, [allResults, selectedDistrict, selectedSchool]);
+  }, [allResults, selectedDistrict, selectedSchool, selectedClassLevel]);
 
   // --- MAIN FILTERING LOGIC ---
   // This effect runs whenever any filter or search term changes
@@ -270,6 +288,10 @@ export default function ProvinceResultsPage() {
     }
     if (selectedClassLevel) {
       tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
+    }
+    // NEW: Add room filter
+    if (selectedRoom) {
+      tempFiltered = tempFiltered.filter(r => r.exam_class === selectedRoom);
     }
     if (selectedGender) {
       tempFiltered = tempFiltered.filter(r => r.gender === selectedGender);
@@ -311,6 +333,7 @@ export default function ProvinceResultsPage() {
     selectedDistrict,
     selectedSchool,
     selectedClassLevel,
+    selectedRoom, // NEW: Add selectedRoom to dependencies
     selectedGender,
     selectedAchievement,
     selectedYear,
@@ -335,6 +358,7 @@ export default function ProvinceResultsPage() {
     setSelectedDistrict("");
     setSelectedSchool("");
     setSelectedClassLevel("");
+    setSelectedRoom(""); // NEW: Reset room filter
     setSelectedGender("");
     setSelectedAchievement("");
     setSelectedYear("2025");
@@ -442,22 +466,30 @@ export default function ProvinceResultsPage() {
                 <SelectFilter 
                   label="ស្រុក" 
                   value={selectedDistrict} 
-                  onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); }} 
+                  onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); setSelectedRoom(""); }} 
                   options={districtOptions} 
                 />
                 <SelectFilter 
                   label="សាលារៀន" 
                   value={selectedSchool} 
-                  onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); }} 
+                  onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }} 
                   options={schoolOptions.map(s => s.name)} 
                   disabled={!selectedDistrict || isFetchingOptions} 
                 />
                 <SelectFilter 
                   label="កម្រិតថ្នាក់" 
                   value={selectedClassLevel} 
-                  onChange={e => setSelectedClassLevel(e.target.value)} 
+                  onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }} 
                   options={classLevelOptions} 
                   disabled={!selectedSchool || isFetchingOptions} 
+                />
+                {/* NEW: Add room filter */}
+                <SelectFilter 
+                  label="បន្ទប់" 
+                  value={selectedRoom} 
+                  onChange={e => setSelectedRoom(e.target.value)} 
+                  options={roomOptions} 
+                  disabled={!selectedClassLevel || isFetchingOptions} 
                 />
                 <SelectFilter label="និទ្ទេស" value={selectedAchievement} onChange={e => setSelectedAchievement(e.target.value)} options={achievementOptions} />
                 
@@ -475,7 +507,7 @@ export default function ProvinceResultsPage() {
                 <Input placeholder="ស្វែងរកឈ្មោះ ឬ អត្តលេខ..." value={searchValue} onChange={e => setSearchValue(e.target.value)} className="pl-9" />
               </div>
               <Button onClick={handleDownloadCSV} className="bg-green-500 hover:bg-green-600 text-white">
-                <FileDown className="h-4 w-4" /> ទាញយក CSV
+                <FileDown className="h-4 w-4" /> ទាញយកទិន្នន័យសិស្ស
               </Button>
             </div>
             {/* Pagination Info */}
