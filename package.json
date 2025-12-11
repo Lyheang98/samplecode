@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "populate-exam-links": "ts-node scripts/populateExamLinks.tsx",
-    "dev": "next dev -p 5173",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
