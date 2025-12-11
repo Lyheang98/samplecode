@@ -16,7 +16,9 @@ import {
   Clock,
   Eye,
   EyeOff,
-  Trash2
+  Trash2,
+  User,
+  LogIn
 } from "lucide-react";
 
 // Provinces data
@@ -79,6 +81,10 @@ const DEFAULT_SUBJECT_PASSWORDS: { [key: string]: string } = {
   "អង់គ្លេស": "8901",
 };
 
+// Mock credentials
+const MOCK_USERNAME = "moeys-edtech";
+const MOCK_PASSWORD = "exam2025";
+
 interface Province {
   id: string;
   name: string;
@@ -105,6 +111,14 @@ interface ExamCode {
 }
 
 export default function AdminDashboard() {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [loginError, setLoginError] = useState<string>("");
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+
   // State for province controls
   const [provinces, setProvinces] = useState<Province[]>(
     PROVINCES.map(p => ({ 
@@ -153,35 +167,67 @@ export default function AdminDashboard() {
   // State for active tab
   const [activeTab, setActiveTab] = useState<"provinces" | "grades" | "passwords" | "examCodes">("provinces");
 
-  // Load settings from localStorage on component mount
+  // Check if user is already authenticated on component mount
   useEffect(() => {
-    const loadSettings = () => {
-      try {
-        const savedSettings = localStorage.getItem('examSystemSettings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          
-          if (settings.provinces) setProvinces(settings.provinces);
-          if (settings.grades) setGrades(settings.grades);
-          if (settings.subjectPasswords) {
-            const convertedPasswords: Record<string, SubjectPassword> = {};
-            Object.entries(settings.subjectPasswords).forEach(([subject, password]) => {
-              convertedPasswords[subject] = { 
-                password: password as string, 
-                showPassword: false 
-              };
-            });
-            setSubjectPasswords(convertedPasswords);
-          }
-          if (settings.examCodes) setExamCodes(settings.examCodes);
-        }
-      } catch (error) {
-        console.error("Error loading settings from localStorage:", error);
-      }
-    };
-    
-    loadSettings();
+    const authStatus = localStorage.getItem('adminAuthenticated');
+    if (authStatus === 'true') {
+      setIsAuthenticated(true);
+      loadSettings();
+    }
   }, []);
+
+  // Load settings from localStorage
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('examSystemSettings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        
+        if (settings.provinces) setProvinces(settings.provinces);
+        if (settings.grades) setGrades(settings.grades);
+        if (settings.subjectPasswords) {
+          const convertedPasswords: Record<string, SubjectPassword> = {};
+          Object.entries(settings.subjectPasswords).forEach(([subject, password]) => {
+            convertedPasswords[subject] = { 
+              password: password as string, 
+              showPassword: false 
+            };
+          });
+          setSubjectPasswords(convertedPasswords);
+        }
+        if (settings.examCodes) setExamCodes(settings.examCodes);
+      }
+    } catch (error) {
+      console.error("Error loading settings from localStorage:", error);
+    }
+  };
+
+  // Handle login
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError("");
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      if (username === MOCK_USERNAME && password === MOCK_PASSWORD) {
+        setIsAuthenticated(true);
+        localStorage.setItem('adminAuthenticated', 'true');
+        loadSettings();
+      } else {
+        setLoginError("ឈ្មោះអ្នកប្រើប្រាស់ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។");
+      }
+      setIsLoggingIn(false);
+    }, 1000);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('adminAuthenticated');
+    setUsername("");
+    setPassword("");
+  };
 
   // Toggle province active status
   const toggleProvince = (provinceId: string): void => {
@@ -320,19 +366,129 @@ export default function AdminDashboard() {
     return date < today;
   };
 
+  // Login form component
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+          <div className="flex justify-center mb-6">
+            <div className="bg-blue-600 text-white rounded-full p-4">
+              <Shield className="h-10 w-10" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">ចូលប្រើប្រាស់ប្រព័ន្ធ</h2>
+          <p className="text-center text-gray-600 mb-6">សូមបញ្ចូលពត៌មានគណនីរបស់អ្នកដើម្បីចូលប្រើប្រាស់</p>
+          
+          {loginError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              {loginError}
+            </div>
+          )}
+          
+          <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                ឈ្មោះអ្នកប្រើប្រាស់
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10 w-full h-12 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="ឈ្មោះអ្នកប្រើប្រាស់"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                ពាក្យសម្ងាត់
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10 w-full h-12 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="ពាក្យសម្ងាត់"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {isLoggingIn ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  កំពុងតេស្ត...
+                </>
+              ) : (
+                <>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  ចូលប្រើប្រាស់
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Main dashboard component
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 text-white rounded-full p-4">
-              <Shield className="h-10 w-10" />
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-center flex-1">
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              ចាកចេញ
+            </button>
+          </div>
+        </header>
+                <header className="text-center mb-10">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-center flex-1">
+              <div className="bg-blue-600 text-white rounded-full p-4">
+                <Shield className="h-10 w-10" />
+              </div>
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-800">ផ្ទាំងគ្រប់គ្រងរបស់អ្នកគ្រប់គ្រង</h1>
           <p className="text-gray-600 mt-2">គ្រប់គ្រងការចូលប្រើប្រាស់ប្រឡងតាមខេត្ត ថ្នាក់ និងមុខវិជ្ជា</p>
         </header>
-
         {saveMessage && (
           <div className={`mb-6 p-4 rounded-lg flex items-center ${
             messageType === "success" 
