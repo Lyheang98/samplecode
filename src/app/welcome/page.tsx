@@ -178,7 +178,7 @@ export default function WelcomePage() {
                                     </div>
                                     <div className="flex items-start space-x-2 sm:space-x-3">
                                         <span className="bg-blue-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 mt-0.5">3</span>
-                                        <span>បំពេញលេខកូដ ៤ ខ្ទង់ឲ្យបានត្រឹម ដើម្បីចូលរួមប្រឡងតេស្ត</span>
+                                        <span>បំពេញលេខកូដ ៤ ខ្ទង់ឲ្យបានត្រឹមត្រូវ ដើម្បីចូលរួមប្រឡងតេស្ត</span>
                                     </div>
                                      <div className="flex items-start space-x-2 sm:space-x-3">
                                         <span className="bg-blue-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 mt-0.5">4</span>

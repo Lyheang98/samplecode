@@ -651,10 +651,10 @@ export default function RegisterExamCodePage() {
           </Link>
         </div>
 
-        <header className="text-center mb-8 max-w-5xl mx-auto">
-          <header className="text-center mb-8 max-w-7xl mx-auto">
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl shadow-xl">
+        <header className="text-center mb-6 max-w-5xl mx-auto">
+          <header className="text-center mb-[-2] max-w-7xl mx-auto">
+            <div className="flex justify-center mb-5">
+              <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl border-2 border-blue-400">
                 <div className="rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5">
                   <Image
                     src="/moeys-logo.png"
@@ -667,7 +667,7 @@ export default function RegisterExamCodePage() {
               </div>
             </div>
           </header>
-          <h1 className="text-3xl p-4 font-bold bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
+          <h1 className="text-3xl p-2 font-bold bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
             {currentStep === "code"
               ? "សូមបំពេញព័ត៍មានដើម្បីទទួលបានកូដប្រឡង"
               : "ជ្រើសរើសមុខវិជ្ជាប្រឡង"}
@@ -881,8 +881,8 @@ export default function RegisterExamCodePage() {
                     </>
                   ) : (
                     <p className="text-white text-center  text-1xl leading-relaxed">
-                      សូមអនុវត្តតាមជំហាន៖ <p className="text-white text-start  text-1xl leading-relaxed"> <br/> ១. សូមជ្រើសរើសខេត្ត <br/> ២. សូមជ្រើសរើសស្រុក <br/>
-                      ៣. សូមជ្រើសរើសសាលារៀន <br/> ៤. សូមជ្រើសរើសថ្នាក់ <br/> ៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។ <br/><strong className="text-yellow-300">សម្គាល់៖</strong> សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង។</p>
+                      សូមអនុវត្តតាមជំហាន៖ <p className="text-white text-start  text-1xl leading-relaxed"> ១. សូមជ្រើសរើសខេត្ត <br/> ២. សូមជ្រើសរើសស្រុក <br/>
+                      ៣. សូមជ្រើសរើសសាលារៀន <br/> ៤. សូមជ្រើសរើសថ្នាក់ <br/> ៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។ <br/><strong className="text-yellow-300 ">សម្គាល់៖</strong> <p> សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង</p></p>
                     </p>
                   )}
                 </div>

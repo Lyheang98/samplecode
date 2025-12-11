@@ -41,6 +41,7 @@ import {
   Activity,
   CheckCircle,
   ChevronDown,
+  X,
 } from "lucide-react";
 
 import { getExamLink } from "@/utils/examLinks";
@@ -267,6 +268,9 @@ export default function SubjectSelection({
 
   const [linkLoading, setLinkLoading] = useState(false);
   const [subjectPasswords, setSubjectPasswords] = useState<Record<string, string>>({});
+  
+  // New state to control whether to show the Google Form
+  const [showGoogleForm, setShowGoogleForm] = useState(false);
 
   useEffect(() => {
     try {
@@ -338,8 +342,9 @@ export default function SubjectSelection({
       setPasswordVerified(true);
       setShowPasswordModal(false);
       setPasswordError("");
+      // Instead of opening a new window, show the Google Form on the same page
       if (examLink) {
-        window.open(examLink, '_blank');
+        setShowGoogleForm(true);
       }
     } else {
       setPasswordError("លេខសម្ងាត់មិនត្រឹមត្រូវ");
@@ -348,8 +353,9 @@ export default function SubjectSelection({
 
   const handleExamLinkClick = useCallback(() => {
     if (passwordVerified) {
+      // Instead of opening a new window, show the Google Form on the same page
       if (examLink) {
-        window.open(examLink, '_blank');
+        setShowGoogleForm(true);
       }
     } else {
       setShowPasswordModal(true);
@@ -387,6 +393,62 @@ export default function SubjectSelection({
 
   const subjects = getSubjects();
 
+  // If the Google Form should be shown, render it instead of the normal content
+  if (showGoogleForm && examLink) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3">
+                <BookOpen className="h-5 w-5 text-white" />
+              </div>
+              <h1 className="text-xl font-normal text-gray-800">ប្រព័ន្ធប្រឡងអនឡាញ</h1>
+            </div>
+            <Button variant="ghost" onClick={() => setShowGoogleForm(false)}>
+              <X className="h-4 w-4 mr-2" />
+              បិទ
+            </Button>
+          </div>
+        </div>
+
+        {/* Exam Info Bar */}
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
+          <div className="max-w-4xl mx-auto flex items-center">
+            <div className={`p-2 rounded-md mr-3 ${SUBJECT_BG_COLORS[selectedSubject] || 'bg-gray-50'}`}>
+              <div className={SUBJECT_COLORS[selectedSubject] || 'text-gray-600'}>
+                {SUBJECT_ICONS[selectedSubject] || <BookOpen className="h-5 w-5" />}
+              </div>
+            </div>
+            <div>
+              <div className="font-medium text-gray-800">{selectedSubject}</div>
+              <div className="text-sm text-gray-500">សម្រាប់ថ្នាក់ {selectedGrade}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Google Form Container */}
+        <div className="p-4 md:p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 180px)" }}>
+            <iframe
+              src={examLink}
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              marginHeight={0}
+              marginWidth={0}
+              title={`${selectedSubject} Exam Form`}
+            >
+              កំពុងផ្ទុក...
+            </iframe>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal content rendering when Google Form is not shown
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -603,7 +665,7 @@ export default function SubjectSelection({
                   onClick={handleExamLinkClick}
                   className="w-full"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <BookOpen className="h-4 w-4 mr-2" />
                   ចូលរួមប្រឡង
                 </Button>
               ) : (
@@ -619,16 +681,6 @@ export default function SubjectSelection({
           </Card>
         )}
 
-        {/* Navigation Buttons */}
-        {/* <div className="flex justify-between">
-          <Button variant="secondary" onClick={handleBackToCode}>
-            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-            ត្រឡប់ទៅកាន់ទំព័រកូដប្រឡង
-          </Button>
-          <Button onClick={() => window.location.href = "/welcome"}>
-            ទៅកាន់ទំព័រដើម
-          </Button>
-        </div> */}
       </div>
 
       {/* Password Modal */}

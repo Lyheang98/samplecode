@@ -115,6 +115,7 @@ export default function ProvinceResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
+  const [tokenRetries, setTokenRetries] = useState(0);
 
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
@@ -142,16 +143,43 @@ export default function ProvinceResultsPage() {
   ];
   const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, ALL_DATA_VALUE];
 
+  // FIXED: Updated getAccessToken function with proper options and retry logic
   const getAccessToken = useCallback(async () => {
-    const res = await fetch(TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: MOCK_USERNAME, password: MOCK_PASSWORD }),
-    });
-    if (!res.ok) throw new Error("Failed to get token");
-    const data = await res.json();
-    return data.access;
-  }, []);
+    try {
+      const res = await fetch(TOKEN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: MOCK_USERNAME, password: MOCK_PASSWORD }),
+        credentials: "omit", // Added this option
+        cache: "no-store", // Added this option
+      });
+      
+      if (!res.ok) {
+        // If we haven't retried yet, try once more
+        if (tokenRetries < 1) {
+          setTokenRetries(prev => prev + 1);
+          // Wait a moment before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return getAccessToken();
+        }
+        throw new Error(`Failed to get token: ${res.status}`);
+      }
+      
+      // Reset retry counter on success
+      setTokenRetries(0);
+      const data = await res.json();
+      return data.access;
+    } catch (err) {
+      // If we haven't retried yet, try once more
+      if (tokenRetries < 1) {
+        setTokenRetries(prev => prev + 1);
+        // Wait a moment before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return getAccessToken();
+      }
+      throw err;
+    }
+  }, [tokenRetries]);
 
   // Fetch the COMPLETE dataset for the province ONCE
   const fetchAllData = useCallback(async () => {
@@ -165,7 +193,12 @@ export default function ProvinceResultsPage() {
     try {
       const token = await getAccessToken();
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        credentials: "omit", // Added this option
+        cache: "no-store", // Added this option
       });
 
       if (!res.ok) {
@@ -368,11 +401,11 @@ export default function ProvinceResultsPage() {
 
   const handleDownloadCSV = () => {
     const headers = [
-      "ID", "Student ID", "Full Name", "Gender", "School", "District", "Province",
+      "Student ID", "Full Name", "Gender", "School", "District", "Province",
       "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"
     ];
     const rows = filteredResults.map(r => [
-      r.id, r.student_id, r.full_name, r.gender, r.school, r.district, r.province,
+      r.student_id, r.full_name, r.gender, r.school, r.district, r.province,
       r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month
     ]);
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
@@ -419,11 +452,23 @@ export default function ProvinceResultsPage() {
           </div>
           <h2 className="text-2xl font-bold text-red-600 mb-3">មានបញ្ហា</h2>
           <p className="text-gray-700 mb-8">{error}</p>
-          <Link href="/results">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg">
-              <ArrowLeft className="inline h-4 w-4 mr-2" /> ត្រឡប់ទៅជ្រើសរើសខេត្ត
+          <div className="flex gap-4 justify-center">
+            <button 
+              onClick={() => {
+                setError("");
+                setTokenRetries(0);
+                fetchAllData();
+              }} 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg"
+            >
+              <RefreshCw className="inline h-4 w-4 mr-2" /> ព្យាយាមម្តងទៀត
             </button>
-          </Link>
+            <Link href="/results">
+              <button className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg">
+                <ArrowLeft className="inline h-4 w-4 mr-2" /> ត្រឡប់ទៅជ្រើសរើសខេត្ត
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -432,7 +477,7 @@ export default function ProvinceResultsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
       {/* Navigation */}
-      <div className="max-w-7xl mx-auto flex justify-around sm:justify-around sm:gap-4 mb-6">
+      <div className="max-w-7xl mx-auto flex justify-between sm:justify-around sm:gap-4 mb-6">
         <Link href="/results"><button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><ArrowLeft className="h-4 w-4" />ត្រឡប់</button></Link>
         <Link href="/welcome"><button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><Home className="h-4 w-4" />ទំព័រដើម</button></Link>
       </div>
@@ -447,7 +492,7 @@ export default function ProvinceResultsPage() {
             <div className="font-bold">MoEYS EdTech - GEIP ICT Team</div>
           </div>
         </div>
-        <h1 className="text-4xl font-extrabold">
+        <h1 className="text-2xl sm:text-3xl font-extrabold">
           លទ្ធផលប្រឡងរបស់សិស្សក្នុង <span className="text-blue-600">{province_name}</span>
         </h1>
         <p className="text-xl text-gray-600 mt-2">{headerDateText}</p>
@@ -459,7 +504,8 @@ export default function ProvinceResultsPage() {
             {/* Filters */}
             <div className="bg-gray-50 rounded-xl p-4 border">
               <div className="flex items-center gap-2 mb-3"><Filter className="h-5 w-5 text-blue-600" /><h3 className="font-semibold">ការច្រោះយកទិន្នន័យ</h3></div>
-              <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+              {/* MODIFIED: Responsive filter layout - single column on mobile, multiple columns on larger screens */}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 overflow-x-auto pb-2">
                 <SelectFilter label="ឆ្នាំ" value={selectedYear} onChange={e => setSelectedYear(e.target.value)} options={yearfilterOptions} />
                 <SelectFilter label="ខែ" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} options={monthfilterOptions} />
                 <SelectFilter label="ភេទ" value={selectedGender} onChange={e => setSelectedGender(e.target.value)} options={genderOptions} />
@@ -582,12 +628,12 @@ export default function ProvinceResultsPage() {
 }
 
 const SelectFilter = ({ label, value, onChange, options, disabled = false }: any) => (
-  <div className="relative">
+  <div className="relative w-full sm:w-auto">
     <select
       value={value}
       onChange={onChange}
       disabled={disabled}
-      className="bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm appearance-none cursor-pointer disabled:opacity-50"
+      className="bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm appearance-none cursor-pointer disabled:opacity-50 w-full sm:w-auto"
     >
       <option value="">{label}</option>
       {options.map((opt: any) => (
