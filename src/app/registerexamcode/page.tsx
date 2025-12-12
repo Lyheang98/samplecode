@@ -254,7 +254,7 @@ const SelectFilter = ({
 );
 
 // --- Main Component ---
-export default function RegisterExamCodePage() {
+export default function RegisterExamCodePageបញ្ជាក់៖() {
   const router = useRouter();
   const [loadingStep, setLoadingStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -674,7 +674,7 @@ export default function RegisterExamCodePage() {
           </h1>
           <p className="text-gray-600 mt-2 text-lg">
             {currentStep === "code"
-              ? "បញ្ជាក់៖ សូមជ្រើសរើសទីតាំង ឈ្មោះ ខេត្ត/ស្រុក/ឃុំ/ភូមិ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
+              ? "បញ្ជាក់៖ សូមជ្រើសរើសទីតាំងតាម​ ខេត្ត/ស្រុក/សាលារៀន/ឈ្មោះ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
               : "ជ្រើសរើសមុខវិជ្ជាដើម្បីចូលរួមប្រឡង"}
           </p>
         </header>
