@@ -267,11 +267,14 @@ export default function SubjectSelection({
   const [passwordVerified, setPasswordVerified] = useState(false);
 
   const [linkLoading, setLinkLoading] = useState(false);
+  // Initialize with an empty object. Passwords will be loaded from admin settings.
   const [subjectPasswords, setSubjectPasswords] = useState<Record<string, string>>({});
   
   // New state to control whether to show the Google Form
   const [showGoogleForm, setShowGoogleForm] = useState(false);
 
+  // This effect now ONLY loads passwords from the settings saved by the admin.
+  // It has NO hardcoded fallback passwords.
   useEffect(() => {
     try {
       const savedSettings = localStorage.getItem('examSystemSettings');
@@ -283,18 +286,8 @@ export default function SubjectSelection({
       }
     } catch (error) {
       console.error("Error loading passwords from localStorage:", error);
-      setSubjectPasswords({
-        "ភាសាខ្មែរ": "1234",
-        "គណិតវិទ្យា": "5678",
-        "រូបវិទ្យា": "9012",
-        "គីមីវិទ្យា": "3456",
-        "ជីវវិទ្យា": "7890",
-        "ប្រវត្តិវិទ្យា": "2345",
-        "ភូមិវិទ្យា": "6789",
-        "សីលធម៌-ពលរដ្ឋវិជ្ជា": "0123",
-        "ផែនដីវិទ្យា": "4567",
-        "អង់គ្លេស": "8901",
-      });
+      // If settings can't be loaded, subjectPasswords remains an empty object.
+      // This will correctly prevent access to all exams until the admin sets passwords.
     }
   }, []);
 
@@ -337,6 +330,12 @@ export default function SubjectSelection({
     }
 
     const subjectPassword = subjectPasswords[selectedSubject];
+
+    // Check if a password has been set for this subject by the admin
+    if (subjectPassword === undefined || subjectPassword === null || subjectPassword === "") {
+      setPasswordError("លេខសម្ងាត់សម្រាប់មុខវិជ្ជានេះមិនទាន់ត្រូវបានកំណត់ដោយអ្នកគ្រប់គ្រងទេ។");
+      return;
+    }
 
     if (password === subjectPassword) {
       setPasswordVerified(true);

@@ -880,8 +880,8 @@ export default function RegisterExamCodePage () {
                       </div>
                     </>
                   ) : (
-                    <p className="text-white text-center  text-1xl leading-relaxed">
-                      សូមអនុវត្តតាមជំហាន៖ <p className="text-white text-start  text-1xl leading-relaxed"> ១. សូមជ្រើសរើសខេត្ត <br/> ២. សូមជ្រើសរើសស្រុក <br/>
+                    <p className="text-white text-center text-1xl leading-relaxed">
+                      សូមអនុវត្តតាមជំហាន៖ <p className="text-start"> ១. សូមជ្រើសរើសខេត្ត <br/> ២. សូមជ្រើសរើសស្រុក <br/>
                       ៣. សូមជ្រើសរើសសាលារៀន <br/> ៤. សូមជ្រើសរើសថ្នាក់ <br/> ៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។ <br/><strong className="text-yellow-300 ">សម្គាល់៖</strong> <p> សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង</p></p>
                     </p>
                   )}
