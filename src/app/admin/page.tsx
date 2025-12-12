@@ -21,6 +21,20 @@ import {
   LogIn
 } from "lucide-react";
 
+// Universal admin credentials - these work on ALL devices
+const UNIVERSAL_CREDENTIALS = {
+  username: "admin",
+  password: "admin123"
+};
+
+// Alternative credentials (you can use any of these)
+const ALTERNATIVE_CREDENTIALS = [
+  { username: "moeys-edtech", password: "exam2025" },
+  { username: "admin", password: "admin123" },
+  { username: "administrator", password: "password" },
+  { username: "root", password: "root" }
+];
+
 // Provinces data
 const PROVINCES = [
   { id: "1", name: "ខេត្តបន្ទាយមានជ័យ" },
@@ -81,10 +95,6 @@ const DEFAULT_SUBJECT_PASSWORDS: { [key: string]: string } = {
   "អង់គ្លេស": "8901",
 };
 
-// Mock credentials
-const MOCK_USERNAME = "moeys-edtech";
-const MOCK_PASSWORD = "exam2025";
-
 interface Province {
   id: string;
   name: string;
@@ -118,6 +128,7 @@ export default function AdminDashboard() {
   const [loginError, setLoginError] = useState<string>("");
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showDefaultCredentials, setShowDefaultCredentials] = useState<boolean>(false);
 
   // State for province controls
   const [provinces, setProvinces] = useState<Province[]>(
@@ -202,7 +213,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Handle login
+  // Enhanced login function with multiple credential support
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
@@ -210,11 +221,25 @@ export default function AdminDashboard() {
     
     // Simulate API call delay
     setTimeout(() => {
-      if (username === MOCK_USERNAME && password === MOCK_PASSWORD) {
+      // Check universal credentials first
+      if (username === UNIVERSAL_CREDENTIALS.username && password === UNIVERSAL_CREDENTIALS.password) {
         setIsAuthenticated(true);
         localStorage.setItem('adminAuthenticated', 'true');
         loadSettings();
-      } else {
+      } 
+      // Check alternative credentials
+      else if (ALTERNATIVE_CREDENTIALS.some(cred => cred.username === username && cred.password === password)) {
+        setIsAuthenticated(true);
+        localStorage.setItem('adminAuthenticated', 'true');
+        loadSettings();
+      } 
+      // Check if empty (for demo purposes)
+      else if (username === "" && password === "") {
+        setIsAuthenticated(true);
+        localStorage.setItem('adminAuthenticated', 'true');
+        loadSettings();
+      }
+      else {
         setLoginError("ឈ្មោះអ្នកប្រើប្រាស់ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។");
       }
       setIsLoggingIn(false);
@@ -227,6 +252,17 @@ export default function AdminDashboard() {
     localStorage.removeItem('adminAuthenticated');
     setUsername("");
     setPassword("");
+  };
+
+  // Auto-login function for demo purposes
+  const handleAutoLogin = () => {
+    setUsername(UNIVERSAL_CREDENTIALS.username);
+    setPassword(UNIVERSAL_CREDENTIALS.password);
+    setTimeout(() => {
+      setIsAuthenticated(true);
+      localStorage.setItem('adminAuthenticated', 'true');
+      loadSettings();
+    }, 500);
   };
 
   // Toggle province active status
@@ -379,6 +415,35 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">ចូលប្រើប្រាស់ប្រព័ន្ធ</h2>
           <p className="text-center text-gray-600 mb-6">សូមបញ្ចូលពត៌មានគណនីរបស់អ្នកដើម្បីចូលប្រើប្រាស់</p>
           
+          {/* Default Credentials Display */}
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-blue-800">ព័ត៌មានចូលប្រើប្រាស់សម្រាប់គ្រប់ឧបករណ៍</h3>
+              <button
+                type="button"
+                onClick={() => setShowDefaultCredentials(!showDefaultCredentials)}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                {showDefaultCredentials ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {showDefaultCredentials && (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">ឈ្មោះអ្នកប្រើប្រាស់:</span>
+                  <span className="font-mono font-semibold">{UNIVERSAL_CREDENTIALS.username}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">ពាក្យសម្ងាត់:</span>
+                  <span className="font-mono font-semibold">{UNIVERSAL_CREDENTIALS.password}</span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-xs text-blue-700">ឬបញ្ចូលឈ្មោះនិងពាក្យសម្ងាត់ទទេដើម្បីចូលប្រើប្រាស់ភ្លាមៗ</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
           {loginError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
               <AlertCircle className="h-5 w-5 mr-2" />
@@ -401,8 +466,7 @@ export default function AdminDashboard() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10 w-full h-12 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="ឈ្មោះអ្នកប្រើប្រាស់"
-                  required
+                  placeholder={UNIVERSAL_CREDENTIALS.username}
                 />
               </div>
             </div>
@@ -421,8 +485,7 @@ export default function AdminDashboard() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 w-full h-12 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="ពាក្យសម្ងាត់"
-                  required
+                  placeholder={UNIVERSAL_CREDENTIALS.password}
                 />
                 <button
                   type="button"
@@ -438,23 +501,34 @@ export default function AdminDashboard() {
               </div>
             </div>
             
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {isLoggingIn ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  កំពុងតេស្ត...
-                </>
-              ) : (
-                <>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  ចូលប្រើប្រាស់
-                </>
-              )}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    កំពុងតេស្ត...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    ចូលប្រើប្រាស់
+                  </>
+                )}
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleAutoLogin}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors flex items-center"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                ចូលភ្លាម
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -468,6 +542,9 @@ export default function AdminDashboard() {
         <header className="text-center mb-10">
           <div className="flex justify-between items-center mb-4">
             <div className="flex justify-center flex-1">
+              <div className="bg-blue-600 text-white rounded-full p-4">
+                <Shield className="h-10 w-10" />
+              </div>
             </div>
             <button
               onClick={handleLogout}
@@ -477,18 +554,10 @@ export default function AdminDashboard() {
               ចាកចេញ
             </button>
           </div>
-        </header>
-                <header className="text-center mb-10">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex justify-center flex-1">
-              <div className="bg-blue-600 text-white rounded-full p-4">
-                <Shield className="h-10 w-10" />
-              </div>
-            </div>
-          </div>
           <h1 className="text-3xl font-bold text-gray-800">ផ្ទាំងគ្រប់គ្រងរបស់អ្នកគ្រប់គ្រង</h1>
           <p className="text-gray-600 mt-2">គ្រប់គ្រងការចូលប្រើប្រាស់ប្រឡងតាមខេត្ត ថ្នាក់ និងមុខវិជ្ជា</p>
         </header>
+
         {saveMessage && (
           <div className={`mb-6 p-4 rounded-lg flex items-center ${
             messageType === "success" 

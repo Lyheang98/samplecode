@@ -146,6 +146,20 @@ const SUBJECT_BG_COLORS: { [key: string]: string } = {
   "អង់គ្លេស": "bg-indigo-50",
 };
 
+// Static subject passwords
+const SUBJECT_PASSWORDS: Record<string, string> = {
+  "ភាសាខ្មែរ": "1221",
+  "គណិតវិទ្យា": "1222",
+  "រូបវិទ្យា": "1223",
+  "គីមីវិទ្យា": "1224",
+  "ជីវវិទ្យា": "1225",
+  "ប្រវត្តិវិទ្យា": "1226",
+  "ភូមិវិទ្យា": "1227",
+  "សីលធម៌-ពលរដ្ឋវិជ្ជា": "1228",
+  "ផែនដីវិទ្យា": "1229",
+  "អង់គ្លេស": "1220",
+};
+
 // Subject points data structure
 const SUBJECT_POINTS: { [key: string]: { [key: string]: number } } = {
   "7": {
@@ -267,36 +281,9 @@ export default function SubjectSelection({
   const [passwordVerified, setPasswordVerified] = useState(false);
 
   const [linkLoading, setLinkLoading] = useState(false);
-  const [subjectPasswords, setSubjectPasswords] = useState<Record<string, string>>({});
   
   // New state to control whether to show the Google Form
   const [showGoogleForm, setShowGoogleForm] = useState(false);
-
-  useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('examSystemSettings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        if (settings.subjectPasswords) {
-          setSubjectPasswords(settings.subjectPasswords);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading passwords from localStorage:", error);
-      setSubjectPasswords({
-        "ភាសាខ្មែរ": "1234",
-        "គណិតវិទ្យា": "5678",
-        "រូបវិទ្យា": "9012",
-        "គីមីវិទ្យា": "3456",
-        "ជីវវិទ្យា": "7890",
-        "ប្រវត្តិវិទ្យា": "2345",
-        "ភូមិវិទ្យា": "6789",
-        "សីលធម៌-ពលរដ្ឋវិជ្ជា": "0123",
-        "ផែនដីវិទ្យា": "4567",
-        "អង់គ្លេស": "8901",
-      });
-    }
-  }, []);
 
   const fetchExamLink = useCallback(async () => {
     if (!selectedProvinceId || !selectedGrade || !selectedSubject) {
@@ -336,7 +323,7 @@ export default function SubjectSelection({
       return;
     }
 
-    const subjectPassword = subjectPasswords[selectedSubject];
+    const subjectPassword = SUBJECT_PASSWORDS[selectedSubject];
 
     if (password === subjectPassword) {
       setPasswordVerified(true);
@@ -349,7 +336,7 @@ export default function SubjectSelection({
     } else {
       setPasswordError("លេខសម្ងាត់មិនត្រឹមត្រូវ");
     }
-  }, [password, selectedSubject, examLink, subjectPasswords]);
+  }, [password, selectedSubject, examLink]);
 
   const handleExamLinkClick = useCallback(() => {
     if (passwordVerified) {
