@@ -254,7 +254,7 @@ const SelectFilter = ({
 );
 
 // --- Main Component ---
-export default function RegisterExamCodePageបញ្ជាក់៖() {
+export default function RegisterExamCodePage () {
   const router = useRouter();
   const [loadingStep, setLoadingStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
