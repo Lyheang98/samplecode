@@ -466,7 +466,6 @@ export default function AdminDashboard() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10 w-full h-12 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={UNIVERSAL_CREDENTIALS.username}
                 />
               </div>
             </div>
@@ -485,7 +484,7 @@ export default function AdminDashboard() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 w-full h-12 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={UNIVERSAL_CREDENTIALS.password}
+  
                 />
                 <button
                   type="button"

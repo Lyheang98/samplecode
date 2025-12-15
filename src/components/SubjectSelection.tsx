@@ -270,7 +270,10 @@ export default function SubjectSelection({
   PROVINCES,
   handleBackToCode,
 }: SubjectSelectionProps) {
-  const [scienceStream, setScienceStream] = useState("");
+  // Initialize scienceStream with a default value for grades 11-12
+  const [scienceStream, setScienceStream] = useState(
+    (selectedGrade === "11" || selectedGrade === "12") ? "វិទ្យាសាស្រ្ត" : ""
+  );
   const [selectedSubject, setSelectedSubject] = useState("");
   const [examLink, setExamLink] = useState("");
 
@@ -284,6 +287,35 @@ export default function SubjectSelection({
 
   // New state to control whether to show the Google Form
   const [showGoogleForm, setShowGoogleForm] = useState(false);
+
+  // Function to get default points if subject points are not found
+  const getDefaultPoints = (subject: string, grade: string) => {
+    if (grade === "7" || grade === "8") {
+      return subject === "ភាសាខ្មែរ" || subject === "គណិតវិទ្យា" ? 100 : 50;
+    } else if (grade === "9") {
+      const highPoints = ["ភាសាខ្មែរ", "គណិតវិទ្យា", "អង់គ្លេស"];
+      return highPoints.includes(subject) ? 100 : 50;
+    } else if (grade === "10") {
+      const highPoints = ["ភាសាខ្មែរ", "គណិតវិទ្យា", "អង់គ្លេស"];
+      return highPoints.includes(subject) ? 150 : 50;
+    } else if (grade === "11" || grade === "12") {
+      // Default to science stream points
+      const sciencePoints = {
+        "ភាសាខ្មែរ": 75,
+        "គណិតវិទ្យា": 125,
+        "រូបវិទ្យា": 75,
+        "គីមីវិទ្យា": 75,
+        "ជីវវិទ្យា": 75,
+        "ប្រវត្តិវិទ្យា": 50,
+        "សីលធម៌-ពលរដ្ឋវិជ្ជា": 50,
+        "ផែនដីវិទ្យា": 50,
+        "ភូមិវិទ្យា": 50,
+        "អង់គ្លេស": 50,
+      };
+      return sciencePoints[subject] || 50;
+    }
+    return 50; // Default fallback
+  };
 
   const fetchExamLink = useCallback(async () => {
     if (!selectedProvinceId || !selectedGrade || !selectedSubject) {
@@ -371,11 +403,14 @@ export default function SubjectSelection({
     if (!selectedGrade) return 0;
 
     let key = selectedGrade;
-    if ((selectedGrade === "11" || selectedGrade === "12") && scienceStream) {
-      key = `${selectedGrade}-${scienceStream}`;
+    if ((selectedGrade === "11" || selectedGrade === "12")) {
+      // Ensure scienceStream is set to a valid value
+      const stream = scienceStream || "វិទ្យាសាស្រ្ត";
+      key = `${selectedGrade}-${stream}`;
     }
 
-    return SUBJECT_POINTS[key]?.[subject] || 0;
+    // Return points if found, otherwise return a default value
+    return SUBJECT_POINTS[key]?.[subject] || getDefaultPoints(subject, selectedGrade);
   };
 
   const subjects = getSubjects();

@@ -60,9 +60,9 @@ const PROVINCES = [
   { id: "19", name: "ខេត្តស្ទឹងត្រែង" },
   { id: "20", name: "ខេត្តស្វាយរៀង" },
   { id: "21", name: "ខេត្តតាកែវ" },
-  { id: "22", name: "ខេត្តឧត្តរមានជ័យ" },
-  { id: "23", name: "ខេត្តកែប" },
-  { id: "24", name: "ខេត្តប៉ៃលិន" },
+  { id: "22", name: "ខេត្តកែប" },
+  { id: "23", name: "ខេត្តប៉ៃលិន" },
+  { id: "24", name: "ខេត្តឧត្តរមានជ័យ" },
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
 ];
 
@@ -154,9 +154,8 @@ const Card = ({ children, className = "", variant = "default" }: any) => {
 
   return (
     <div
-      className={`rounded-3xl ${
-        variants[variant as keyof typeof variants]
-      } ${className}`}
+      className={`rounded-3xl ${variants[variant as keyof typeof variants]
+        } ${className}`}
     >
       {variant === "gradient" && (
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600" />
@@ -200,9 +199,8 @@ const Button = ({
   return (
     <button
       onClick={onClick}
-      className={`${baseClasses} ${
-        variantClasses[variant as keyof typeof variantClasses]
-      } ${className}`}
+      className={`${baseClasses} ${variantClasses[variant as keyof typeof variantClasses]
+        } ${className}`}
       disabled={disabled}
       type="button"
       {...props}
@@ -254,7 +252,7 @@ const SelectFilter = ({
 );
 
 // --- Main Component ---
-export default function RegisterExamCodePage () {
+export default function RegisterExamCodePage() {
   const router = useRouter();
   const [loadingStep, setLoadingStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -421,13 +419,12 @@ export default function RegisterExamCodePage () {
   };
 
   // --- Copy to clipboard function ---
-  const copyToClipboard = useCallback(() => {
-    if (examCode) {
-      navigator.clipboard.writeText(examCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000); // Reset copied state after 3 seconds
-    }
-  }, [examCode]);
+const copyToClipboard = useCallback(() => {
+   if (examCode) {
+     navigator.clipboard.writeText(examCode);
+     setCopied(true);
+   }
+ }, [examCode]);
 
   // --- Start Exam function ---
   const handleStartExam = useCallback(() => {
@@ -793,8 +790,8 @@ export default function RegisterExamCodePage () {
                           {loadingStep === `សិស្សថ្នាក់ ${selectedGrade}`
                             ? "កំពុងផ្ទុកសិស្ស..."
                             : studentOptions.length > 0
-                            ? "ជ្រើសរើសឈ្មោះសិស្ស"
-                            : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
+                              ? "ជ្រើសរើសឈ្មោះសិស្ស"
+                              : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
                         </option>
                         {studentOptions.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -880,10 +877,20 @@ export default function RegisterExamCodePage () {
                       </div>
                     </>
                   ) : (
-                    <p className="text-white text-center text-1xl leading-relaxed">
-                      សូមអនុវត្តតាមជំហាន៖ <p className="text-start"> ១. សូមជ្រើសរើសខេត្ត <br/> ២. សូមជ្រើសរើសស្រុក <br/>
-                      ៣. សូមជ្រើសរើសសាលារៀន <br/> ៤. សូមជ្រើសរើសថ្នាក់ <br/> ៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។ <br/><strong className="text-yellow-300 ">សម្គាល់៖</strong> <p> សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង</p></p>
-                    </p>
+                    <div className="text-white text-center text-1xl leading-relaxed">
+                      <p className="text-center">សូមអនុវត្តតាមជំហាន៖</p>
+                      <ol className="text-start list-none pl-0">
+                        <li>១. សូមជ្រើសរើសខេត្ត</li>
+                        <li>២. សូមជ្រើសរើសស្រុក</li>
+                        <li>៣. សូមជ្រើសរើសសាលារៀន</li>
+                        <li>៤. សូមជ្រើសរើសថ្នាក់</li>
+                        <li>៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។</li>
+                      </ol>
+                      <p>
+                        <strong className="text-yellow-300">សម្គាល់៖</strong>
+                        សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង
+                      </p>
+                    </div>
                   )}
                 </div>
 
