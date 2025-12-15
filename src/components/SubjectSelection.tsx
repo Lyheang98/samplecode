@@ -517,11 +517,11 @@ export default function SubjectSelection({
       <div className="bg-white border-b border-gray-200 px-4 py-2">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>ជំហាន 1 នៃ 2</span>
+            <span>ជំហាន 1/2</span>
             <div className="flex-1 mx-4 bg-gray-200 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full" style={{ width: "50%" }}></div>
             </div>
-            <span>បញ្ចប់បញ្ចូល</span>
+            <span>រួចរាល់ 2/2</span>
           </div>
         </div>
       </div>
@@ -680,13 +680,13 @@ export default function SubjectSelection({
         {/* Exam Link Section */}
         {selectedSubject && (
           <Card className="mb-6 p-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200 text-center">
               តំណភ្ជាប់ទៅកាន់កម្មវិធីប្រឡង
             </h2>
 
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="flex items-center mb-3">
-                <div className={`p-2 rounded-md mr-3 ${SUBJECT_BG_COLORS[selectedSubject] || 'bg-gray-50'}`}>
+            <div className="bg-gray-50 p-4 rounded-md ">
+              <div className="flex items-center mb-7">
+                <div className={`p-4 rounded-md mr-3 ${SUBJECT_BG_COLORS[selectedSubject] || 'bg-gray-50'}`}>
                   <div className={SUBJECT_COLORS[selectedSubject] || 'text-gray-600'}>
                     {SUBJECT_ICONS[selectedSubject] || <BookOpen className="h-5 w-5" />}
                   </div>
@@ -705,10 +705,10 @@ export default function SubjectSelection({
               ) : examLink ? (
                 <Button
                   onClick={handleExamLinkClick}
-                  className="w-full"
+                  className="w-full "
                 >
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  ចូលរួមប្រឡង
+                  <BookOpen className="h-4 w-4 mr-2 " />
+                  ចុចប៊ូតុងដើម្បីប្រឡង
                 </Button>
               ) : (
                 <div className="flex items-center justify-center py-4 text-center">
@@ -736,7 +736,7 @@ export default function SubjectSelection({
               </div>
 
               <p className="text-gray-600 mb-4">
-                សូមបញ្ចូលលេខសម្ងាត់ 4 ខ្ទង់ដើម្បីចូលប្រើប្រាស់ការប្រឡងមុខវិជ្ជា {selectedSubject}
+                សូមបញ្ចូលលេខសម្ងាត់ 4 ខ្ទង់តាមមុខវិជ្ជា {selectedSubject}
               </p>
 
               <div className="mb-4">

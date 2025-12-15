@@ -632,7 +632,7 @@ export default function RegisterExamCodePage() {
                     <User className="h-6 w-6 text-white" />
                   </div>
                   <h2 className="text-xl font-bold text-gray-800">
-                    បំពេញព័ត៍មានផ្ទាល់ខ្លួន
+                    សូមបំពេញព័ត៍មានផ្ទាល់ខ្លួន
                   </h2>
                 </div>
 
@@ -772,7 +772,7 @@ export default function RegisterExamCodePage() {
                     <FileText className="h-6 w-6 text-white" />
                   </div>
                   <h2 className="text-xl font-bold text-white">
-                    លទ្ធផលកូដប្រឡង
+                    សូមចម្លងកូដប្រឡងរបស់អ្នក
                   </h2>
                 </div>
 
@@ -822,8 +822,8 @@ export default function RegisterExamCodePage() {
                       </div>
                     </>
                   ) : (
-                    <div className="text-white text-center text-1xl leading-relaxed">
-                      <p className="text-center">សូមអនុវត្តតាមជំហាន៖</p>
+                    <div className="text-white  text-1xl leading-relaxed">
+                      <p className="text-2xl pb-4">សូមអនុវត្តតាមជំហាន៖</p>
                       <ol className="text-start list-none pl-0">
                         <li>១. សូមជ្រើសរើសខេត្ត</li>
                         <li>២. សូមជ្រើសរើសស្រុក</li>
@@ -831,7 +831,7 @@ export default function RegisterExamCodePage() {
                         <li>៤. សូមជ្រើសរើសថ្នាក់</li>
                         <li>៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។</li>
                       </ol>
-                      <p>
+                      <p className="pt-3">
                         <strong className="text-yellow-300">សម្គាល់៖</strong>
                         សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង
                       </p>

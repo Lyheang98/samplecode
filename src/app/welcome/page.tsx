@@ -71,7 +71,7 @@ export default function WelcomePage() {
                          MoEYS EdTech
                     </h1>
                     <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-                        ប្រព័ន្ធគ្រប់គ្រងទិន្នន័យ MoEYS EdTech សម្រាប់សិស្សានុសិស្ស
+                        សួមស្វាគមន៍មកកាន់ប្រព័ន្ធ MoEYS EdTech សម្រាប់ការប្រឡងនិងពិនិត្យលទ្ធផល
                     </p>
                 </header>
 
