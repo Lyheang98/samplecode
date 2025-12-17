@@ -189,13 +189,13 @@ const SUBJECT_POINTS: { [key: string]: { [key: string]: number } } = {
   "9": {
     "ភាសាខ្មែរ": 100,
     "គណិតវិទ្យា": 100,
-    "រូបវិទ្យា": 50,
-    "គីមីវិទ្យា": 50,
-    "ជីវវិទ្យា": 50,
-    "ប្រវត្តិវិទ្យា": 50,
-    "សីលធម៌-ពលរដ្ឋវិជ្ជា": 50,
-    "ផែនដីវិទ្យា": 50,
-    "ភូមិវិទ្យា": 50,
+    "រូបវិទ្យា": 35,
+    "គីមីវិទ្យា": 25,
+    "ជីវវិទ្យា": 35,
+    "ប្រវត្តិវិទ្យា": 33,
+    "សីលធម៌-ពលរដ្ឋវិជ្ជា": 35,
+    "ផែនដីវិទ្យា": 25,
+    "ភូមិវិទ្យា": 32,
     "អង់គ្លេស": 50,
   },
   "10": {
@@ -288,20 +288,6 @@ export default function SubjectSelection({
   // New state to control whether to show the Google Form
   const [showGoogleForm, setShowGoogleForm] = useState(false);
 
-  // --- FIX 1: Add useEffect to sync scienceStream when grade changes ---
-  useEffect(() => {
-    if (selectedGrade === "11" || selectedGrade === "12") {
-      // If we switched to 11/12 and stream is empty, default to Science
-      if (!scienceStream) {
-        setScienceStream("វិទ្យាសាស្រ្ត");
-      }
-    } else {
-      // If we switched to lower grades, clear stream
-      setScienceStream("");
-    }
-  }, [selectedGrade]); 
-  // --------------------------------------------------------------------
-
   // Function to get default points if subject points are not found
   const getDefaultPoints = (subject: string, grade: string) => {
     if (grade === "7" || grade === "8") {
@@ -326,7 +312,6 @@ export default function SubjectSelection({
         "ភូមិវិទ្យា": 50,
         "អង់គ្លេស": 50,
       };
-      // @ts-ignore
       return sciencePoints[subject] || 50;
     }
     return 50; // Default fallback
@@ -338,16 +323,10 @@ export default function SubjectSelection({
       return;
     }
 
-    // --- FIX 2: Better Fallback Logic for fetchExamLink ---
-    // This ensures consistency with getSubjectPoints.
-    // If grade is 11/12 but scienceStream is empty, we force "វិទ្យាសាស្រ្ត"
-    // instead of returning early and failing.
-    let effectiveStream = scienceStream;
-    if ((selectedGrade === "11" || selectedGrade === "12") && !effectiveStream) {
-       effectiveStream = "វិទ្យាសាស្រ្ត";
+    if ((selectedGrade === "11" || selectedGrade === "12") && !scienceStream) {
+      setExamLink("");
+      return;
     }
-
-    // (Original failing logic was here: if !scienceStream return;)
 
     setLinkLoading(true);
     try {
@@ -355,7 +334,7 @@ export default function SubjectSelection({
         selectedProvinceId,
         selectedGrade,
         selectedSubject,
-        effectiveStream // Use the effective stream
+        scienceStream
       );
       setExamLink(link);
     } catch (error) {
@@ -413,9 +392,8 @@ export default function SubjectSelection({
     if (!selectedGrade) return [];
 
     if (selectedGrade === "11" || selectedGrade === "12") {
-      // Use fallback here as well for display purposes
-      const stream = scienceStream || "វិទ្យាសាស្រ្ត"; 
-      return SUBJECTS[`${selectedGrade}-${stream}`] || SUBJECTS[selectedGrade as keyof typeof SUBJECTS] || [];
+      if (!scienceStream) return [];
+      return SUBJECTS[selectedGrade as keyof typeof SUBJECTS] || [];
     }
 
     return SUBJECTS[selectedGrade as keyof typeof SUBJECTS] || [];
@@ -432,13 +410,7 @@ export default function SubjectSelection({
     }
 
     // Return points if found, otherwise return a default value
-    const gradePoints = SUBJECT_POINTS[key];
-    if (gradePoints && gradePoints[subject] !== undefined) {
-      return gradePoints[subject];
-    }
-    
-    // If not found, return default points
-    return getDefaultPoints(subject, selectedGrade);
+    return SUBJECT_POINTS[key]?.[subject] || getDefaultPoints(subject, selectedGrade);
   };
 
   const subjects = getSubjects();
@@ -510,6 +482,10 @@ export default function SubjectSelection({
             </div>
             <h1 className="text-xl font-normal text-gray-800">ប្រព័ន្ធប្រឡងអនឡាញ</h1>
           </div>
+          {/* <Button variant="ghost" onClick={handleBackToCode}>
+            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+            ត្រឡប់
+          </Button> */}
         </div>
       </div>
 
@@ -517,11 +493,11 @@ export default function SubjectSelection({
       <div className="bg-white border-b border-gray-200 px-4 py-2">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>ជំហាន 1/2</span>
+            <span>ជំហាន 1 នៃ 2</span>
             <div className="flex-1 mx-4 bg-gray-200 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full" style={{ width: "50%" }}></div>
             </div>
-            <span>រួចរាល់ 2/2</span>
+            <span>បញ្ចប់បញ្ចូល</span>
           </div>
         </div>
       </div>
@@ -617,7 +593,6 @@ export default function SubjectSelection({
             ជ្រើសរើសមុខវិជ្ជា
           </h2>
 
-          {/* This warning block is less likely to appear now due to auto-selection, but kept for safety */}
           {(selectedGrade === "11" || selectedGrade === "12") && !scienceStream ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertTriangle className="h-12 w-12 text-amber-500 mb-3" />
@@ -680,13 +655,13 @@ export default function SubjectSelection({
         {/* Exam Link Section */}
         {selectedSubject && (
           <Card className="mb-6 p-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200 text-center">
+            <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
               តំណភ្ជាប់ទៅកាន់កម្មវិធីប្រឡង
             </h2>
 
-            <div className="bg-gray-50 p-4 rounded-md ">
-              <div className="flex items-center mb-7">
-                <div className={`p-4 rounded-md mr-3 ${SUBJECT_BG_COLORS[selectedSubject] || 'bg-gray-50'}`}>
+            <div className="bg-gray-50 p-4 rounded-md">
+              <div className="flex items-center mb-3">
+                <div className={`p-2 rounded-md mr-3 ${SUBJECT_BG_COLORS[selectedSubject] || 'bg-gray-50'}`}>
                   <div className={SUBJECT_COLORS[selectedSubject] || 'text-gray-600'}>
                     {SUBJECT_ICONS[selectedSubject] || <BookOpen className="h-5 w-5" />}
                   </div>
@@ -705,10 +680,10 @@ export default function SubjectSelection({
               ) : examLink ? (
                 <Button
                   onClick={handleExamLinkClick}
-                  className="w-full "
+                  className="w-full"
                 >
-                  <BookOpen className="h-4 w-4 mr-2 " />
-                  ចុចប៊ូតុងដើម្បីប្រឡង
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  ចូលរួមប្រឡង
                 </Button>
               ) : (
                 <div className="flex items-center justify-center py-4 text-center">
@@ -736,7 +711,7 @@ export default function SubjectSelection({
               </div>
 
               <p className="text-gray-600 mb-4">
-                សូមបញ្ចូលលេខសម្ងាត់ 4 ខ្ទង់តាមមុខវិជ្ជា {selectedSubject}
+                សូមបញ្ចូលលេខសម្ងាត់ 4 ខ្ទង់ដើម្បីចូលប្រើប្រាស់ការប្រឡងមុខវិជ្ជា {selectedSubject}
               </p>
 
               <div className="mb-4">
