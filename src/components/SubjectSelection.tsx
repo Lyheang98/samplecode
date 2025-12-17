@@ -41,6 +41,7 @@ import {
   Activity,
   CheckCircle,
   ChevronDown,
+  X,
 } from "lucide-react";
 
 import { getExamLink } from "@/utils/examLinks";
@@ -60,14 +61,14 @@ const Button = ({
   ...props
 }: any) => {
   const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-10 px-4 py-2";
-  
+
   const variantClasses = {
     primary: "bg-blue-600 text-white hover:bg-blue-700",
     secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200",
     outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
     ghost: "text-gray-700 hover:bg-gray-100",
   };
-  
+
   return (
     <button
       onClick={onClick}
@@ -143,6 +144,20 @@ const SUBJECT_BG_COLORS: { [key: string]: string } = {
   "សីលធម៌-ពលរដ្ឋវិជ្ជា": "bg-pink-50",
   "ផែនដីវិទ្យា": "bg-cyan-50",
   "អង់គ្លេស": "bg-indigo-50",
+};
+
+// Static subject passwords
+const SUBJECT_PASSWORDS: Record<string, string> = {
+  "ភាសាខ្មែរ": "1221",
+  "គណិតវិទ្យា": "1222",
+  "រូបវិទ្យា": "1223",
+  "គីមីវិទ្យា": "1224",
+  "ជីវវិទ្យា": "1225",
+  "ប្រវត្តិវិទ្យា": "1226",
+  "ភូមិវិទ្យា": "1227",
+  "សីលធម៌-ពលរដ្ឋវិជ្ជា": "1228",
+  "ផែនដីវិទ្យា": "1229",
+  "អង់គ្លេស": "1220",
 };
 
 // Subject points data structure
@@ -255,7 +270,10 @@ export default function SubjectSelection({
   PROVINCES,
   handleBackToCode,
 }: SubjectSelectionProps) {
-  const [scienceStream, setScienceStream] = useState("");
+  // Initialize scienceStream with a default value for grades 11-12
+  const [scienceStream, setScienceStream] = useState(
+    (selectedGrade === "11" || selectedGrade === "12") ? "វិទ្យាសាស្រ្ត" : ""
+  );
   const [selectedSubject, setSelectedSubject] = useState("");
   const [examLink, setExamLink] = useState("");
 
@@ -266,33 +284,38 @@ export default function SubjectSelection({
   const [passwordVerified, setPasswordVerified] = useState(false);
 
   const [linkLoading, setLinkLoading] = useState(false);
-  const [subjectPasswords, setSubjectPasswords] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('examSystemSettings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        if (settings.subjectPasswords) {
-          setSubjectPasswords(settings.subjectPasswords);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading passwords from localStorage:", error);
-      setSubjectPasswords({
-        "ភាសាខ្មែរ": "1234",
-        "គណិតវិទ្យា": "5678",
-        "រូបវិទ្យា": "9012",
-        "គីមីវិទ្យា": "3456",
-        "ជីវវិទ្យា": "7890",
-        "ប្រវត្តិវិទ្យា": "2345",
-        "ភូមិវិទ្យា": "6789",
-        "សីលធម៌-ពលរដ្ឋវិជ្ជា": "0123",
-        "ផែនដីវិទ្យា": "4567",
-        "អង់គ្លេស": "8901",
-      });
+  // New state to control whether to show the Google Form
+  const [showGoogleForm, setShowGoogleForm] = useState(false);
+
+  // Function to get default points if subject points are not found
+  const getDefaultPoints = (subject: string, grade: string) => {
+    if (grade === "7" || grade === "8") {
+      return subject === "ភាសាខ្មែរ" || subject === "គណិតវិទ្យា" ? 100 : 50;
+    } else if (grade === "9") {
+      const highPoints = ["ភាសាខ្មែរ", "គណិតវិទ្យា", "អង់គ្លេស"];
+      return highPoints.includes(subject) ? 100 : 50;
+    } else if (grade === "10") {
+      const highPoints = ["ភាសាខ្មែរ", "គណិតវិទ្យា", "អង់គ្លេស"];
+      return highPoints.includes(subject) ? 150 : 50;
+    } else if (grade === "11" || grade === "12") {
+      // Default to science stream points
+      const sciencePoints = {
+        "ភាសាខ្មែរ": 75,
+        "គណិតវិទ្យា": 125,
+        "រូបវិទ្យា": 75,
+        "គីមីវិទ្យា": 75,
+        "ជីវវិទ្យា": 75,
+        "ប្រវត្តិវិទ្យា": 50,
+        "សីលធម៌-ពលរដ្ឋវិជ្ជា": 50,
+        "ផែនដីវិទ្យា": 50,
+        "ភូមិវិទ្យា": 50,
+        "អង់គ្លេស": 50,
+      };
+      return sciencePoints[subject] || 50;
     }
-  }, []);
+    return 50; // Default fallback
+  };
 
   const fetchExamLink = useCallback(async () => {
     if (!selectedProvinceId || !selectedGrade || !selectedSubject) {
@@ -332,24 +355,26 @@ export default function SubjectSelection({
       return;
     }
 
-    const subjectPassword = subjectPasswords[selectedSubject];
+    const subjectPassword = SUBJECT_PASSWORDS[selectedSubject];
 
     if (password === subjectPassword) {
       setPasswordVerified(true);
       setShowPasswordModal(false);
       setPasswordError("");
+      // Instead of opening a new window, show the Google Form on the same page
       if (examLink) {
-        window.open(examLink, '_blank');
+        setShowGoogleForm(true);
       }
     } else {
       setPasswordError("លេខសម្ងាត់មិនត្រឹមត្រូវ");
     }
-  }, [password, selectedSubject, examLink, subjectPasswords]);
+  }, [password, selectedSubject, examLink]);
 
   const handleExamLinkClick = useCallback(() => {
     if (passwordVerified) {
+      // Instead of opening a new window, show the Google Form on the same page
       if (examLink) {
-        window.open(examLink, '_blank');
+        setShowGoogleForm(true);
       }
     } else {
       setShowPasswordModal(true);
@@ -378,15 +403,74 @@ export default function SubjectSelection({
     if (!selectedGrade) return 0;
 
     let key = selectedGrade;
-    if ((selectedGrade === "11" || selectedGrade === "12") && scienceStream) {
-      key = `${selectedGrade}-${scienceStream}`;
+    if ((selectedGrade === "11" || selectedGrade === "12")) {
+      // Ensure scienceStream is set to a valid value
+      const stream = scienceStream || "វិទ្យាសាស្រ្ត";
+      key = `${selectedGrade}-${stream}`;
     }
 
-    return SUBJECT_POINTS[key]?.[subject] || 0;
+    // Return points if found, otherwise return a default value
+    return SUBJECT_POINTS[key]?.[subject] || getDefaultPoints(subject, selectedGrade);
   };
 
   const subjects = getSubjects();
 
+  // If the Google Form should be shown, render it instead of the normal content
+  if (showGoogleForm && examLink) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3">
+                <BookOpen className="h-5 w-5 text-white" />
+              </div>
+              <h1 className="text-xl font-normal text-gray-800">ប្រព័ន្ធប្រឡងអនឡាញ</h1>
+            </div>
+            <Button variant="ghost" onClick={() => setShowGoogleForm(false)}>
+              <X className="h-4 w-4 mr-2" />
+              បិទ
+            </Button>
+          </div>
+        </div>
+
+        {/* Exam Info Bar */}
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
+          <div className="max-w-4xl mx-auto flex items-center">
+            <div className={`p-2 rounded-md mr-3 ${SUBJECT_BG_COLORS[selectedSubject] || 'bg-gray-50'}`}>
+              <div className={SUBJECT_COLORS[selectedSubject] || 'text-gray-600'}>
+                {SUBJECT_ICONS[selectedSubject] || <BookOpen className="h-5 w-5" />}
+              </div>
+            </div>
+            <div>
+              <div className="font-medium text-gray-800">{selectedSubject}</div>
+              <div className="text-sm text-gray-500">សម្រាប់ថ្នាក់ {selectedGrade}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Google Form Container */}
+        <div className="p-4 md:p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 180px)" }}>
+            <iframe
+              src={examLink}
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              marginHeight={0}
+              marginWidth={0}
+              title={`${selectedSubject} Exam Form`}
+            >
+              កំពុងផ្ទុក...
+            </iframe>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal content rendering when Google Form is not shown
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -425,30 +509,30 @@ export default function SubjectSelection({
           <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
             ព័ត៌មានសិស្ស
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="pb-4 border-b border-gray-100">
               <div className="text-sm text-gray-500 mb-1">ឈ្មោះ</div>
               <div className="text-base">{selectedStudent?.fullName || ""}</div>
             </div>
-            
+
             <div className="pb-4 border-b border-gray-100">
               <div className="text-sm text-gray-500 mb-1">សាលារៀន</div>
               <div className="text-base">{selectedSchool?.name || ""}</div>
             </div>
-            
+
             <div className="pb-4 border-b border-gray-100">
               <div className="text-sm text-gray-500 mb-1">ថ្នាក់</div>
               <div className="text-base">{selectedGrade}</div>
             </div>
-            
+
             <div className="pb-4 border-b border-gray-100">
               <div className="text-sm text-gray-500 mb-1">ខេត្ត/ក្រុង</div>
               <div className="text-base">
                 {PROVINCES.find((p) => p.id === selectedProvinceId)?.name || ""}
               </div>
             </div>
-            
+
             <div className="pb-4 border-b border-gray-100">
               <div className="text-sm text-gray-500 mb-1">កូដប្រឡង</div>
               <div className="text-base font-mono">{examCode}</div>
@@ -462,41 +546,37 @@ export default function SubjectSelection({
             <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
               ជ្រើសរើសជំនាញវិទ្យាសាស្រ្ត
             </h2>
-            
+
             <div className="space-y-3">
-              <div 
-                className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${
-                  scienceStream === "វិទ្យាសាស្រ្ត" 
-                    ? "border-blue-500 bg-blue-50" 
+              <div
+                className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${scienceStream === "វិទ្យាសាស្រ្ត"
+                    ? "border-blue-500 bg-blue-50"
                     : "border-gray-300 hover:bg-gray-50"
-                }`}
+                  }`}
                 onClick={() => setScienceStream("វិទ្យាសាស្រ្ត")}
               >
-                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                  scienceStream === "វិទ្យាសាស្រ្ត" 
-                    ? "border-blue-500" 
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${scienceStream === "វិទ្យាសាស្រ្ត"
+                    ? "border-blue-500"
                     : "border-gray-400"
-                }`}>
+                  }`}>
                   {scienceStream === "វិទ្យាសាស្រ្ត" && (
                     <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
                   )}
                 </div>
                 <div className="text-base">វិទ្យាសាស្រ្ត</div>
               </div>
-              
-              <div 
-                className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${
-                  scienceStream === "វិទ្យាសាស្រ្តសង្គម" 
-                    ? "border-blue-500 bg-blue-50" 
+
+              <div
+                className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${scienceStream === "វិទ្យាសាស្រ្តសង្គម"
+                    ? "border-blue-500 bg-blue-50"
                     : "border-gray-300 hover:bg-gray-50"
-                }`}
+                  }`}
                 onClick={() => setScienceStream("វិទ្យាសាស្រ្តសង្គម")}
               >
-                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                  scienceStream === "វិទ្យាសាស្រ្តសង្គម" 
-                    ? "border-blue-500" 
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${scienceStream === "វិទ្យាសាស្រ្តសង្គម"
+                    ? "border-blue-500"
                     : "border-gray-400"
-                }`}>
+                  }`}>
                   {scienceStream === "វិទ្យាសាស្រ្តសង្គម" && (
                     <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
                   )}
@@ -512,7 +592,7 @@ export default function SubjectSelection({
           <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
             ជ្រើសរើសមុខវិជ្ជា
           </h2>
-          
+
           {(selectedGrade === "11" || selectedGrade === "12") && !scienceStream ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertTriangle className="h-12 w-12 text-amber-500 mb-3" />
@@ -527,15 +607,14 @@ export default function SubjectSelection({
                   const isSelected = selectedSubject === subject;
                   const subjectColor = SUBJECT_COLORS[subject] || "text-gray-600";
                   const subjectBgColor = SUBJECT_BG_COLORS[subject] || "bg-gray-50";
-                  
+
                   return (
                     <div
                       key={subject}
-                      className={`p-4 border rounded-md cursor-pointer transition-all ${
-                        isSelected
+                      className={`p-4 border rounded-md cursor-pointer transition-all ${isSelected
                           ? "border-blue-500 bg-blue-50"
                           : "border-gray-300 hover:bg-gray-50"
-                      }`}
+                        }`}
                       onClick={() => {
                         setSelectedSubject(subject);
                         setPasswordVerified(false);
@@ -551,11 +630,11 @@ export default function SubjectSelection({
                           <CheckCircle className="h-5 w-5 text-blue-600" />
                         )}
                       </div>
-                      
+
                       <div className="text-base font-medium text-gray-800 mb-2">
                         {subject}
                       </div>
-                      
+
                       <div className="flex items-center text-sm text-gray-600">
                         <Award className="h-4 w-4 mr-1 text-amber-500" />
                         <span>{points} ពិន្ទុ</span>
@@ -579,7 +658,7 @@ export default function SubjectSelection({
             <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
               តំណភ្ជាប់ទៅកាន់កម្មវិធីប្រឡង
             </h2>
-            
+
             <div className="bg-gray-50 p-4 rounded-md">
               <div className="flex items-center mb-3">
                 <div className={`p-2 rounded-md mr-3 ${SUBJECT_BG_COLORS[selectedSubject] || 'bg-gray-50'}`}>
@@ -592,18 +671,18 @@ export default function SubjectSelection({
                   <div className="text-sm text-gray-500">សម្រាប់ថ្នាក់ {selectedGrade}</div>
                 </div>
               </div>
-              
+
               {linkLoading ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-5 w-5 mr-2 animate-spin text-blue-600" />
                   <span className="text-gray-700">កំពុងរកតំណភ្ជាប់...</span>
                 </div>
               ) : examLink ? (
-                <Button 
+                <Button
                   onClick={handleExamLinkClick}
                   className="w-full"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <BookOpen className="h-4 w-4 mr-2" />
                   ចូលរួមប្រឡង
                 </Button>
               ) : (
@@ -619,16 +698,6 @@ export default function SubjectSelection({
           </Card>
         )}
 
-        {/* Navigation Buttons */}
-        {/* <div className="flex justify-between">
-          <Button variant="secondary" onClick={handleBackToCode}>
-            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-            ត្រឡប់ទៅកាន់ទំព័រកូដប្រឡង
-          </Button>
-          <Button onClick={() => window.location.href = "/welcome"}>
-            ទៅកាន់ទំព័រដើម
-          </Button>
-        </div> */}
       </div>
 
       {/* Password Modal */}
@@ -640,11 +709,11 @@ export default function SubjectSelection({
                 <Lock className="h-6 w-6 text-gray-600 mr-3" />
                 <h3 className="text-lg font-medium text-gray-800">តម្រូវឱ្យមានលេខសម្ងាត់</h3>
               </div>
-              
+
               <p className="text-gray-600 mb-4">
                 សូមបញ្ចូលលេខសម្ងាត់ 4 ខ្ទង់ដើម្បីចូលប្រើប្រាស់ការប្រឡងមុខវិជ្ជា {selectedSubject}
               </p>
-              
+
               <div className="mb-4">
                 <div className="relative">
                   <Input
@@ -673,7 +742,7 @@ export default function SubjectSelection({
                   <div className="mt-2 text-sm text-red-600">{passwordError}</div>
                 )}
               </div>
-              
+
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="ghost"
