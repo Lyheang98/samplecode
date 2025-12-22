@@ -1,5 +1,5 @@
-// src/app/results/[province]/page.tsx
 "use client";
+import React from "react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,8 +15,23 @@ import {
   Filter,
   FileDown,
   ArrowRight,
+  Eye,
+  BarChart3,
 } from "lucide-react";
 import { API_BASE, MOCK_USERNAME, MOCK_PASSWORD } from "../../../../api/api.js";
+
+const SUBJECT_LIST = [
+  { code: "1.3.2", name: "ភាសាខ្មែរ" },
+  { code: "1.3.3", name: "គណិតវិទ្យា" },
+  { code: "1.3.4", name: "រូបវិទ្យា" },
+  { code: "1.3.5", name: "គីមីវិទ្យា" },
+  { code: "1.3.6", name: "ជីវវិទ្យា" },
+  { code: "1.3.7", name: "ប្រវត្តិវិទ្យា" },
+  { code: "1.3.8", name: "សីលធម៌-ពលរដ្ឋវិជ្ជា" },
+  { code: "1.3.9", name: "ផែនដីវិទ្យា" },
+  { code: "1.3.10", name: "ភូមិវិទ្យា" },
+  { code: "1.3.11", name: "អង់គ្លេស" },
+];
 
 // --- UI Components ---
 const Card = ({ className = "", children }) => (
@@ -42,22 +57,15 @@ const Button = ({
   else baseStyles += " h-10 px-4 py-2";
 
   if (variant === "default") baseStyles += " bg-blue-600 text-white hover:bg-blue-700";
-  else if (variant === "outline")
-    baseStyles += " border border-input bg-background hover:bg-accent hover:text-accent-foreground";
-  else if (variant === "ghost")
-    baseStyles += " hover:bg-accent hover:text-accent-foreground";
+  else if (variant === "outline") baseStyles += " border border-input bg-background hover:bg-accent hover:text-accent-foreground";
+  else if (variant === "ghost") baseStyles += " hover:bg-accent hover:text-accent-foreground";
 
   if (className.includes("bg-green-500") || className.includes("bg-red-500") || className.includes("bg-indigo-600") || className.includes("bg-purple-600")) {
     baseStyles = baseStyles.replace(/bg-blue-600/, "").replace(/hover:bg-blue-700/, "");
   }
 
   return (
-    <button
-      onClick={onClick}
-      className={`${baseStyles} ${className}`}
-      disabled={disabled}
-      type="button"
-    >
+    <button onClick={onClick} className={`${baseStyles} ${className}`} disabled={disabled} type="button">
       {children}
     </button>
   );
@@ -111,9 +119,9 @@ export default function ProvinceResultsPage() {
   const router = useRouter();
   const province_name = useMemo(() => decodeProvinceName(params?.province), [params?.province]);
 
-  // States
-  const [allResults, setAllResults] = useState<any[]>([]);
-  const [filteredResults, setFilteredResults] = useState<any[]>([]);
+  const [rawStudents, setRawStudents] = useState<any[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
+  const [summaryData, setSummaryData] = useState<any[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -137,6 +145,9 @@ export default function ProvinceResultsPage() {
   const [classLevelOptions, setClassLevelOptions] = useState<string[]>([]);
   const [roomOptions, setRoomOptions] = useState<string[]>([]);
 
+  const [activeTab, setActiveTab] = useState("result-subject"); // Default to result-subject
+  const [showScores, setShowScores] = useState(true);
+
   const genderOptions = ["ប្រុស", "ស្រី"];
   const achievementOptions = ["A", "B", "C", "D", "E", "F"];
   const yearfilterOptions = ["2025", "2026", "2027"];
@@ -146,7 +157,6 @@ export default function ProvinceResultsPage() {
   ];
   const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, ALL_DATA_VALUE];
 
-  // Get access token with retry logic
   const getAccessToken = useCallback(async () => {
     try {
       const res = await fetch(TOKEN_URL, {
@@ -179,22 +189,22 @@ export default function ProvinceResultsPage() {
     }
   }, [tokenRetries]);
 
-  // Fetch the COMPLETE dataset for the province ONCE
-  const fetchAllData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!province_name) return;
     setLoading(true);
     setError("");
 
-    const url = `${API_BASE}/api/v1/result/full-results/${encodeURIComponent(province_name)}/`;
-    console.log("Fetching ALL data for province →", url);
+    let url = "";
+    if (activeTab === "full-results") {
+      url = `${API_BASE}/api/v1/result/full-results/${encodeURIComponent(province_name)}/`;
+    } else if (activeTab === "result-subject" || activeTab === "total-results") {
+      url = `${API_BASE}/api/v1/result/result-Subjects/${encodeURIComponent(province_name)}/`;
+    }
 
     try {
       const token = await getAccessToken();
       const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         credentials: "omit",
         cache: "no-store",
       });
@@ -225,22 +235,138 @@ export default function ProvinceResultsPage() {
         result: r.overall_result || r.result || "",
         exam_year: r.exam_year || new Date().getFullYear().toString(),
         exam_month: r.exam_month || new Date().getMonth() + 1,
+        subjects: r.subjects || {},
+        total_score: toIntegerScore(r.total_score ?? 0),
+        total_possible: toIntegerScore(r.total_possible ?? 0),
+        total_average: toAverage(r.total_average ?? "0"),
+        overall_level: r.overall_level || "",
+        overall_result: r.overall_result || "",
       }));
 
-      setAllResults(mapped);
+      setRawStudents(mapped);
     } catch (err: any) {
       setError(`បរាជ័យក្នុងការផ្ទុកទិន្នន័យ: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [province_name, getAccessToken]);
+  }, [province_name, getAccessToken, activeTab]);
 
-  // Fetch filter options based on the full dataset
+  // Filter students
+  useEffect(() => {
+    let tempFiltered = rawStudents;
+
+    if (selectedDistrict) tempFiltered = tempFiltered.filter(r => r.district === selectedDistrict);
+    if (selectedSchool) tempFiltered = tempFiltered.filter(r => r.school === selectedSchool);
+    if (selectedClassLevel) tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
+    if (selectedRoom) tempFiltered = tempFiltered.filter(r => r.exam_class === selectedRoom);
+    if (selectedGender) tempFiltered = tempFiltered.filter(r => r.gender === selectedGender);
+    if (selectedAchievement) tempFiltered = tempFiltered.filter(r => r.level === selectedAchievement);
+
+    if (selectedYear) tempFiltered = tempFiltered.filter(r => String(r.exam_year) === selectedYear);
+    if (selectedMonth) {
+      const monthInt = MONTH_NAME_TO_INT[selectedMonth];
+      if (monthInt) tempFiltered = tempFiltered.filter(r => parseInt(r.exam_month) === monthInt);
+    }
+
+    if (searchValue.trim()) {
+      const val = searchValue.trim().toLowerCase();
+      tempFiltered = tempFiltered.filter(r =>
+        r.full_name.toLowerCase().includes(val) ||
+        r.student_id.includes(val) ||
+        r.school.toLowerCase().includes(val)
+      );
+    }
+
+    setFilteredStudents(tempFiltered);
+    setCurrentPage(1);
+  }, [
+    rawStudents,
+    searchValue,
+    selectedDistrict,
+    selectedSchool,
+    selectedClassLevel,
+    selectedRoom,
+    selectedGender,
+    selectedAchievement,
+    selectedYear,
+    selectedMonth,
+  ]);
+
+  // Aggregate for total-results
+  useEffect(() => {
+    if (activeTab !== "total-results" || !filteredStudents.length) return;
+
+    const summaryMap = new Map<string, any>();
+    SUBJECT_LIST.forEach(subject => {
+      summaryMap.set(subject.code, {
+        code: subject.code,
+        name: subject.name,
+        A: 0,
+        A_female: 0,
+        B: 0,
+        B_female: 0,
+        C: 0,
+        C_female: 0,
+        D: 0,
+        D_female: 0,
+        E: 0,
+        E_female: 0,
+        F: 0,
+        F_female: 0,
+        ABC: 0,
+        ABC_female: 0,
+        DEF: 0,
+        DEF_female: 0,
+      });
+    });
+
+    filteredStudents.forEach((r: any) => {
+      const gender = r.gender || "";
+      const isFemale = gender === "ស្រី";
+
+      SUBJECT_LIST.forEach(subject => {
+        const subjData = r.subjects?.[subject.name] || {};
+        const level = subjData.level || "";
+
+        if (level) {
+          const summary = summaryMap.get(subject.code);
+          if (level === "A") {
+            summary.A += 1;
+            if (isFemale) summary.A_female += 1;
+          } else if (level === "B") {
+            summary.B += 1;
+            if (isFemale) summary.B_female += 1;
+          } else if (level === "C") {
+            summary.C += 1;
+            if (isFemale) summary.C_female += 1;
+          } else if (level === "D") {
+            summary.D += 1;
+            if (isFemale) summary.D_female += 1;
+          } else if (level === "E") {
+            summary.E += 1;
+            if (isFemale) summary.E_female += 1;
+          } else if (level === "F") {
+            summary.F += 1;
+            if (isFemale) summary.F_female += 1;
+          }
+
+          summary.ABC = summary.A + summary.B + summary.C;
+          summary.ABC_female = summary.A_female + summary.B_female + summary.C_female;
+          summary.DEF = summary.D + summary.E + summary.F;
+          summary.DEF_female = summary.D_female + summary.E_female + summary.F_female;
+        }
+      });
+    });
+
+    setSummaryData(Array.from(summaryMap.values()));
+  }, [filteredStudents, activeTab]);
+
+  // Fetch filter options
   const fetchFilterOptions = useCallback(() => {
-    if (allResults.length === 0) return;
+    if (rawStudents.length === 0) return;
     setIsFetchingOptions(true);
     try {
-      const districts = [...new Set(allResults.map((d: any) => d.district).filter(Boolean))].sort();
+      const districts = [...new Set(rawStudents.map((d: any) => d.district).filter(Boolean))].sort();
       setDistrictOptions(districts);
 
       if (!selectedDistrict) {
@@ -254,38 +380,22 @@ export default function ProvinceResultsPage() {
       let schools: { id: string; name: string }[] = [];
       if (selectedDistrict) {
         const schoolSet = new Set<string>();
-        allResults
-          .filter((s: any) => s.district === selectedDistrict)
-          .forEach((s: any) => {
-            if (s.school) schoolSet.add(s.school);
-          });
-        schools = Array.from(schoolSet.keys())
-          .map(name => ({ id: name, name: name }))
-          .sort((a, b) => a.name.localeCompare(b.name));
+        rawStudents.filter((s: any) => s.district === selectedDistrict).forEach((s: any) => {
+          if (s.school) schoolSet.add(s.school);
+        });
+        schools = Array.from(schoolSet).map(name => ({ id: name, name })).sort((a, b) => a.name.localeCompare(b.name));
       }
       setSchoolOptions(schools);
 
       let grades: string[] = [];
       if (selectedDistrict && selectedSchool) {
-        grades = [...new Set(
-          allResults
-            .filter(g => g.district === selectedDistrict && g.school === selectedSchool)
-            .map((g: any) => String(g.grade ?? "")).filter(Boolean)
-        )].sort();
+        grades = [...new Set(rawStudents.filter(g => g.district === selectedDistrict && g.school === selectedSchool).map((g: any) => String(g.grade ?? "")).filter(Boolean))].sort();
       }
       setClassLevelOptions(grades);
 
       let rooms: string[] = [];
       if (selectedDistrict && selectedSchool && selectedClassLevel) {
-        rooms = [...new Set(
-          allResults
-            .filter(r =>
-              r.district === selectedDistrict &&
-              r.school === selectedSchool &&
-              r.grade === selectedClassLevel
-            )
-            .map((r: any) => String(r.exam_class ?? "")).filter(Boolean)
-        )].sort();
+        rooms = [...new Set(rawStudents.filter(r => r.district === selectedDistrict && r.school === selectedSchool && r.grade === selectedClassLevel).map((r: any) => String(r.exam_class ?? "")).filter(Boolean))].sort();
       }
       setRoomOptions(rooms);
     } catch (err) {
@@ -293,81 +403,16 @@ export default function ProvinceResultsPage() {
     } finally {
       setIsFetchingOptions(false);
     }
-  }, [allResults, selectedDistrict, selectedSchool, selectedClassLevel]);
+  }, [rawStudents, selectedDistrict, selectedSchool, selectedClassLevel]);
 
-  // MAIN FILTERING LOGIC
   useEffect(() => {
-    let tempFiltered = allResults;
-
-    if (selectedDistrict) {
-      tempFiltered = tempFiltered.filter(r => r.district === selectedDistrict);
-    }
-    if (selectedSchool) {
-      tempFiltered = tempFiltered.filter(r => r.school === selectedSchool);
-    }
-    if (selectedClassLevel) {
-      tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
-    }
-    if (selectedRoom) {
-      tempFiltered = tempFiltered.filter(r => r.exam_class === selectedRoom);
-    }
-    if (selectedGender) {
-      tempFiltered = tempFiltered.filter(r => r.gender === selectedGender);
-    }
-    if (selectedAchievement) {
-      tempFiltered = tempFiltered.filter(r => r.level === selectedAchievement);
-    }
-
-    if (selectedYear) {
-      tempFiltered = tempFiltered.filter(r => String(r.exam_year) === selectedYear);
-    }
-    if (selectedMonth) {
-      const monthInt = MONTH_NAME_TO_INT[selectedMonth];
-      if (monthInt) {
-        tempFiltered = tempFiltered.filter(r => {
-          const examMonth = parseInt(r.exam_month);
-          return !isNaN(examMonth) && examMonth === monthInt;
-        });
-      }
-    }
-
-    if (searchValue.trim()) {
-      const val = searchValue.trim().toLowerCase();
-      tempFiltered = tempFiltered.filter(
-        (r) =>
-          r.full_name.toLowerCase().includes(val) ||
-          r.student_id.includes(val) ||
-          r.school.toLowerCase().includes(val)
-      );
-    }
-
-    setFilteredResults(tempFiltered);
-    setCurrentPage(1);
-  }, [
-    allResults,
-    searchValue,
-    selectedDistrict,
-    selectedSchool,
-    selectedClassLevel,
-    selectedRoom,
-    selectedGender,
-    selectedAchievement,
-    selectedYear,
-    selectedMonth,
-  ]);
-
-  // EFFECTS
-  useEffect(() => {
-    if (province_name) {
-      fetchAllData();
-    }
-  }, [province_name, fetchAllData]);
+    if (province_name) fetchData();
+  }, [province_name, fetchData]);
 
   useEffect(() => {
     fetchFilterOptions();
   }, [fetchFilterOptions]);
 
-  // HANDLERS
   const handleClearFilters = () => {
     setSelectedDistrict("");
     setSelectedSchool("");
@@ -381,48 +426,70 @@ export default function ProvinceResultsPage() {
   };
 
   const handleDownloadCSV = () => {
-    const headers = [
-      "Student ID", "Full Name", "Gender", "School", "District", "Province",
-      "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"
-    ];
-    const rows = filteredResults.map(r => [
-      r.student_id, r.full_name, r.gender, r.school, r.district, r.province,
-      r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month
-    ]);
+    let headers = [];
+    let rows = [];
+
+    if (activeTab === "full-results") {
+      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"];
+      rows = filteredStudents.map(r => [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month]);
+    } else if (activeTab === "result-subject") {
+      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Grade", "Class", "Total Score", "Total Possible", "Average", "Overall Level", "Overall Result"];
+      SUBJECT_LIST.forEach(subject => {
+        if (showScores) headers.push(`${subject.name} Score`);
+        else headers.push(`${subject.name} Level`);
+      });
+      headers.push("Year", "Month");
+
+      rows = filteredStudents.map(r => {
+        const row = [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.grade, r.exam_class, r.total_score, r.total_possible, r.total_average, r.overall_level, r.overall_result];
+        SUBJECT_LIST.forEach(subject => {
+          if (r.subjects?.[subject.name]) {
+            row.push(showScores ? r.subjects[subject.name].score || "០" : r.subjects[subject.name].level || "");
+          } else {
+            row.push(showScores ? "០" : "");
+          }
+        });
+        row.push(r.exam_year, r.exam_month);
+        return row;
+      });
+    } else if (activeTab === "total-results") {
+      headers = ["No.", "Code", "Subject", "A", "A Female", "B", "B Female", "C", "C Female", "D", "D Female", "E", "E Female", "F", "F Female", "ABC", "ABC Female", "DEF", "DEF Female"];
+      rows = summaryData.map((r, i) => [i + 1, r.code, r.name, r.A, r.A_female, r.B, r.B_female, r.C, r.C_female, r.D, r.D_female, r.E, r.E_female, r.F, r.F_female, r.ABC, r.ABC_female, r.DEF, r.DEF_female]);
+    }
+
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
     const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${province_name}_results.csv`;
+    link.download = `${province_name}_${activeTab}_results.csv`;
     link.click();
   };
 
-  // NEW: Handler for navigation to student test results
-const handleStudentTestClick = () => {
-  router.push(`/results/${encodeURIComponent(province_name)}/result-subject`);
-};
-
-// NEW: Handler for navigation to test results by subject
-const handleTestResultClick = () => {
-  router.push(`/results/${encodeURIComponent(province_name)}/total-results`);
-};
-
-  // LOGIC
-  const totalPages = rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil(filteredResults.length / rowsPerPage));
+  const totalPages = useMemo(() => rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil((activeTab === "total-results" ? summaryData.length : filteredStudents.length) / rowsPerPage)), [activeTab, summaryData.length, filteredStudents.length, rowsPerPage]);
   const paginated = useMemo(() => {
-    if (rowsPerPage === ALL_DATA_VALUE) return filteredResults;
+    const data = activeTab === "total-results" ? summaryData : filteredStudents;
+    if (rowsPerPage === ALL_DATA_VALUE) return data;
     const start = (currentPage - 1) * rowsPerPage;
-    return filteredResults.slice(start, start + rowsPerPage);
-  }, [filteredResults, currentPage, rowsPerPage]);
+    return data.slice(start, start + rowsPerPage);
+  }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
 
-  const displayStart = filteredResults.length ? (currentPage - 1) * rowsPerPage + 1 : 0;
-  const displayEnd = filteredResults.length ? Math.min(currentPage * rowsPerPage, filteredResults.length) : 0;
+  const displayStart = useMemo(() => {
+    const data = activeTab === "total-results" ? summaryData : filteredStudents;
+    return data.length ? (currentPage - 1) * rowsPerPage + 1 : 0;
+  }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
 
-  const headerDateText = selectedMonth || selectedYear ? (
-    <>ទិន្នន័យសិស្សក្នុង {selectedMonth && <>ខែ <span className="text-blue-600 font-bold">{selectedMonth}</span></>} {selectedYear && <>{selectedMonth ? " " : ""}ឆ្នាំ <span className="text-blue-600 font-bold">{selectedYear}</span></>}</>
-  ) : "ទិន្នន័យលទ្ធផលសិស្ស";
+  const displayEnd = useMemo(() => {
+    const data = activeTab === "total-results" ? summaryData : filteredStudents;
+    return data.length ? Math.min(currentPage * rowsPerPage, data.length) : 0;
+  }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
 
-  if (loading && !allResults.length) {
+  const headerDateText = useMemo(() => selectedMonth || selectedYear ? (
+    <>
+      ទិន្នន័យសិស្សក្នុង {selectedMonth && <>ខែ <span className="text-blue-600 font-bold">{selectedMonth}</span></>} {selectedYear && <>{selectedMonth ? " " : ""}ឆ្នាំ <span className="text-blue-600 font-bold">{selectedYear}</span></>}
+    </>
+  ) : "ទិន្នន័យលទ្ធផលសិស្ស", [selectedMonth, selectedYear]);
+
+  if (loading && !rawStudents.length) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
@@ -443,14 +510,7 @@ const handleTestResultClick = () => {
           <h2 className="text-2xl font-bold text-red-600 mb-3">មានបញ្ហា</h2>
           <p className="text-gray-700 mb-8">{error}</p>
           <div className="flex gap-4 justify-center">
-            <button
-              onClick={() => {
-                setError("");
-                setTokenRetries(0);
-                fetchAllData();
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg"
-            >
+            <button onClick={() => { setError(""); setTokenRetries(0); fetchData(); }} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg">
               <RefreshCw className="inline h-4 w-4 mr-2" /> ព្យាយាមម្តងទៀត
             </button>
             <Link href="/results">
@@ -466,13 +526,11 @@ const handleTestResultClick = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
-      {/* Navigation */}
       <div className="max-w-7xl mx-auto flex justify-between sm:justify-around sm:gap-4 mb-6">
         <Link href="/results"><button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><ArrowLeft className="h-4 w-4" />ត្រឡប់</button></Link>
         <Link href="/welcome"><button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><Home className="h-4 w-4" />ទំព័រដើម</button></Link>
       </div>
 
-      {/* Header */}
       <header className="text-center mb-8 max-w-7xl mx-auto">
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl shadow-xl">
@@ -488,140 +546,285 @@ const handleTestResultClick = () => {
         <p className="text-xl text-gray-600 mt-2">{headerDateText}</p>
       </header>
 
-      {/* Report Buttons */}
       <div className="max-w-7xl mx-auto mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button
-            onClick={handleStudentTestClick}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2"
-          >
-            <FileDown className="h-5 w-5" />
-            មើលរបាយការណ៍បូកសរុបលទ្ធផលតេស្ត
-          </Button>
-          <Button
-            onClick={handleTestResultClick}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2"
-          >
-            <Search className="h-5 w-5" />
-            មើលលទ្ធផលតេស្តសិស្សតាមមុខវិជ្ជា
-          </Button>
+        <div className="flex flex-wrap gap-2 justify-center bg-white rounded-xl p-2 shadow-md">
+          <button onClick={() => setActiveTab("full-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "full-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>លទ្ធផលសរុប</button>
+          <button onClick={() => setActiveTab("result-subject")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "result-subject" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>មើលតាមមុខវិជ្ជា</button>
+          <button onClick={() => setActiveTab("total-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "total-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>របាយការណ៍</button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto">
         <Card className="bg-white shadow-lg">
           <CardContent className="p-5 space-y-6">
-            {/* Filters */}
             <div className="bg-gray-50 rounded-xl p-4 border">
-              <div className="flex items-center gap-2 mb-3"><Filter className="h-5 w-5 text-blue-600" /><h3 className="font-semibold">ការច្រោះយកទិន្នន័យ</h3></div>
+              <div className="flex items-center gap-2 mb-3">
+                <Filter className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold">ការច្រោះយកទិន្នន័យ</h3>
+              </div>
               <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 overflow-x-auto pb-2">
                 <SelectFilter label="ឆ្នាំ" value={selectedYear} onChange={e => setSelectedYear(e.target.value)} options={yearfilterOptions} />
                 <SelectFilter label="ខែ" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} options={monthfilterOptions} />
-                <SelectFilter label="ភេទ" value={selectedGender} onChange={e => setSelectedGender(e.target.value)} options={genderOptions} />
-                <SelectFilter
-                  label="ស្រុក"
-                  value={selectedDistrict}
-                  onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); setSelectedRoom(""); }}
-                  options={districtOptions}
-                />
-                <SelectFilter
-                  label="សាលារៀន"
-                  value={selectedSchool}
-                  onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }}
-                  options={schoolOptions.map(s => s.name)}
-                  disabled={!selectedDistrict || isFetchingOptions}
-                />
-                <SelectFilter
-                  label="កម្រិតថ្នាក់"
-                  value={selectedClassLevel}
-                  onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }}
-                  options={classLevelOptions}
-                  disabled={!selectedSchool || isFetchingOptions}
-                />
-                <SelectFilter
-                  label="បន្ទប់"
-                  value={selectedRoom}
-                  onChange={e => setSelectedRoom(e.target.value)}
-                  options={roomOptions}
-                  disabled={!selectedClassLevel || isFetchingOptions}
-                />
-                <SelectFilter label="និទ្ទេស" value={selectedAchievement} onChange={e => setSelectedAchievement(e.target.value)} options={achievementOptions} />
+                {activeTab !== "total-results" && (
+                  <>
+                    <SelectFilter label="ភេទ" value={selectedGender} onChange={e => setSelectedGender(e.target.value)} options={genderOptions} />
+                    <SelectFilter label="និទ្ទេស" value={selectedAchievement} onChange={e => setSelectedAchievement(e.target.value)} options={achievementOptions} />
+                  </>
+                )}
+                <SelectFilter label="ស្រុក" value={selectedDistrict} onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); setSelectedRoom(""); }} options={districtOptions} />
+                <SelectFilter label="សាលារៀន" value={selectedSchool} onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }} options={schoolOptions.map(s => s.name)} disabled={!selectedDistrict || isFetchingOptions} />
+                {activeTab !== "total-results" ? (
+                  <>
+                    <SelectFilter label="កម្រិតថ្នាក់" value={selectedClassLevel} onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }} options={classLevelOptions} disabled={!selectedSchool || isFetchingOptions} />
+                    <SelectFilter label="បន្ទប់" value={selectedRoom} onChange={e => setSelectedRoom(e.target.value)} options={roomOptions} disabled={!selectedClassLevel || isFetchingOptions} />
+                  </>
+                ) : (
+                  <>
+                    <SelectFilter label="កម្រិតថ្នាក់" value={selectedClassLevel} onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }} options={classLevelOptions} />
+                    <SelectFilter label="បន្ទប់" value={selectedRoom} onChange={e => setSelectedRoom(e.target.value)} options={roomOptions} disabled={!selectedClassLevel} />
+                  </>
+                )}
                 <Button onClick={handleClearFilters} className="bg-red-500 hover:bg-red-600 text-white border-0">
                   <X className="h-4 w-4" /> លុបច្រោះ
                 </Button>
+                {activeTab === "total-results" && (
+                  <Button onClick={handleDownloadCSV} className="bg-green-500 hover:bg-green-600 text-white">
+                    <FileDown className="h-4 w-4" /> ទាញយក
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Search & Download */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-blue-50 rounded-lg p-4">
-              <div className="relative flex-1 sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input placeholder="ស្វែងរកឈ្មោះ ឬ អត្តលេខ..." value={searchValue} onChange={e => setSearchValue(e.target.value)} className="pl-9" />
+            {/* Search and pagination only for non-total-results tabs */}
+            {activeTab !== "total-results" && (
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-blue-50 rounded-lg p-4">
+                <div className="relative flex-1 sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input placeholder="ស្វែងរកឈ្មោះ ឬ អត្តលេខ..." value={searchValue} onChange={e => setSearchValue(e.target.value)} className="pl-9" />
+                </div>
+                <Button onClick={handleDownloadCSV} className="bg-green-500 hover:bg-green-600 text-white">
+                  <FileDown className="h-4 w-4" /> ទាញយកទិន្នន័យ
+                </Button>
               </div>
-              <Button onClick={handleDownloadCSV} className="bg-green-500 hover:bg-green-600 text-white">
-                <FileDown className="h-4 w-4" /> ទាញយកទិន្នន័យសិស្ស
-              </Button>
-            </div>
-            
-            {/* Pagination Info */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-              <p className="text-sm text-gray-600">
-                បង្ហាញ {displayStart} - {displayEnd} ក្នុងចំណោម {filteredResults.length.toLocaleString()}
-              </p>
-              <SelectFilter label="បង្ហាញ" value={rowsPerPage} onChange={e => { const v = e.target.value; setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); setCurrentPage(1); }} options={rowsPerPageOptions} />
-            </div>
+            )}
 
-            {/* Table */}
+            {activeTab !== "total-results" && (
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+                <p className="text-sm text-gray-600">បង្ហាញ {displayStart} - {displayEnd} ក្នុងចំណោម {(activeTab === "total-results" ? summaryData.length : filteredStudents.length).toLocaleString()}</p>
+                <SelectFilter label="បង្ហាញ" value={rowsPerPage} onChange={e => { const v = e.target.value; setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); setCurrentPage(1); }} options={rowsPerPageOptions} />
+              </div>
+            )}
+
             <div className="overflow-x-auto border rounded-lg">
-              <table className="min-w-full text-sm">
-                <thead className="bg-blue-600 text-white">
-                  <tr>
-                    <th className="px-4 py-3 text-left">អត្តលេខ</th>
-                    <th className="px-4 py-3 text-left">ឈ្មោះសិស្ស</th>
-                    <th className="px-4 py-3 text-center">ភេទ</th>
-                    <th className="px-4 py-3 text-center">ថ្នាក់</th>
-                    <th className="px-4 py-3 text-center">ថ្នាក់រៀន</th>
-                    <th className="px-4 py-3 text-left">សាលា</th>
-                    <th className="px-4 py-3 text-center">ស្រុក</th>
-                    <th className="px-4 py-3 text-center">ខេត្ត</th>
-                    <th className="px-4 py-3 text-center">ទូរស័ព្ទ</th>
-                    <th className="px-4 py-3 text-center">ពិន្ទុ</th>
-                    <th className="px-4 py-3 text-center">មធ្យម</th>
-                    <th className="px-4 py-3 text-center">ចំណាត់</th>
-                    <th className="px-4 py-3 text-center">និទ្ទេស</th>
-                    <th className="px-4 py-3 text-center">លទ្ធផល</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {paginated.length > 0 ? paginated.map((r, i) => (
-                    <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                      <td className="px-4 py-3 text-center font-mono">{r.student_id}</td>
-                      <td className="px-4 py-3">{r.full_name}</td>
-                      <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{r.gender}</span></td>
-                      <td className="px-4 py-3 text-center font-bold">{r.grade}</td>
-                      <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.exam_class}</td>
-                      <td className="px-4 py-3">{r.school}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">{r.district}</td>
-                      <td className="px-4 py-3 text-center text-blue-600 font-bold">{r.province}</td>
-                      <td className="px-4 py-3 text-center">{r.phone_number}</td>
-                      <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.score}</td>
-                      <td className="px-4 py-3 text-center font-semibold">{r.average}</td>
-                      <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-bold">{r.rank}</span></td>
-                      <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold">{r.level}</span></td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`px-4 py-1.5 rounded-full font-bold ${r.result === "ជាប់" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                          {r.result}
-                        </span>
-                      </td>
+              {activeTab === "full-results" && (
+                <table className="min-w-full text-sm">
+                  <thead className="bg-blue-600 text-white">
+                    <tr>
+                      <th className="px-4 py-3 text-left">អត្តលេខ</th>
+                      <th className="px-4 py-3 text-left">ឈ្មោះសិស្ស</th>
+                      <th className="px-4 py-3 text-center">ភេទ</th>
+                      <th className="px-4 py-3 text-center">ថ្នាក់</th>
+                      <th className="px-4 py-3 text-center">ថ្នាក់រៀន</th>
+                      <th className="px-4 py-3 text-left">សាលា</th>
+                      <th className="px-4 py-3 text-center">ស្រុក</th>
+                      <th className="px-4 py-3 text-center">ខេត្ត</th>
+                      <th className="px-4 py-3 text-center">ទូរស័ព្ទ</th>
+                      <th className="px-4 py-3 text-center">ពិន្ទុ</th>
+                      <th className="px-4 py-3 text-center">មធ្យម</th>
+                      <th className="px-4 py-3 text-center">ចំណាត់</th>
+                      <th className="px-4 py-3 text-center">និទ្ទេស</th>
+                      <th className="px-4 py-3 text-center">លទ្ធផល</th>
                     </tr>
-                  )) : (
-                    <tr><td colSpan={14} className="text-center py-16 text-gray-500">មិនមានទិន្នន័យ</td></tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {paginated.length > 0 ? paginated.map((r, i) => (
+                      <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                        <td className="px-4 py-3 text-center font-mono">{r.student_id}</td>
+                        <td className="px-4 py-3">{r.full_name}</td>
+                        <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{r.gender}</span></td>
+                        <td className="px-4 py-3 text-center font-bold">{r.grade}</td>
+                        <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.exam_class}</td>
+                        <td className="px-4 py-3">{r.school}</td>
+                        <td className="px-4 py-3 text-center text-gray-600">{r.district}</td>
+                        <td className="px-4 py-3 text-center text-blue-600 font-bold">{r.province}</td>
+                        <td className="px-4 py-3 text-center">{r.phone_number}</td>
+                        <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.score}</td>
+                        <td className="px-4 py-3 text-center font-semibold">{r.average}</td>
+                        <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-bold">{r.rank}</span></td>
+                        <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold">{r.level}</span></td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-4 py-1.5 rounded-full font-bold ${r.result === "ជាប់" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.result}</span>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={14} className="text-center py-16 text-gray-500">មិនមានទិន្នន័យ</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+
+              {activeTab === "result-subject" && (
+                <div className="overflow-x-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold pt-4 px-2">លទ្ធផលតាមមុខវិជ្ជា</h3>
+                    <div className="flex gap-2 pt-4 pr-2">
+                      <Button onClick={() => setShowScores(true)} className={`flex items-center gap-2 ${showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}>
+                        <BarChart3 className="h-4 w-4" /> ពិន្ទុ
+                      </Button>
+                      <Button onClick={() => setShowScores(false)} className={`flex items-center gap-2 ${!showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}>
+                        <Eye className="h-4 w-4" /> និទ្ទេស
+                      </Button>
+                    </div>
+                  </div>
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-blue-600 text-white">
+                      <tr>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">អត្តលេខ</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">ឈ្មោះសិស្ស</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">ភេទ</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">ថ្នាក់</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">បន្ទប់</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">សាលា</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">ស្រុក</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">ខេត្ត</th>
+                        {SUBJECT_LIST.map(subject => (
+                          <th key={subject.code} className="px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
+                            {subject.name}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {paginated.length > 0 ? paginated.map((r, i) => (
+                        <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                          <td className="px-4 py-3 text-center font-mono whitespace-nowrap">{r.student_id}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{r.full_name}</td>
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{r.gender}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-bold whitespace-nowrap">{r.grade}</td>
+                          <td className="px-4 py-3 text-center text-indigo-600 font-bold whitespace-nowrap">{r.exam_class}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{r.school}</td>
+                          <td className="px-4 py-3 text-center text-gray-600 whitespace-nowrap">{r.district}</td>
+                          <td className="px-4 py-3 text-center text-blue-600 font-bold whitespace-nowrap">{r.province}</td>
+                          {SUBJECT_LIST.map(subject => {
+                            const subjectData = r.subjects?.[subject.name];
+                            let displayValue = "";
+                            let className = "";
+
+                            if (showScores) {
+                              displayValue = subjectData ? subjectData.score : "០";
+                              className = displayValue !== "០" && displayValue !== 0 ? "text-blue-600 font-semibold" : "text-red-600";
+                            } else {
+                              if (subjectData?.level) {
+                                displayValue = subjectData.level;
+                                className =
+                                  subjectData.level === "A" ? "bg-red-100 text-red-700" :
+                                  subjectData.level === "B" ? "bg-purple-100 text-purple-700" :
+                                  subjectData.level === "C" ? "bg-orange-100 text-orange-700" :
+                                  subjectData.level === "D" ? "bg-blue-100 text-blue-700" :
+                                  subjectData.level === "E" ? "bg-green-100 text-green-700" :
+                                  "bg-gray-100 text-gray-700";
+                              } else {
+                                displayValue = "F";
+                                className = "bg-gray-100 text-gray-700";
+                              }
+                            }
+
+                            return (
+                              <td key={`${r.id}-${subject.code}`} className="px-2 py-3 text-center whitespace-nowrap min-w-[120px]">
+                                {showScores ? (
+                                  <span className={className}>{displayValue}</span>
+                                ) : (
+                                  <span className={`px-2 py-1 rounded font-bold ${className}`}>
+                                    {displayValue}
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      )) : (
+                        <tr><td colSpan={8 + SUBJECT_LIST.length} className="text-center py-16 text-gray-500">មិនមានទិន្នន័យ</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {activeTab === "total-results" && (
+                <div className="overflow-x-auto border rounded-lg shadow-md">
+                  <table className="min-w-full text-sm border-collapse whitespace-nowrap">
+                    <thead className="bg-blue-600 text-white">
+                      <tr>
+                        <th rowSpan={2} className="px-4 py-3 text-center border-r border-blue-500 whitespace-nowrap min-w-[60px]">សូចនាករ</th>
+                        <th rowSpan={2} className="px-6 py-3 text-center border-r border-blue-500 whitespace-nowrap min-w-[140px]">មុខវិជ្ជា</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">A</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">B</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">C</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">D</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">E</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">F</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-purple-700 whitespace-nowrap min-w-[60px]">ABC</th>
+                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-red-700 whitespace-nowrap min-w-[60px]">DEF</th>
+                      </tr>
+                      <tr>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 bg-purple-700 font-bold whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center bg-purple-700 font-bold whitespace-nowrap">ស្រី</th>
+                        <th className="px-2 py-1 text-center border-r border-blue-500 bg-red-700 font-bold whitespace-nowrap">សរុប</th>
+                        <th className="px-2 py-1 text-center bg-red-700 font-bold whitespace-nowrap">ស្រី</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {SUBJECT_LIST.map((subject, index) => {
+                        const data = paginated.find(d => d.code === subject.code) || {
+                          A: 0, A_female: 0, B: 0, B_female: 0, C: 0, C_female: 0,
+                          D: 0, D_female: 0, E: 0, E_female: 0, F: 0, F_female: 0,
+                          ABC: 0, ABC_female: 0, DEF: 0, DEF_female: 0,
+                        };
+
+                        return (
+                          <tr key={subject.code} className={`hover:bg-blue-50 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                            <td className="px-6 py-3 text-center font-mono border-r border-gray-300 whitespace-nowrap min-w-[60px]">{subject.code}</td>
+                            <td className="px-6 py-3 text-left font-bold border-r border-gray-300 whitespace-nowrap min-w-[140px]">{subject.name}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.A > 0 ? <span className="text-blue-600 font-semibold">{data.A}</span> : <span className="text-red-600">{data.A}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.A_female > 0 ? <span className="text-blue-600 font-semibold">{data.A_female}</span> : <span className="text-red-600">{data.A_female}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.B > 0 ? <span className="text-blue-600 font-semibold">{data.B}</span> : <span className="text-red-600">{data.B}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.B_female > 0 ? <span className="text-blue-600 font-semibold">{data.B_female}</span> : <span className="text-red-600">{data.B_female}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.C > 0 ? <span className="text-blue-600 font-semibold">{data.C}</span> : <span className="text-red-600">{data.C}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.C_female > 0 ? <span className="text-blue-600 font-semibold">{data.C_female}</span> : <span className="text-red-600">{data.C_female}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.D > 0 ? <span className="text-blue-600 font-semibold">{data.D}</span> : <span className="text-red-600">{data.D}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.D_female > 0 ? <span className="text-blue-600 font-semibold">{data.D_female}</span> : <span className="text-red-600">{data.D_female}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.E > 0 ? <span className="text-blue-600 font-semibold">{data.E}</span> : <span className="text-red-600">{data.E}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.E_female > 0 ? <span className="text-blue-600 font-semibold">{data.E_female}</span> : <span className="text-red-600">{data.E_female}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.F > 0 ? <span className="text-blue-600 font-semibold">{data.F}</span> : <span className="text-red-600">{data.F}</span>}</td>
+                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.F_female > 0 ? <span className="text-blue-600 font-semibold">{data.F_female}</span> : <span className="text-red-600">{data.F_female}</span>}</td>
+                            <td className="px-3 py-3 text-center font-bold text-purple-700 border-r border-gray-300 min-w-[60px]">{data.ABC > 0 ? <span className="text-blue-600 font-semibold">{data.ABC}</span> : <span className="text-red-600">{data.ABC}</span>}</td>
+                            <td className="px-3 py-3 text-center font-bold text-purple-700 border-r border-gray-300 min-w-[60px]">{data.ABC_female > 0 ? <span className="text-blue-600 font-semibold">{data.ABC_female}</span> : <span className="text-red-600">{data.ABC_female}</span>}</td>
+                            <td className="px-3 py-3 text-center font-bold text-red-700 border-r border-gray-300 min-w-[60px]">{data.DEF > 0 ? <span className="text-blue-600 font-semibold">{data.DEF}</span> : <span className="text-red-600">{data.DEF}</span>}</td>
+                            <td className="px-3 py-3 text-center font-bold text-red-700 min-w-[60px]">{data.DEF_female > 0 ? <span className="text-blue-600 font-semibold">{data.DEF_female}</span> : <span className="text-red-600">{data.DEF_female}</span>}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-            
-            {rowsPerPage !== ALL_DATA_VALUE && (
+
+            {rowsPerPage !== ALL_DATA_VALUE && activeTab !== "total-results" && (
               <div className="flex justify-center gap-3">
                 <Button size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>មុន</Button>
                 <span className="py-2 px-4">ទំព័រ {currentPage} / {totalPages}</span>
@@ -637,12 +840,7 @@ const handleTestResultClick = () => {
 
 const SelectFilter = ({ label, value, onChange, options, disabled = false }: any) => (
   <div className="relative w-full sm:w-auto">
-    <select
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className="bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm appearance-none cursor-pointer disabled:opacity-50 w-full sm:w-auto"
-    >
+    <select value={value} onChange={onChange} disabled={disabled} className="bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm appearance-none cursor-pointer disabled:opacity-50 w-full sm:w-auto">
       <option value="">{label}</option>
       {options.map((opt: any) => (
         <option key={typeof opt === "object" ? opt.id || opt.name : opt} value={typeof opt === "object" ? opt.name || opt : opt}>
