@@ -540,7 +540,7 @@ export default function SubjectSelection({
           </div>
         </Card>
 
-        {/* Science Stream Selection for Grades 11-12 */}
+        {/*Science Stream Selection for Grades 11-12*/}
         {(selectedGrade === "11" || selectedGrade === "12") && (
           <Card className="mb-6 p-6">
             <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
