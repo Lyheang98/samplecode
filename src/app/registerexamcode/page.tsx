@@ -36,8 +36,7 @@ const MOCK_USERNAME = "Staff";
 const MOCK_PASSWORD = "staffmoeysedtech2025";
 const TOKEN_URL = `${API_BASE}/api/token/`;
 
-// --- Constants (PROVINCES list - CRITICALLY CORRECTED MAPPING) ---
-// Based on API response where province_ID: "1" corresponds to "ខេត្តបន្ទាយមានជ័យ"
+// --- Constants (PROVINCES list) ---
 const PROVINCES = [
   { id: "1", name: "ខេត្តបន្ទាយមានជ័យ" },
   { id: "2", name: "ខេត្តបាត់ដំបង" },
@@ -60,9 +59,9 @@ const PROVINCES = [
   { id: "19", name: "ខេត្តស្ទឹងត្រែង" },
   { id: "20", name: "ខេត្តស្វាយរៀង" },
   { id: "21", name: "ខេត្តតាកែវ" },
-  { id: "22", name: "ខេត្តឧត្តរមានជ័យ" },
-  { id: "23", name: "ខេត្តកែប" },
-  { id: "24", name: "ខេត្តប៉ៃលិន" },
+  { id: "22", name: "ខេត្តកែប" },
+  { id: "23", name: "ខេត្តប៉ៃលិន" },
+  { id: "24", name: "ខេត្តឧត្តរមានជ័យ" },
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
 ];
 
@@ -133,7 +132,7 @@ const SUBJECTS = {
     "គណិតវិទ្យា",
     "រូបវិទ្យា",
     "គីមីវិទ្យា",
-    "ជីវិទ្យា",
+    "ជីវវិទ្យា", // Fixed typo: was "ជីវិទ្យា"
     "ប្រវត្តិវិទ្យា",
     "ភូមិវិទ្យា",
     "សីលធម៌-ពលរដ្ឋវិជ្ជា",
@@ -142,7 +141,7 @@ const SUBJECTS = {
   ],
 };
 
-// --- UI Components (Modern and Compact) ---
+// --- UI Components ---
 const Card = ({ children, className = "", variant = "default" }: any) => {
   const variants = {
     default:
@@ -154,20 +153,14 @@ const Card = ({ children, className = "", variant = "default" }: any) => {
 
   return (
     <div
-      className={`rounded-3xl ${
-        variants[variant as keyof typeof variants]
-      } ${className}`}
+      className={`rounded-3xl ${variants[variant as keyof typeof variants]
+        } ${className}`}
     >
       {variant === "gradient" && (
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600" />
       )}
       {variant === "success" && (
-        <div className="absolute inset-0 bg-gradient-to-r 
-             from-[#107da8] 
-             via-[#107da8] 
-             to-[#107da8] 
-             rounded-lg shadow-xl" />
-
+        <div className="absolute inset-0 bg-gradient-to-r from-[#107da8] via-[#107da8] to-[#107da8] rounded-lg shadow-xl" />
       )}
       <div className="relative z-10">{children}</div>
     </div>
@@ -200,9 +193,8 @@ const Button = ({
   return (
     <button
       onClick={onClick}
-      className={`${baseClasses} ${
-        variantClasses[variant as keyof typeof variantClasses]
-      } ${className}`}
+      className={`${baseClasses} ${variantClasses[variant as keyof typeof variantClasses]
+        } ${className}`}
       disabled={disabled}
       type="button"
       {...props}
@@ -283,7 +275,6 @@ export default function RegisterExamCodePage() {
     [schools, selectedSchoolId]
   );
 
-  // --- FIX: Define getAccessToken FIRST ---
   // Utility function to get access token
   const getAccessToken = useCallback(async () => {
     const res = await fetch(TOKEN_URL, {
@@ -299,14 +290,7 @@ export default function RegisterExamCodePage() {
     return data.access;
   }, []);
 
-  // --- CORE FIX: Recursive Pagination Function ---
-  /**
-   * Recursive function to fetch ALL data by following the 'next' pagination links.
-   * @param url The current API URL (initial or 'next' URL).
-   * @param stepName The name of the step for loading indicators.
-   * @param accumulatedData Array to hold data from all pages.
-   * @returns A promise resolving to the complete data array.
-   */
+  // --- Recursive Pagination Function ---
   const fetchPaginatedData = useCallback(
     async (
       url: string,
@@ -320,54 +304,39 @@ export default function RegisterExamCodePage() {
       });
 
       if (res.status === 404) {
-        // Treat 404 as end of data or no results
         return accumulatedData;
       }
       if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
 
       const json = await res.json();
-      // The data is always in the 'results' array based on your example response body
       const currentPageData = Array.isArray(json) ? json : json.results || [];
       const nextUrl = json.next;
 
       const newData = accumulatedData.concat(currentPageData);
 
       if (nextUrl) {
-        // Recursively call for the next page using the full URL from 'next' field
         return fetchPaginatedData(nextUrl, stepName, newData);
       } else {
-        // No more pages, return all collected data
         return newData;
       }
     },
-    [getAccessToken] // Now getAccessToken is defined and available
+    [getAccessToken]
   );
 
-  /**
-   * Wrapper function to handle the entire fetching process including loading and error state.
-   */
   const fetchAllDataAndSet = useCallback(
     async (endpoint: string, setter: (data: any) => void, stepName: string) => {
       if (!endpoint) return;
       setLoadingStep(stepName);
       setError(null);
       try {
-        // Start the recursive fetch from the base endpoint
         const allData = await fetchPaginatedData(endpoint, stepName);
         setter(allData);
       } catch (err: any) {
         setError(`បរាជ័យក្នុងការផ្ទុក ${stepName}: ${err.message}`);
-        // Force reset dependent lists on error
-        if (stepName === "ស្រុក") {
-          setDistricts([]);
-        }
-        if (stepName === "សាលារៀន") {
-          setSchools([]);
-        }
-        if (stepName === "ថ្នាក់") {
-          setGrades([]);
-        }
-        setStudents([]); // Reset students on any preceding failure
+        if (stepName === "ស្រុក") setDistricts([]);
+        if (stepName === "សាលារៀន") setSchools([]);
+        if (stepName === "ថ្នាក់") setGrades([]);
+        setStudents([]);
       } finally {
         setLoadingStep(null);
       }
@@ -425,7 +394,6 @@ export default function RegisterExamCodePage() {
     if (examCode) {
       navigator.clipboard.writeText(examCode);
       setCopied(true);
-      setTimeout(() => setCopied(false), 3000); // Reset copied state after 3 seconds
     }
   }, [examCode]);
 
@@ -449,7 +417,7 @@ export default function RegisterExamCodePage() {
     setCurrentStep("code");
   }, []);
 
-  // --- Get Exam Code Handler (NEW API 5 - Single Call) ---
+  // --- Get Exam Code Handler ---
   const handleGetExamCode = useCallback(async () => {
     if (
       !selectedStudent ||
@@ -466,10 +434,7 @@ export default function RegisterExamCodePage() {
     setCopied(false);
 
     try {
-      // Use the student's last_name and first_name fields from the fetched record
       const { last_name, first_name } = selectedStudent;
-
-      // NEW API 5: Updated to new API endpoint with the additional path segment
       const endpoint = `${API_BASE}/api/Base/data/v1/api/generate/v1/code/${selectedProvinceId}/${encodeURIComponent(
         selectedDistrict
       )}/${selectedSchoolId}/${selectedGrade}/${encodeURIComponent(
@@ -483,13 +448,11 @@ export default function RegisterExamCodePage() {
 
       if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
 
-      // Parse the response to extract the exam code
       let examCodeResult;
       try {
         const jsonResponse = await res.json();
         examCodeResult = jsonResponse.exam_code;
       } catch (e) {
-        // If parsing fails, try to get it as text
         examCodeResult = await res.text();
       }
 
@@ -510,15 +473,12 @@ export default function RegisterExamCodePage() {
   ]);
 
   // --- useEffect Hooks ---
-  // 1. Fetch Districts (NEW API 1)
+  // 1. Fetch Districts
   useEffect(() => {
     if (!selectedProvinceId) return;
-
-    // Updated to new API endpoint with the additional path segment
     const endpoint = `${API_BASE}/api/Base/data/v1/api/lookup/v1/district/${selectedProvinceId}/`;
 
     const districtSetter = (data: any[]) => {
-      // Extract district names from the response
       const districtNames = data.map((d) => d.district_name).filter(Boolean);
       setDistricts(districtNames);
     };
@@ -526,21 +486,17 @@ export default function RegisterExamCodePage() {
     fetchAllDataAndSet(endpoint, districtSetter, "ស្រុក");
   }, [selectedProvinceId, fetchAllDataAndSet]);
 
-  // 2. Fetch Schools (NEW API 2)
+  // 2. Fetch Schools
   useEffect(() => {
     if (!selectedProvinceId || !selectedDistrict) return;
-
     const encodedDistrict = encodeURIComponent(selectedDistrict);
-    // Updated to new API endpoint with the additional path segment
     const endpoint = `${API_BASE}/api/Base/data/v1/api/lookup/v1/school/${selectedProvinceId}/${encodedDistrict}/`;
 
     const schoolSetter = (data: any[]) => {
-      // --- FIX: Corrected the school ID field to match the API response ---
       const mappedSchools = data.map((s) => ({
-        id: s.geip_school_ID, // Corrected from geip to geip
+        id: s.geip_school_ID,
         name: s.school_name,
       }));
-
       setSchools(mappedSchools);
       setSelectedSchoolId("");
     };
@@ -548,31 +504,21 @@ export default function RegisterExamCodePage() {
     fetchAllDataAndSet(endpoint, schoolSetter, "សាលារៀន");
   }, [selectedProvinceId, selectedDistrict, fetchAllDataAndSet]);
 
-  // 3. Fetch Grades (NEW API 3)
+  // 3. Fetch Grades
   useEffect(() => {
     if (!selectedProvinceId || !selectedDistrict || !selectedSchoolId) return;
-
     const encodedDistrict = encodeURIComponent(selectedDistrict);
-    // Updated to new API endpoint with the additional path segment
     const endpoint = `${API_BASE}/api/Base/data/v1/api/lookup/v1/grade/${selectedProvinceId}/${encodedDistrict}/${selectedSchoolId}/`;
 
     const gradeSetter = (data: any[]) => {
-      // Extract grades from the response
-      const gradeOptions = data
-        .map((g) => String(g.grade || ""))
-        .filter(Boolean);
+      const gradeOptions = data.map((g) => String(g.grade || "")).filter(Boolean);
       setGrades(gradeOptions);
       setSelectedGrade("");
     };
     fetchAllDataAndSet(endpoint, gradeSetter, "ថ្នាក់");
-  }, [
-    selectedProvinceId,
-    selectedDistrict,
-    selectedSchoolId,
-    fetchAllDataAndSet,
-  ]);
+  }, [selectedProvinceId, selectedDistrict, selectedSchoolId, fetchAllDataAndSet]);
 
-  // 4. Fetch Students (NEW API 4)
+  // 4. Fetch Students
   useEffect(() => {
     if (
       !selectedProvinceId ||
@@ -585,7 +531,6 @@ export default function RegisterExamCodePage() {
     }
 
     const encodedDistrict = encodeURIComponent(selectedDistrict);
-    // Updated to new API endpoint with the additional path segment
     const endpoint = `${API_BASE}/api/Base/data/v1/api/lookup/v1/student/${selectedProvinceId}/${encodedDistrict}/${selectedSchoolId}/${selectedGrade}/`;
 
     const studentSetter = (data: any[]) => {
@@ -597,7 +542,6 @@ export default function RegisterExamCodePage() {
       setStudents(mappedStudents);
       setSelectedStudent(null);
     };
-    // This is necessary because API 4 also returns a paginated list of students
     fetchAllDataAndSet(endpoint, studentSetter, `សិស្សថ្នាក់ ${selectedGrade}`);
   }, [
     selectedProvinceId,
@@ -651,30 +595,28 @@ export default function RegisterExamCodePage() {
           </Link>
         </div>
 
-        <header className="text-center mb-8 max-w-5xl mx-auto">
-          <header className="text-center mb-8 max-w-7xl mx-auto">
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl shadow-xl">
-                <div className="rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5">
-                  <Image
-                    src="/moeys-logo.png"
-                    alt="Logo"
-                    width={48}
-                    height={48}
-                  />
-                </div>
-                <div className="font-bold">MoEYS EdTech - Online Exam</div>
+        <header className="text-center mb-6 max-w-5xl mx-auto">
+          <div className="flex justify-center mb-5">
+            <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl border-2 border-blue-400">
+              <div className="rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5">
+                <Image
+                  src="/moeys-logo.png"
+                  alt="Logo"
+                  width={48}
+                  height={48}
+                />
               </div>
+              <div className="font-bold">MoEYS EdTech - Online Exam</div>
             </div>
-          </header>
-          <h1 className="text-3xl p-4 font-bold bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
+          </div>
+          <h1 className="text-3xl p-2 font-bold bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
             {currentStep === "code"
               ? "សូមបំពេញព័ត៍មានដើម្បីទទួលបានកូដប្រឡង"
               : "ជ្រើសរើសមុខវិជ្ជាប្រឡង"}
           </h1>
           <p className="text-gray-600 mt-2 text-lg">
             {currentStep === "code"
-              ? "បញ្ជាក់៖ សូមជ្រើសរើសទីតាំង ឈ្មោះ ខេត្ត/ស្រុក/ឃុំ/ភូមិ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
+              ? "បញ្ជាក់៖ សូមជ្រើសរើសទីតាំងតាម​ ខេត្ត/ស្រុក/សាលារៀន/ឈ្មោះ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
               : "ជ្រើសរើសមុខវិជ្ជាដើម្បីចូលរួមប្រឡង"}
           </p>
         </header>
@@ -690,7 +632,7 @@ export default function RegisterExamCodePage() {
                     <User className="h-6 w-6 text-white" />
                   </div>
                   <h2 className="text-xl font-bold text-gray-800">
-                    បំពេញព័ត៍មានផ្ទាល់ខ្លួន
+                    សូមបំពេញព័ត៍មានផ្ទាល់ខ្លួន
                   </h2>
                 </div>
 
@@ -793,8 +735,8 @@ export default function RegisterExamCodePage() {
                           {loadingStep === `សិស្សថ្នាក់ ${selectedGrade}`
                             ? "កំពុងផ្ទុកសិស្ស..."
                             : studentOptions.length > 0
-                            ? "ជ្រើសរើសឈ្មោះសិស្ស"
-                            : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
+                              ? "ជ្រើសរើសឈ្មោះសិស្ស"
+                              : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
                         </option>
                         {studentOptions.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -830,7 +772,7 @@ export default function RegisterExamCodePage() {
                     <FileText className="h-6 w-6 text-white" />
                   </div>
                   <h2 className="text-xl font-bold text-white">
-                    លទ្ធផលកូដប្រឡង
+                    សូមចម្លងកូដប្រឡងរបស់អ្នក
                   </h2>
                 </div>
 
@@ -880,10 +822,20 @@ export default function RegisterExamCodePage() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-white text-center  text-1xl leading-relaxed">
-                      សូមអនុវត្តតាមជំហាន៖ <p className="text-white text-start  text-1xl leading-relaxed"> <br/> ១. សូមជ្រើសរើសខេត្ត <br/> ២. សូមជ្រើសរើសស្រុក <br/>
-                      ៣. សូមជ្រើសរើសសាលារៀន <br/> ៤. សូមជ្រើសរើសថ្នាក់ <br/> ៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។ <br/><strong className="text-yellow-300">សម្គាល់៖</strong> សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង។</p>
-                    </p>
+                    <div className="text-white  text-1xl leading-relaxed">
+                      <p className="text-2xl pb-4">សូមអនុវត្តតាមជំហាន៖</p>
+                      <ol className="text-start list-none pl-0">
+                        <li>១. សូមជ្រើសរើសខេត្ត</li>
+                        <li>២. សូមជ្រើសរើសស្រុក</li>
+                        <li>៣. សូមជ្រើសរើសសាលារៀន</li>
+                        <li>៤. សូមជ្រើសរើសថ្នាក់</li>
+                        <li>៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។</li>
+                      </ol>
+                      <p className="pt-3">
+                        <strong className="text-yellow-300">សម្គាល់៖</strong>
+                        សូមយកកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង
+                      </p>
+                    </div>
                   )}
                 </div>
 
