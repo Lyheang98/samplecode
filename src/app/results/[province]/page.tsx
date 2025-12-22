@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+
 import {
   Download,
   Search,
@@ -13,10 +14,11 @@ import {
   X,
   Filter,
   FileDown,
+  ArrowRight,
 } from "lucide-react";
 import { API_BASE, MOCK_USERNAME, MOCK_PASSWORD } from "../../../../api/api.js";
 
-// --- UI Components (unchanged) ---
+// --- UI Components ---
 const Card = ({ className = "", children }) => (
   <div className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}>
     {children}
@@ -45,7 +47,7 @@ const Button = ({
   else if (variant === "ghost")
     baseStyles += " hover:bg-accent hover:text-accent-foreground";
 
-  if (className.includes("bg-green-500") || className.includes("bg-red-500")) {
+  if (className.includes("bg-green-500") || className.includes("bg-red-500") || className.includes("bg-indigo-600") || className.includes("bg-purple-600")) {
     baseStyles = baseStyles.replace(/bg-blue-600/, "").replace(/hover:bg-blue-700/, "");
   }
 
@@ -106,11 +108,12 @@ const toAverage = (avgStr: any) => {
 
 export default function ProvinceResultsPage() {
   const params = useParams();
+  const router = useRouter();
   const province_name = useMemo(() => decodeProvinceName(params?.province), [params?.province]);
 
   // States
-  const [allResults, setAllResults] = useState<any[]>([]); // Master dataset
-  const [filteredResults, setFilteredResults] = useState<any[]>([]); // Displayed dataset
+  const [allResults, setAllResults] = useState<any[]>([]);
+  const [filteredResults, setFilteredResults] = useState<any[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -120,7 +123,7 @@ export default function ProvinceResultsPage() {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedClassLevel, setSelectedClassLevel] = useState("");
-  const [selectedRoom, setSelectedRoom] = useState(""); // NEW: Added room filter state
+  const [selectedRoom, setSelectedRoom] = useState("");
   const [selectedGender, setSelectedGender] = useState("");
   const [selectedAchievement, setSelectedAchievement] = useState("");
   const [selectedYear, setSelectedYear] = useState("2025");
@@ -132,7 +135,7 @@ export default function ProvinceResultsPage() {
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
   const [schoolOptions, setSchoolOptions] = useState<{ id: string; name: string }[]>([]);
   const [classLevelOptions, setClassLevelOptions] = useState<string[]>([]);
-  const [roomOptions, setRoomOptions] = useState<string[]>([]); // NEW: Added room options state
+  const [roomOptions, setRoomOptions] = useState<string[]>([]);
 
   const genderOptions = ["ប្រុស", "ស្រី"];
   const achievementOptions = ["A", "B", "C", "D", "E", "F"];
@@ -143,37 +146,32 @@ export default function ProvinceResultsPage() {
   ];
   const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, ALL_DATA_VALUE];
 
-  // FIXED: Updated getAccessToken function with proper options and retry logic
+  // Get access token with retry logic
   const getAccessToken = useCallback(async () => {
     try {
       const res = await fetch(TOKEN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: MOCK_USERNAME, password: MOCK_PASSWORD }),
-        credentials: "omit", // Added this option
-        cache: "no-store", // Added this option
+        credentials: "omit",
+        cache: "no-store",
       });
-      
+
       if (!res.ok) {
-        // If we haven't retried yet, try once more
         if (tokenRetries < 1) {
           setTokenRetries(prev => prev + 1);
-          // Wait a moment before retrying
           await new Promise(resolve => setTimeout(resolve, 1000));
           return getAccessToken();
         }
         throw new Error(`Failed to get token: ${res.status}`);
       }
-      
-      // Reset retry counter on success
+
       setTokenRetries(0);
       const data = await res.json();
       return data.access;
     } catch (err) {
-      // If we haven't retried yet, try once more
       if (tokenRetries < 1) {
         setTokenRetries(prev => prev + 1);
-        // Wait a moment before retrying
         await new Promise(resolve => setTimeout(resolve, 1000));
         return getAccessToken();
       }
@@ -193,12 +191,12 @@ export default function ProvinceResultsPage() {
     try {
       const token = await getAccessToken();
       const res = await fetch(url, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        credentials: "omit", // Added this option
-        cache: "no-store", // Added this option
+        credentials: "omit",
+        cache: "no-store",
       });
 
       if (!res.ok) {
@@ -225,13 +223,11 @@ export default function ProvinceResultsPage() {
         rank: r.current_rank || r.rank || "",
         level: r.overall_level || r.level || "",
         result: r.overall_result || r.result || "",
-        // Add year and month fields
         exam_year: r.exam_year || new Date().getFullYear().toString(),
         exam_month: r.exam_month || new Date().getMonth() + 1,
       }));
 
       setAllResults(mapped);
-      // Initial display will be handled by the filter effect
     } catch (err: any) {
       setError(`បរាជ័យក្នុងការផ្ទុកទិន្នន័យ: ${err.message}`);
     } finally {
@@ -244,38 +240,31 @@ export default function ProvinceResultsPage() {
     if (allResults.length === 0) return;
     setIsFetchingOptions(true);
     try {
-      // 1. Districts
       const districts = [...new Set(allResults.map((d: any) => d.district).filter(Boolean))].sort();
       setDistrictOptions(districts);
 
       if (!selectedDistrict) {
         setSchoolOptions([]);
         setClassLevelOptions([]);
-        setRoomOptions([]); // NEW: Reset room options when district changes
+        setRoomOptions([]);
         setIsFetchingOptions(false);
         return;
       }
 
-      // 2. Schools (filtered by selectedDistrict)
       let schools: { id: string; name: string }[] = [];
       if (selectedDistrict) {
         const schoolSet = new Set<string>();
-
         allResults
           .filter((s: any) => s.district === selectedDistrict)
           .forEach((s: any) => {
-            if (s.school) {
-              schoolSet.add(s.school);
-            }
+            if (s.school) schoolSet.add(s.school);
           });
-        
         schools = Array.from(schoolSet.keys())
           .map(name => ({ id: name, name: name }))
           .sort((a, b) => a.name.localeCompare(b.name));
       }
       setSchoolOptions(schools);
 
-      // 3. Grades (filtered by selectedDistrict AND selectedSchool)
       let grades: string[] = [];
       if (selectedDistrict && selectedSchool) {
         grades = [...new Set(
@@ -286,14 +275,13 @@ export default function ProvinceResultsPage() {
       }
       setClassLevelOptions(grades);
 
-      // NEW: 4. Rooms (filtered by selectedDistrict, selectedSchool, AND selectedClassLevel)
       let rooms: string[] = [];
       if (selectedDistrict && selectedSchool && selectedClassLevel) {
         rooms = [...new Set(
           allResults
-            .filter(r => 
-              r.district === selectedDistrict && 
-              r.school === selectedSchool && 
+            .filter(r =>
+              r.district === selectedDistrict &&
+              r.school === selectedSchool &&
               r.grade === selectedClassLevel
             )
             .map((r: any) => String(r.exam_class ?? "")).filter(Boolean)
@@ -307,12 +295,10 @@ export default function ProvinceResultsPage() {
     }
   }, [allResults, selectedDistrict, selectedSchool, selectedClassLevel]);
 
-  // --- MAIN FILTERING LOGIC ---
-  // This effect runs whenever any filter or search term changes
+  // MAIN FILTERING LOGIC
   useEffect(() => {
     let tempFiltered = allResults;
 
-    // Apply dropdown filters
     if (selectedDistrict) {
       tempFiltered = tempFiltered.filter(r => r.district === selectedDistrict);
     }
@@ -322,7 +308,6 @@ export default function ProvinceResultsPage() {
     if (selectedClassLevel) {
       tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
     }
-    // NEW: Add room filter
     if (selectedRoom) {
       tempFiltered = tempFiltered.filter(r => r.exam_class === selectedRoom);
     }
@@ -332,8 +317,7 @@ export default function ProvinceResultsPage() {
     if (selectedAchievement) {
       tempFiltered = tempFiltered.filter(r => r.level === selectedAchievement);
     }
-    
-    // FIX: Add year and month filtering
+
     if (selectedYear) {
       tempFiltered = tempFiltered.filter(r => String(r.exam_year) === selectedYear);
     }
@@ -347,7 +331,6 @@ export default function ProvinceResultsPage() {
       }
     }
 
-    // Apply search filter
     if (searchValue.trim()) {
       const val = searchValue.trim().toLowerCase();
       tempFiltered = tempFiltered.filter(
@@ -359,39 +342,37 @@ export default function ProvinceResultsPage() {
     }
 
     setFilteredResults(tempFiltered);
-    setCurrentPage(1); // Reset to first page on filter
+    setCurrentPage(1);
   }, [
     allResults,
     searchValue,
     selectedDistrict,
     selectedSchool,
     selectedClassLevel,
-    selectedRoom, // NEW: Add selectedRoom to dependencies
+    selectedRoom,
     selectedGender,
     selectedAchievement,
     selectedYear,
     selectedMonth,
   ]);
 
-  // --- EFFECTS ---
-  // 1. Initial data fetch when the province name is available
+  // EFFECTS
   useEffect(() => {
     if (province_name) {
       fetchAllData();
     }
   }, [province_name, fetchAllData]);
 
-  // 2. Load filter options when the main data or district/school selection changes
   useEffect(() => {
     fetchFilterOptions();
   }, [fetchFilterOptions]);
 
-  // --- HANDLERS ---
+  // HANDLERS
   const handleClearFilters = () => {
     setSelectedDistrict("");
     setSelectedSchool("");
     setSelectedClassLevel("");
-    setSelectedRoom(""); // NEW: Reset room filter
+    setSelectedRoom("");
     setSelectedGender("");
     setSelectedAchievement("");
     setSelectedYear("2025");
@@ -409,7 +390,6 @@ export default function ProvinceResultsPage() {
       r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month
     ]);
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
-    // Add BOM for proper Cambodian character (Unicode) display in Excel
     const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -417,7 +397,17 @@ export default function ProvinceResultsPage() {
     link.click();
   };
 
-  // --- LOGIC ---
+  // NEW: Handler for navigation to student test results
+  const handleStudentTestClick = () => {
+    router.push(`/results/province/${encodeURIComponent(province_name)}/result-subject`);
+  };
+
+  // NEW: Handler for navigation to test results by subject
+  const handleTestResultClick = () => {
+    router.push(`/results/province/${encodeURIComponent(province_name)}/total-results`);
+  };
+
+  // LOGIC
   const totalPages = rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil(filteredResults.length / rowsPerPage));
   const paginated = useMemo(() => {
     if (rowsPerPage === ALL_DATA_VALUE) return filteredResults;
@@ -453,12 +443,12 @@ export default function ProvinceResultsPage() {
           <h2 className="text-2xl font-bold text-red-600 mb-3">មានបញ្ហា</h2>
           <p className="text-gray-700 mb-8">{error}</p>
           <div className="flex gap-4 justify-center">
-            <button 
+            <button
               onClick={() => {
                 setError("");
                 setTokenRetries(0);
                 fetchAllData();
-              }} 
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg"
             >
               <RefreshCw className="inline h-4 w-4 mr-2" /> ព្យាយាមម្តងទៀត
@@ -498,48 +488,64 @@ export default function ProvinceResultsPage() {
         <p className="text-xl text-gray-600 mt-2">{headerDateText}</p>
       </header>
 
+      {/* Report Buttons */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Button
+            onClick={handleStudentTestClick}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2"
+          >
+            <FileDown className="h-5 w-5" />
+            មើលរបាយការណ៍បូកសរុបលទ្ធផលតេស្ត
+          </Button>
+          <Button
+            onClick={handleTestResultClick}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2"
+          >
+            <Search className="h-5 w-5" />
+            មើលលទ្ធផលតេស្តសិស្សតាមមុខវិជ្ជា
+          </Button>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto">
         <Card className="bg-white shadow-lg">
           <CardContent className="p-5 space-y-6">
             {/* Filters */}
             <div className="bg-gray-50 rounded-xl p-4 border">
               <div className="flex items-center gap-2 mb-3"><Filter className="h-5 w-5 text-blue-600" /><h3 className="font-semibold">ការច្រោះយកទិន្នន័យ</h3></div>
-              {/* MODIFIED: Responsive filter layout - single column on mobile, multiple columns on larger screens */}
               <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 overflow-x-auto pb-2">
                 <SelectFilter label="ឆ្នាំ" value={selectedYear} onChange={e => setSelectedYear(e.target.value)} options={yearfilterOptions} />
                 <SelectFilter label="ខែ" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} options={monthfilterOptions} />
                 <SelectFilter label="ភេទ" value={selectedGender} onChange={e => setSelectedGender(e.target.value)} options={genderOptions} />
-                <SelectFilter 
-                  label="ស្រុក" 
-                  value={selectedDistrict} 
-                  onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); setSelectedRoom(""); }} 
-                  options={districtOptions} 
+                <SelectFilter
+                  label="ស្រុក"
+                  value={selectedDistrict}
+                  onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); setSelectedRoom(""); }}
+                  options={districtOptions}
                 />
-                <SelectFilter 
-                  label="សាលារៀន" 
-                  value={selectedSchool} 
-                  onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }} 
-                  options={schoolOptions.map(s => s.name)} 
-                  disabled={!selectedDistrict || isFetchingOptions} 
+                <SelectFilter
+                  label="សាលារៀន"
+                  value={selectedSchool}
+                  onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }}
+                  options={schoolOptions.map(s => s.name)}
+                  disabled={!selectedDistrict || isFetchingOptions}
                 />
-                <SelectFilter 
-                  label="កម្រិតថ្នាក់" 
-                  value={selectedClassLevel} 
-                  onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }} 
-                  options={classLevelOptions} 
-                  disabled={!selectedSchool || isFetchingOptions} 
+                <SelectFilter
+                  label="កម្រិតថ្នាក់"
+                  value={selectedClassLevel}
+                  onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }}
+                  options={classLevelOptions}
+                  disabled={!selectedSchool || isFetchingOptions}
                 />
-                {/* NEW: Add room filter */}
-                <SelectFilter 
-                  label="បន្ទប់" 
-                  value={selectedRoom} 
-                  onChange={e => setSelectedRoom(e.target.value)} 
-                  options={roomOptions} 
-                  disabled={!selectedClassLevel || isFetchingOptions} 
+                <SelectFilter
+                  label="បន្ទប់"
+                  value={selectedRoom}
+                  onChange={e => setSelectedRoom(e.target.value)}
+                  options={roomOptions}
+                  disabled={!selectedClassLevel || isFetchingOptions}
                 />
                 <SelectFilter label="និទ្ទេស" value={selectedAchievement} onChange={e => setSelectedAchievement(e.target.value)} options={achievementOptions} />
-                
-                {/* The filter button is no longer needed, but a clear button is essential */}
                 <Button onClick={handleClearFilters} className="bg-red-500 hover:bg-red-600 text-white border-0">
                   <X className="h-4 w-4" /> លុបច្រោះ
                 </Button>
@@ -556,6 +562,7 @@ export default function ProvinceResultsPage() {
                 <FileDown className="h-4 w-4" /> ទាញយកទិន្នន័យសិស្ស
               </Button>
             </div>
+            
             {/* Pagination Info */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
               <p className="text-sm text-gray-600">
@@ -613,6 +620,7 @@ export default function ProvinceResultsPage() {
                 </tbody>
               </table>
             </div>
+            
             {rowsPerPage !== ALL_DATA_VALUE && (
               <div className="flex justify-center gap-3">
                 <Button size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>មុន</Button>
