@@ -713,8 +713,8 @@ export default function ProvinceResultsPage() {
                             let className = "";
 
                             if (showScores) {
-                              displayValue = subjectData ? subjectData.score : "០";
-                              className = displayValue !== "០" && displayValue !== 0 ? "text-blue-600 font-semibold" : "text-red-600";
+                              displayValue = subjectData ? subjectData.score : "0";
+                              className = displayValue !== "0" && displayValue !== 0 ? "text-blue-600 font-semibold" : "text-red-600";
                             } else {
                               if (subjectData?.level) {
                                 displayValue = subjectData.level;
