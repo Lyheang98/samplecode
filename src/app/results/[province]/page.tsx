@@ -425,45 +425,110 @@ export default function ProvinceResultsPage() {
     setSearchValue("");
   };
 
-  const handleDownloadCSV = () => {
-    let headers = [];
-    let rows = [];
+const handleDownloadCSV = () => {
+  let headers = [];
+  let rows = [];
+  let headerTitle = "";
 
-    if (activeTab === "full-results") {
-      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"];
-      rows = filteredStudents.map(r => [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month]);
-    } else if (activeTab === "result-subject") {
-      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Grade", "Class", "Total Score", "Total Possible", "Average", "Overall Level", "Overall Result"];
+  if (activeTab === "full-results") {
+    headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
+    headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"];
+    rows = filteredStudents.map(r => [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month]);
+  } else if (activeTab === "result-subject") {
+    headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
+    headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Grade", "Class"];
+    SUBJECT_LIST.forEach(subject => {
+      if (showScores) headers.push(`${subject.name}`);
+      else headers.push(`${subject.name}`);
+    });
+
+    rows = filteredStudents.map(r => {
+      const row = [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.grade, r.exam_class];
       SUBJECT_LIST.forEach(subject => {
-        if (showScores) headers.push(`${subject.name} Score`);
-        else headers.push(`${subject.name} Level`);
-      });
-      headers.push("Year", "Month");
-
-      rows = filteredStudents.map(r => {
-        const row = [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.grade, r.exam_class, r.total_score, r.total_possible, r.total_average, r.overall_level, r.overall_result];
-        SUBJECT_LIST.forEach(subject => {
-          if (r.subjects?.[subject.name]) {
-            row.push(showScores ? r.subjects[subject.name].score || "០" : r.subjects[subject.name].level || "");
+        if (r.subjects?.[subject.name]) {
+          if (showScores) {
+            row.push(r.subjects[subject.name].score || "0");
           } else {
-            row.push(showScores ? "០" : "");
+            row.push(r.subjects[subject.name].level || "F");
           }
-        });
-        row.push(r.exam_year, r.exam_month);
-        return row;
+        } else {
+          if (showScores) {
+            row.push("0");
+          } else {
+            row.push("F");
+          }
+        }
       });
-    } else if (activeTab === "total-results") {
-      headers = ["No.", "Code", "Subject", "A", "A Female", "B", "B Female", "C", "C Female", "D", "D Female", "E", "E Female", "F", "F Female", "ABC", "ABC Female", "DEF", "DEF Female"];
-      rows = summaryData.map((r, i) => [i + 1, r.code, r.name, r.A, r.A_female, r.B, r.B_female, r.C, r.C_female, r.D, r.D_female, r.E, r.E_female, r.F, r.F_female, r.ABC, r.ABC_female, r.DEF, r.DEF_female]);
-    }
+      return row;
+    });
+  } else if (activeTab === "total-results") {
+    headerTitle = "របាយការណ៍បូកសរុបលទ្ធិផលតេស្ដស្ដង់ដា";
+    headers = ["សូចនាករ", "មុខវិជ្ជា", "A", "ស្រី", "B", "ស្រី", "C", "ស្រី", "D", "ស្រី", "E", "ស្រី", "F", "ស្រី", "ABC", "ស្រី", "DEF", "ស្រី"];
+    rows = summaryData.map((r, i) => [r.code, r.name, r.A, r.A_female, r.B, r.B_female, r.C, r.C_female, r.D, r.D_female, r.E, r.E_female, r.F, r.F_female, r.ABC, r.ABC_female, r.DEF, r.DEF_female]);
+  }
 
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
-    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${province_name}_${activeTab}_results.csv`;
-    link.click();
-  };
+  // Get school name from first student (or use a default if no students)
+  const schoolName = filteredStudents.length > 0 ? filteredStudents[0].school : "";
+  
+  // Create official header section
+  const officialHeader = [
+    ["ព្រះរាជាណាចក្រកម្ពុជា"],
+    ["ជាតិ​ សាសនា ព្រះមហាក្សត្រ"],
+    ["ក្រសួងអប់រំ យុវជន និងកីឡា"],
+    ["គម្រោងកែលម្អការអប់រំចំណេះដីងទូទៅ Moeys Edtech " + headerTitle],
+    ["សាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ ( ស.ព.ភ )"],
+    [schoolName ? `វិទ្យាល័យ ${schoolName}` : "វិទ្យាល័យ by name school"],
+    [""], // Empty row for spacing
+    [""], // Empty row for spacing
+    [`ទិន្នន័យសិស្សក្នុង${selectedMonth ? ` ខែ ${selectedMonth}` : ""}${selectedYear ? ` ឆ្នាំ ${selectedYear}` : ""}`],
+    [`ខេត្ត: ${province_name}`],
+    [""], // Empty row for spacing
+    [""], // Empty row for spacing
+    headers // Add the actual data headers
+  ];
+
+  // Combine official header with data rows
+  const allRows = [...officialHeader, ...rows];
+
+  // Convert to CSV format with proper Excel formatting
+  const csv = allRows.map((row, index) => {
+    // Handle empty rows properly - create empty rows for spacing
+    if (row.length === 1 && row[0] === "") {
+      return "";
+    }
+    
+    // For official headers, create merged cell appearance in Excel
+    if (index < 7) {
+      return `"${row[0]}"`;
+    }
+    
+    // For date and province info
+    if (index === 8 || index === 9) {
+      return `"${row[0]}"`;
+    }
+    
+    // For data headers and data rows
+    return row.map(cell => `"${cell}"`).join(",");
+  }).join("\n");
+
+  // Create Excel-compatible CSV with BOM for Khmer characters
+  const BOM = "\uFEFF";
+  const csvContent = BOM + csv;
+  
+  // Create and download file
+  const blob = new Blob([csvContent], { 
+    type: "text/csv;charset=utf-8;" 
+  });
+  
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${province_name}_${activeTab}_results.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   const totalPages = useMemo(() => rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil((activeTab === "total-results" ? summaryData.length : filteredStudents.length) / rowsPerPage)), [activeTab, summaryData.length, filteredStudents.length, rowsPerPage]);
   const paginated = useMemo(() => {
