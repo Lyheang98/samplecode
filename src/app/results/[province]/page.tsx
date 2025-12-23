@@ -147,6 +147,7 @@ export default function ProvinceResultsPage() {
 
   const [activeTab, setActiveTab] = useState("result-subject"); // Default to result-subject
   const [showScores, setShowScores] = useState(true);
+  const [countAllStudents, setCountAllStudents] = useState(true); // New state for counting mode
 
   const genderOptions = ["ប្រុស", "ស្រី"];
   const achievementOptions = ["A", "B", "C", "D", "E", "F"];
@@ -320,15 +321,16 @@ export default function ProvinceResultsPage() {
       });
     });
 
-    filteredStudents.forEach((r: any) => {
-      const gender = r.gender || "";
-      const isFemale = gender === "ស្រី";
+    if (countAllStudents) {
+      // Count all students, treating missing data as "F"
+      filteredStudents.forEach((r: any) => {
+        const gender = r.gender || "";
+        const isFemale = gender === "ស្រី";
 
-      SUBJECT_LIST.forEach(subject => {
-        const subjData = r.subjects?.[subject.name] || {};
-        const level = subjData.level || "";
+        SUBJECT_LIST.forEach(subject => {
+          const subjData = r.subjects?.[subject.name] || {};
+          const level = subjData.level || "F"; // Default to "F" if no data
 
-        if (level) {
           const summary = summaryMap.get(subject.code);
           if (level === "A") {
             summary.A += 1;
@@ -354,12 +356,53 @@ export default function ProvinceResultsPage() {
           summary.ABC_female = summary.A_female + summary.B_female + summary.C_female;
           summary.DEF = summary.D + summary.E + summary.F;
           summary.DEF_female = summary.D_female + summary.E_female + summary.F_female;
-        }
+        });
       });
-    });
+    } else {
+      // Count only students with actual data for each subject
+      SUBJECT_LIST.forEach(subject => {
+        const summary = summaryMap.get(subject.code);
+        
+        filteredStudents.forEach((r: any) => {
+          const gender = r.gender || "";
+          const isFemale = gender === "ស្រី";
+          
+          // Only count if student has data for this subject
+          if (r.subjects && r.subjects[subject.name]) {
+            const subjData = r.subjects[subject.name];
+            const level = subjData.level || "";
+            
+            if (level === "A") {
+              summary.A += 1;
+              if (isFemale) summary.A_female += 1;
+            } else if (level === "B") {
+              summary.B += 1;
+              if (isFemale) summary.B_female += 1;
+            } else if (level === "C") {
+              summary.C += 1;
+              if (isFemale) summary.C_female += 1;
+            } else if (level === "D") {
+              summary.D += 1;
+              if (isFemale) summary.D_female += 1;
+            } else if (level === "E") {
+              summary.E += 1;
+              if (isFemale) summary.E_female += 1;
+            } else if (level === "F") {
+              summary.F += 1;
+              if (isFemale) summary.F_female += 1;
+            }
+          }
+        });
+        
+        summary.ABC = summary.A + summary.B + summary.C;
+        summary.ABC_female = summary.A_female + summary.B_female + summary.C_female;
+        summary.DEF = summary.D + summary.E + summary.F;
+        summary.DEF_female = summary.D_female + summary.E_female + summary.F_female;
+      });
+    }
 
     setSummaryData(Array.from(summaryMap.values()));
-  }, [filteredStudents, activeTab]);
+  }, [filteredStudents, activeTab, countAllStudents]);
 
   // Fetch filter options
   const fetchFilterOptions = useCallback(() => {
@@ -425,110 +468,110 @@ export default function ProvinceResultsPage() {
     setSearchValue("");
   };
 
-const handleDownloadCSV = () => {
-  let headers = [];
-  let rows = [];
-  let headerTitle = "";
+  const handleDownloadCSV = () => {
+    let headers = [];
+    let rows = [];
+    let headerTitle = "";
 
-  if (activeTab === "full-results") {
-    headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
-    headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"];
-    rows = filteredStudents.map(r => [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month]);
-  } else if (activeTab === "result-subject") {
-    headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
-    headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Grade", "Class"];
-    SUBJECT_LIST.forEach(subject => {
-      if (showScores) headers.push(`${subject.name}`);
-      else headers.push(`${subject.name}`);
-    });
-
-    rows = filteredStudents.map(r => {
-      const row = [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.grade, r.exam_class];
+    if (activeTab === "full-results") {
+      headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
+      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"];
+      rows = filteredStudents.map(r => [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month]);
+    } else if (activeTab === "result-subject") {
+      headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
+      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Grade", "Class"];
       SUBJECT_LIST.forEach(subject => {
-        if (r.subjects?.[subject.name]) {
-          if (showScores) {
-            row.push(r.subjects[subject.name].score || "0");
-          } else {
-            row.push(r.subjects[subject.name].level || "F");
-          }
-        } else {
-          if (showScores) {
-            row.push("0");
-          } else {
-            row.push("F");
-          }
-        }
+        if (showScores) headers.push(`${subject.name}`);
+        else headers.push(`${subject.name}`);
       });
-      return row;
+
+      rows = filteredStudents.map(r => {
+        const row = [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.grade, r.exam_class];
+        SUBJECT_LIST.forEach(subject => {
+          if (r.subjects?.[subject.name]) {
+            if (showScores) {
+              row.push(r.subjects[subject.name].score || "0");
+            } else {
+              row.push(r.subjects[subject.name].level || "F");
+            }
+          } else {
+            if (showScores) {
+              row.push("0");
+            } else {
+              row.push("F");
+            }
+          }
+        });
+        return row;
+      });
+    } else if (activeTab === "total-results") {
+      headerTitle = "របាយការណ៍បូកសរុបលទ្ធិផលតេស្ដស្ដង់ដា";
+      headers = ["សូចនាករ", "មុខវិជ្ជា", "A", "ស្រី", "B", "ស្រី", "C", "ស្រី", "D", "ស្រី", "E", "ស្រី", "F", "ស្រី", "ABC", "ស្រី", "DEF", "ស្រី"];
+      rows = summaryData.map((r, i) => [r.code, r.name, r.A, r.A_female, r.B, r.B_female, r.C, r.C_female, r.D, r.D_female, r.E, r.E_female, r.F, r.F_female, r.ABC, r.ABC_female, r.DEF, r.DEF_female]);
+    }
+
+    // Get school name from first student (or use a default if no students)
+    const schoolName = filteredStudents.length > 0 ? filteredStudents[0].school : "";
+
+    // Create official header section
+    const officialHeader = [
+      ["ព្រះរាជាណាចក្រកម្ពុជា"],
+      ["ជាតិ​ សាសនា ព្រះមហាក្សត្រ"],
+      ["ក្រសួងអប់រំ យុវជន និងកីឡា"],
+      ["គម្រោងកែលម្អការអប់រំចំណេះដីងទូទៅ Moeys Edtech " + headerTitle],
+      ["សាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ ( ស.ព.ភ )"],
+      [schoolName ? `វិទ្យាល័យ ${schoolName}` : "វិទ្យាល័យ by name school"],
+      [""], // Empty row for spacing
+      [""], // Empty row for spacing
+      [`ទិន្នន័យសិស្សក្នុង${selectedMonth ? ` ខែ ${selectedMonth}` : ""}${selectedYear ? ` ឆ្នាំ ${selectedYear}` : ""}`],
+      [`ខេត្ត: ${province_name}`],
+      [""], // Empty row for spacing
+      [""], // Empty row for spacing
+      headers // Add the actual data headers
+    ];
+
+    // Combine official header with data rows
+    const allRows = [...officialHeader, ...rows];
+
+    // Convert to CSV format with proper Excel formatting
+    const csv = allRows.map((row, index) => {
+      // Handle empty rows properly - create empty rows for spacing
+      if (row.length === 1 && row[0] === "") {
+        return "";
+      }
+
+      // For official headers, create merged cell appearance in Excel
+      if (index < 7) {
+        return `"${row[0]}"`;
+      }
+
+      // For date and province info
+      if (index === 8 || index === 9) {
+        return `"${row[0]}"`;
+      }
+
+      // For data headers and data rows
+      return row.map(cell => `"${cell}"`).join(",");
+    }).join("\n");
+
+    // Create Excel-compatible CSV with BOM for Khmer characters
+    const BOM = "\uFEFF";
+    const csvContent = BOM + csv;
+
+    // Create and download file
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;"
     });
-  } else if (activeTab === "total-results") {
-    headerTitle = "របាយការណ៍បូកសរុបលទ្ធិផលតេស្ដស្ដង់ដា";
-    headers = ["សូចនាករ", "មុខវិជ្ជា", "A", "ស្រី", "B", "ស្រី", "C", "ស្រី", "D", "ស្រី", "E", "ស្រី", "F", "ស្រី", "ABC", "ស្រី", "DEF", "ស្រី"];
-    rows = summaryData.map((r, i) => [r.code, r.name, r.A, r.A_female, r.B, r.B_female, r.C, r.C_female, r.D, r.D_female, r.E, r.E_female, r.F, r.F_female, r.ABC, r.ABC_female, r.DEF, r.DEF_female]);
-  }
 
-  // Get school name from first student (or use a default if no students)
-  const schoolName = filteredStudents.length > 0 ? filteredStudents[0].school : "";
-  
-  // Create official header section
-  const officialHeader = [
-    ["ព្រះរាជាណាចក្រកម្ពុជា"],
-    ["ជាតិ​ សាសនា ព្រះមហាក្សត្រ"],
-    ["ក្រសួងអប់រំ យុវជន និងកីឡា"],
-    ["គម្រោងកែលម្អការអប់រំចំណេះដីងទូទៅ Moeys Edtech " + headerTitle],
-    ["សាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ ( ស.ព.ភ )"],
-    [schoolName ? `វិទ្យាល័យ ${schoolName}` : "វិទ្យាល័យ by name school"],
-    [""], // Empty row for spacing
-    [""], // Empty row for spacing
-    [`ទិន្នន័យសិស្សក្នុង${selectedMonth ? ` ខែ ${selectedMonth}` : ""}${selectedYear ? ` ឆ្នាំ ${selectedYear}` : ""}`],
-    [`ខេត្ត: ${province_name}`],
-    [""], // Empty row for spacing
-    [""], // Empty row for spacing
-    headers // Add the actual data headers
-  ];
-
-  // Combine official header with data rows
-  const allRows = [...officialHeader, ...rows];
-
-  // Convert to CSV format with proper Excel formatting
-  const csv = allRows.map((row, index) => {
-    // Handle empty rows properly - create empty rows for spacing
-    if (row.length === 1 && row[0] === "") {
-      return "";
-    }
-    
-    // For official headers, create merged cell appearance in Excel
-    if (index < 7) {
-      return `"${row[0]}"`;
-    }
-    
-    // For date and province info
-    if (index === 8 || index === 9) {
-      return `"${row[0]}"`;
-    }
-    
-    // For data headers and data rows
-    return row.map(cell => `"${cell}"`).join(",");
-  }).join("\n");
-
-  // Create Excel-compatible CSV with BOM for Khmer characters
-  const BOM = "\uFEFF";
-  const csvContent = BOM + csv;
-  
-  // Create and download file
-  const blob = new Blob([csvContent], { 
-    type: "text/csv;charset=utf-8;" 
-  });
-  
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", `${province_name}_${activeTab}_results.csv`);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${province_name}_${activeTab}_results.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const totalPages = useMemo(() => rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil((activeTab === "total-results" ? summaryData.length : filteredStudents.length) / rowsPerPage)), [activeTab, summaryData.length, filteredStudents.length, rowsPerPage]);
   const paginated = useMemo(() => {
@@ -613,7 +656,7 @@ const handleDownloadCSV = () => {
 
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex flex-wrap gap-2 justify-center bg-white rounded-xl p-2 shadow-md">
-          <button onClick={() => setActiveTab("full-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "full-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>លទ្ធផលសរុប</button>
+          {/* <button onClick={() => setActiveTab("full-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "full-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200 hidden"}`}>លទ្ធផលសរុប</button> */}
           <button onClick={() => setActiveTab("result-subject")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "result-subject" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>មើលតាមមុខវិជ្ជា</button>
           <button onClick={() => setActiveTab("total-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "total-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>របាយការណ៍</button>
         </div>
@@ -657,6 +700,7 @@ const handleDownloadCSV = () => {
                     <FileDown className="h-4 w-4" /> ទាញយក
                   </Button>
                 )}
+
               </div>
             </div>
 
@@ -730,14 +774,30 @@ const handleDownloadCSV = () => {
 
               {activeTab === "result-subject" && (
                 <div className="overflow-x-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold pt-4 px-2">លទ្ធផលតាមមុខវិជ្ជា</h3>
-                    <div className="flex gap-2 pt-4 pr-2">
-                      <Button onClick={() => setShowScores(true)} className={`flex items-center gap-2 ${showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}>
-                        <BarChart3 className="h-4 w-4" /> ពិន្ទុ
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    {/* Title - Stays left/top */}
+                    <h3 className="text-lg font-semibold px-2">
+                      លទ្ធផលតាមមុខវិជ្ជា
+                    </h3>
+
+                    {/* Button Group - Stacks on mobile, Rows on desktop */}
+                    <div className="flex w-full sm:w-auto gap-2 px-2">
+                      <Button
+                        onClick={() => setShowScores(true)}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 ${showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
+                          }`}
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        <span>ពិន្ទុ</span>
                       </Button>
-                      <Button onClick={() => setShowScores(false)} className={`flex items-center gap-2 ${!showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}>
-                        <Eye className="h-4 w-4" /> និទ្ទេស
+
+                      <Button
+                        onClick={() => setShowScores(false)}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 ${!showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
+                          }`}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>និទ្ទេស</span>
                       </Button>
                     </div>
                   </div>
@@ -785,11 +845,11 @@ const handleDownloadCSV = () => {
                                 displayValue = subjectData.level;
                                 className =
                                   subjectData.level === "A" ? "bg-red-100 text-red-700" :
-                                  subjectData.level === "B" ? "bg-purple-100 text-purple-700" :
-                                  subjectData.level === "C" ? "bg-orange-100 text-orange-700" :
-                                  subjectData.level === "D" ? "bg-blue-100 text-blue-700" :
-                                  subjectData.level === "E" ? "bg-green-100 text-green-700" :
-                                  "bg-gray-100 text-gray-700";
+                                    subjectData.level === "B" ? "bg-purple-100 text-purple-700" :
+                                      subjectData.level === "C" ? "bg-orange-100 text-orange-700" :
+                                        subjectData.level === "D" ? "bg-blue-100 text-blue-700" :
+                                          subjectData.level === "E" ? "bg-green-100 text-green-700" :
+                                            "bg-gray-100 text-gray-700";
                               } else {
                                 displayValue = "F";
                                 className = "bg-gray-100 text-gray-700";
@@ -819,6 +879,33 @@ const handleDownloadCSV = () => {
 
               {activeTab === "total-results" && (
                 <div className="overflow-x-auto border rounded-lg shadow-md">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    {/* Title Section */}
+                    <h3 className="text-lg font-semibold px-2">
+                      របាយការណ៍បូកសរុបនិទ្ទេស
+                    </h3>
+
+                    {/* Buttons Section */}
+                    <div className="flex flex-wrap gap-2 px-2 w-full sm:w-auto">
+                      <Button
+                        onClick={() => setCountAllStudents(true)}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
+                          }`}
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        <span className="text-sm">និទ្ទេសសិស្សទាំងអស់</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => setCountAllStudents(false)}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${!countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
+                          }`}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="text-sm">និទ្ទេសសិស្សបានប្រឡង</span>
+                      </Button>
+                    </div>
+                  </div>
                   <table className="min-w-full text-sm border-collapse whitespace-nowrap">
                     <thead className="bg-blue-600 text-white">
                       <tr>
