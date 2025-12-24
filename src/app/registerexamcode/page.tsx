@@ -458,7 +458,7 @@ export default function RegisterExamCodePage() {
 
       setExamCode(examCodeResult || "N/A");
     } catch (err: any) {
-      setError(`បរាជ័យក្នុងការទាញយកកូដប្រឡង: ${err.message}`);
+      setError(`សិស្សមិ​នមានការបញ្ជាក់ថ្នាក់វិទ្យាសាស្រ្ដ ឬ ថ្នាក់វិទ្យាសាស្រ្ដសង្គម`);
       setExamCode("Error");
     } finally {
       setLoadingStep(null);

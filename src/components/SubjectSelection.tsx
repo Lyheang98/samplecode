@@ -160,10 +160,7 @@ const SUBJECT_PASSWORDS: Record<string, string> = {
   "អង់គ្លេស": "1220",
 };
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 4d42b888508b5be08a2d78cbec2f193dac31456a
 // Subject points data structure
 const SUBJECT_POINTS: { [key: string]: { [key: string]: number } } = {
   "7": {

@@ -3,13 +3,35 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Home } from "lucide-react";
 
-// API config
-import { API_BASE, MOCK_USERNAME, MOCK_PASSWORD } from "../../../api/api";
+const PROVINCES = [
+  { id: "1", name: "ខេត្តបន្ទាយមានជ័យ" },
+  { id: "2", name: "ខេត្តបាត់ដំបង" },
+  { id: "3", name: "ខេត្តកំពង់ចាម" },
+  { id: "4", name: "ខេត្តកំពង់ឆ្នាំង" },
+  { id: "5", name: "ខេត្តកំពង់ស្ពឺ" },
+  { id: "6", name: "ខេត្តកំពង់ធំ" },
+  { id: "7", name: "ខេត្តកំពត" },
+  { id: "8", name: "ខេត្តកណ្ដាល" },
+  { id: "9", name: "ខេត្តកោះកុង" },
+  { id: "10", name: "ខេត្តក្រចេះ" },
+  { id: "11", name: "ខេត្តមណ្ឌលគិរី" },
+  { id: "12", name: "រាជធានីភ្នំពេញ" },
+  { id: "13", name: "ខេត្តព្រះវិហារ" },
+  { id: "14", name: "ខេត្តព្រៃវែង" },
+  { id: "15", name: "ខេត្តពោធិ៍សាត់" },
+  { id: "16", name: "ខេត្តរតនគិរី" },
+  { id: "17", name: "ខេត្តសៀមរាប" },
+  { id: "18", name: "ខេត្តព្រះសីហនុ" },
+  { id: "19", name: "ខេត្តស្ទឹងត្រែង" },
+  { id: "20", name: "ខេត្តស្វាយរៀង" },
+  { id: "21", name: "ខេត្តតាកែវ" },
+  { id: "22", name: "ខេត្តកែប" },
+  { id: "23", name: "ខេត្តប៉ៃលិន" },
+  { id: "24", name: "ខេត្តឧត្តរមានជ័យ" },
+  { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
+];
 
-const TOKEN_URL = `${API_BASE}/api/token/`;
-const RESULTS_URL = `${API_BASE}/api/v1/result/full-results/`;
-
-// Province Image Map
+// Province Image Map (រក្សាដដែល)
 const provinceImageMap: Record<string, string> = {
   "ខេត្តបន្ទាយមានជ័យ": "/image/provinces/BanTeay Meanchey.jpg",
   "ខេត្តបាត់ដំបង": "/image/provinces/battambang.jpg",
@@ -22,7 +44,7 @@ const provinceImageMap: Record<string, string> = {
   "ខេត្តព្រះសីហនុ": "/image/provinces/preah-sihanouk.jpg",
   "ខេត្តតាកែវ": "/image/provinces/takev.jpg",
   "ខេត្តកែប": "/image/provinces/kep.jpg",
-  "ខេត្តកណ្តាល": "/image/provinces/kandal.jpg",
+  "ខេត្តកណ្ដាល": "/image/provinces/kandal.jpg",
   "ខេត្តមណ្ឌលគិរី": "/image/provinces/mondulkiri.jpg",
   "ខេត្តរតនគិរី": "/image/provinces/ratanakiri.jpg",
   "ខេត្តស្វាយរៀង": "/image/provinces/svay-rieng.jpg",
@@ -38,70 +60,16 @@ const provinceImageMap: Record<string, string> = {
   "ខេត្តសៀមរាប": "/image/provinces/siem-reap.jpg",
 };
 
-// Login API
-async function getAccessToken() {
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: MOCK_USERNAME,
-      password: MOCK_PASSWORD,
-    }),
-    credentials: "omit",
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Login failed: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.access;
-}
-
-// Fetch provinces list
-async function getProvinces(): Promise<string[]> {
-  const token = await getAccessToken();
-
-  const res = await fetch(RESULTS_URL, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    credentials: "omit",
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch: ${res.status}`);
-  }
-
-  const data = await res.json();
-  const results = data.results || data;
-
-  return Array.from(
-    new Set(results.map((item: any) => item.province_name).filter(Boolean))
-  ).sort();
-}
-
-export default async function ProvincesPage() {
-  let provinces: string[] = [];
-  let error: string | null = null;
-
-  try {
-    provinces = await getProvinces();
-  } catch (err) {
-    error = "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ។ សូមព្យាយាមម្តងទៀត។";
-  }
+export default function ProvincesPage() {
+  const provinces = PROVINCES.map(p => p.name).sort(); // តម្រៀបតាមអក្សរខ្មែរ (optional: អាច sort តាម id បើចង់)
 
   const createSlug = (name: string) => encodeURIComponent(name.trim());
 
   return (
-    // CHANGE: Applied p-5 for 20px padding on all sides
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-100 p-5">
       <div className="max-w-7xl mx-auto">
         {/* Navigation */}
-        <div className="flex justify-between items-center mb-4 md:mb-6">
+        <div className="flex justify-between sm:justify-around items-center mb-4 md:mb-6">
           <Link href="/welcome">
             <button className="
               flex items-center gap-2
@@ -159,50 +127,39 @@ export default async function ProvincesPage() {
 
         {/* Provinces Grid */}
         <div className="py-4 sm:py-6">
-          {error ? (
-            <div className="text-center py-16 sm:py-24">
-              <p className="text-2xl sm:text-3xl font-bold text-red-600 mb-4">មានបញ្ហា!</p>
-              <p className="text-lg sm:text-xl text-gray-700">{error}</p>
-            </div>
-          ) : provinces.length === 0 ? (
-            <div className="text-center py-16 sm:py-24">
-              <p className="text-lg sm:text-xl text-gray-600">កំពុងផ្ទុកទិន្នន័យខេត្ត...</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
-              {provinces.map((provinceName) => {
-                const imagePath = provinceImageMap[provinceName];
-                const href = `/results/${createSlug(provinceName)}`;
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
+            {provinces.map((provinceName) => {
+              const imagePath = provinceImageMap[provinceName];
+              const href = `/results/${createSlug(provinceName)}`;
 
-                return (
-                  <Link href={href} key={provinceName} className="group">
-                    <div className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-blue-500 cursor-pointer h-full flex flex-col">
-                      {imagePath ? (
-                        <div className="aspect-square relative bg-gray-100">
-                          <Image
-                            src={imagePath}
-                            alt={provinceName}
-                            fill
-                            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        </div>
-                      ) : (
-                        <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center p-2 sm:p-4">
-                          <span className="text-center text-gray-700 font-bold text-xs sm:text-sm md:text-base whitespace-normal break-words">
-                            {provinceName}
-                          </span>
-                        </div>
-                      )}
-                      <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-600 to-blue-700 group-hover:from-blue-700 group-hover:to-blue-800 text-white text-center font-semibold text-xs sm:text-sm md:text-base transition whitespace-normal break-words flex-grow flex items-center justify-center">
-                        {provinceName}
+              return (
+                <Link href={href} key={provinceName} className="group">
+                  <div className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-blue-500 cursor-pointer h-full flex flex-col">
+                    {imagePath ? (
+                      <div className="aspect-square relative bg-gray-100">
+                        <Image
+                          src={imagePath}
+                          alt={provinceName}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
                       </div>
+                    ) : (
+                      <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center p-2 sm:p-4">
+                        <span className="text-center text-gray-700 font-bold text-xs sm:text-sm md:text-base whitespace-normal break-words">
+                          {provinceName}
+                        </span>
+                      </div>
+                    )}
+                    <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-600 to-blue-700 group-hover:from-blue-700 group-hover:to-blue-800 text-white text-center font-semibold text-xs sm:text-sm md:text-base transition whitespace-normal break-words flex-grow flex items-center justify-center">
+                      {provinceName}
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
         {/* Footer */}
