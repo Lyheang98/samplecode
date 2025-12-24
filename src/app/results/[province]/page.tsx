@@ -32,7 +32,33 @@ const SUBJECT_LIST = [
   { code: "1.3.10", name: "ភូមិវិទ្យា" },
   { code: "1.3.11", name: "អង់គ្លេស" },
 ];
-
+const PROVINCES = [
+  { id: "1", name: "ខេត្តបន្ទាយមានជ័យ" },
+  { id: "2", name: "ខេត្តបាត់ដំបង" },
+  { id: "3", name: "ខេត្តកំពង់ចាម" },
+  { id: "4", name: "ខេត្តកំពង់ឆ្នាំង" },
+  { id: "5", name: "ខេត្តកំពង់ស្ពឺ" },
+  { id: "6", name: "ខេត្តកំពង់ធំ" },
+  { id: "7", name: "ខេត្តកំពត" },
+  { id: "8", name: "ខេត្តកណ្ដាល" },
+  { id: "9", name: "ខេត្តកោះកុង" },
+  { id: "10", name: "ខេត្តក្រចេះ" },
+  { id: "11", name: "ខេត្តមណ្ឌលគិរី" },
+  { id: "12", name: "រាជធានីភ្នំពេញ" },
+  { id: "13", name: "ខេត្តព្រះវិហារ" },
+  { id: "14", name: "ខេត្តព្រៃវែង" },
+  { id: "15", name: "ខេត្តពោធិ៍សាត់" },
+  { id: "16", name: "ខេត្តរតនគិរី" },
+  { id: "17", name: "ខេត្តសៀមរាប" },
+  { id: "18", name: "ខេត្តព្រះសីហនុ" },
+  { id: "19", name: "ខេត្តស្ទឹងត្រែង" },
+  { id: "20", name: "ខេត្តស្វាយរៀង" },
+  { id: "21", name: "ខេត្តតាកែវ" },
+  { id: "22", name: "ខេត្តកែប" },
+  { id: "23", name: "ខេត្តប៉ៃលិន" },
+  { id: "24", name: "ខេត្តឧត្តរមានជ័យ" },
+  { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
+];
 // --- UI Components ---
 const Card = ({ className = "", children }) => (
   <div className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}>
@@ -117,7 +143,16 @@ const toAverage = (avgStr: any) => {
 export default function ProvinceResultsPage() {
   const params = useParams();
   const router = useRouter();
-  const province_name = useMemo(() => decodeProvinceName(params?.province), [params?.province]);
+  const province_id = useMemo(() => {
+    const id = params?.province;
+    return Array.isArray(id) ? id[0] : id;
+  }, [params?.province]);
+  
+  // Get province name from ID for display
+  const province_name = useMemo(() => {
+    const province = PROVINCES.find(p => p.id === province_id);
+    return province ? province.name : "";
+  }, [province_id]);
 
   const [rawStudents, setRawStudents] = useState<any[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
@@ -138,7 +173,8 @@ export default function ProvinceResultsPage() {
   const [selectedMonth, setSelectedMonth] = useState("ធ្នូ");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  // Changed default from 20 to 10 as requested
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
   const [schoolOptions, setSchoolOptions] = useState<{ id: string; name: string }[]>([]);
@@ -191,15 +227,15 @@ export default function ProvinceResultsPage() {
   }, [tokenRetries]);
 
   const fetchData = useCallback(async () => {
-    if (!province_name) return;
+    if (!province_id) return;
     setLoading(true);
     setError("");
 
     let url = "";
-    if (activeTab === "full-results") {
-      url = `${API_BASE}/api/v1/result/full-results/${encodeURIComponent(province_name)}/`;
-    } else if (activeTab === "result-subject" || activeTab === "total-results") {
-      url = `${API_BASE}/api/v1/result/result-Subjects/${encodeURIComponent(province_name)}/`;
+    // Use hierarchical API structure as shown in image
+    if (activeTab === "result-subject" || activeTab === "total-results") {
+      // Add a parameter to get all data from the API
+      url = `${API_BASE}/api/Base/data/v1/students/${province_id}/?limit=all`;
     }
 
     try {
@@ -250,7 +286,7 @@ export default function ProvinceResultsPage() {
     } finally {
       setLoading(false);
     }
-  }, [province_name, getAccessToken, activeTab]);
+  }, [province_id, getAccessToken, activeTab]);
 
   // Filter students
   useEffect(() => {
@@ -279,7 +315,7 @@ export default function ProvinceResultsPage() {
     }
 
     setFilteredStudents(tempFiltered);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [
     rawStudents,
     searchValue,
@@ -330,6 +366,7 @@ export default function ProvinceResultsPage() {
         SUBJECT_LIST.forEach(subject => {
           const subjData = r.subjects?.[subject.name] || {};
           const level = subjData.level || "F"; // Default to "F" if no data
+          const score = subjData.score || "0"; // Default to "0" if no data
 
           const summary = summaryMap.get(subject.code);
           if (level === "A") {
@@ -432,13 +469,13 @@ export default function ProvinceResultsPage() {
 
       let grades: string[] = [];
       if (selectedDistrict && selectedSchool) {
-        grades = [...new Set(rawStudents.filter(g => g.district === selectedDistrict && g.school === selectedSchool).map((g: any) => String(g.grade ?? "")).filter(Boolean))].sort();
+        grades = [...new Set(rawStudents.filter(g => g.district === selectedDistrict && g.school === selectedSchool).map((g: any) => String(g.grade ?? "").filter(Boolean)))].sort();
       }
       setClassLevelOptions(grades);
 
       let rooms: string[] = [];
       if (selectedDistrict && selectedSchool && selectedClassLevel) {
-        rooms = [...new Set(rawStudents.filter(r => r.district === selectedDistrict && r.school === selectedSchool && r.grade === selectedClassLevel).map((r: any) => String(r.exam_class ?? "")).filter(Boolean))].sort();
+        rooms = [...new Set(rawStudents.filter(r => r.district === selectedDistrict && r.school === selectedSchool && r.grade === selectedClassLevel).map((r: any) => String(r.exam_class ?? "").filter(Boolean)))].sort();
       }
       setRoomOptions(rooms);
     } catch (err) {
@@ -449,8 +486,8 @@ export default function ProvinceResultsPage() {
   }, [rawStudents, selectedDistrict, selectedSchool, selectedClassLevel]);
 
   useEffect(() => {
-    if (province_name) fetchData();
-  }, [province_name, fetchData]);
+    if (province_id) fetchData();
+  }, [province_id, fetchData]);
 
   useEffect(() => {
     fetchFilterOptions();
@@ -473,11 +510,7 @@ export default function ProvinceResultsPage() {
     let rows = [];
     let headerTitle = "";
 
-    if (activeTab === "full-results") {
-      headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
-      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"];
-      rows = filteredStudents.map(r => [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month]);
-    } else if (activeTab === "result-subject") {
+    if (activeTab === "result-subject") {
       headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
       headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Grade", "Class"];
       SUBJECT_LIST.forEach(subject => {
@@ -573,7 +606,12 @@ export default function ProvinceResultsPage() {
     document.body.removeChild(link);
   };
 
-  const totalPages = useMemo(() => rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil((activeTab === "total-results" ? summaryData.length : filteredStudents.length) / rowsPerPage)), [activeTab, summaryData.length, filteredStudents.length, rowsPerPage]);
+  // Calculate pagination
+  const totalPages = useMemo(() => {
+    const dataLength = activeTab === "total-results" ? summaryData.length : filteredStudents.length;
+    return rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil(dataLength / rowsPerPage));
+  }, [activeTab, summaryData.length, filteredStudents.length, rowsPerPage]);
+
   const paginated = useMemo(() => {
     const data = activeTab === "total-results" ? summaryData : filteredStudents;
     if (rowsPerPage === ALL_DATA_VALUE) return data;
@@ -582,14 +620,14 @@ export default function ProvinceResultsPage() {
   }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
 
   const displayStart = useMemo(() => {
-    const data = activeTab === "total-results" ? summaryData : filteredStudents;
-    return data.length ? (currentPage - 1) * rowsPerPage + 1 : 0;
-  }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
+    const dataLength = activeTab === "total-results" ? summaryData.length : filteredStudents.length;
+    return dataLength ? (currentPage - 1) * rowsPerPage + 1 : 0;
+  }, [activeTab, summaryData.length, filteredStudents.length, currentPage, rowsPerPage]);
 
   const displayEnd = useMemo(() => {
-    const data = activeTab === "total-results" ? summaryData : filteredStudents;
-    return data.length ? Math.min(currentPage * rowsPerPage, data.length) : 0;
-  }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
+    const dataLength = activeTab === "total-results" ? summaryData.length : filteredStudents.length;
+    return dataLength ? Math.min(currentPage * rowsPerPage, dataLength) : 0;
+  }, [activeTab, summaryData.length, filteredStudents.length, currentPage, rowsPerPage]);
 
   const headerDateText = useMemo(() => selectedMonth || selectedYear ? (
     <>
@@ -656,7 +694,6 @@ export default function ProvinceResultsPage() {
 
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex flex-wrap gap-2 justify-center bg-white rounded-xl p-2 shadow-md">
-          {/* <button onClick={() => setActiveTab("full-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "full-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200 hidden"}`}>លទ្ធផលសរុប</button> */}
           <button onClick={() => setActiveTab("result-subject")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "result-subject" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>មើលតាមមុខវិជ្ជា</button>
           <button onClick={() => setActiveTab("total-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "total-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>របាយការណ៍</button>
         </div>
@@ -725,53 +762,6 @@ export default function ProvinceResultsPage() {
             )}
 
             <div className="overflow-x-auto border rounded-lg">
-              {activeTab === "full-results" && (
-                <table className="min-w-full text-sm">
-                  <thead className="bg-blue-600 text-white">
-                    <tr>
-                      <th className="px-4 py-3 text-left">អត្តលេខ</th>
-                      <th className="px-4 py-3 text-left">ឈ្មោះសិស្ស</th>
-                      <th className="px-4 py-3 text-center">ភេទ</th>
-                      <th className="px-4 py-3 text-center">ថ្នាក់</th>
-                      <th className="px-4 py-3 text-center">ថ្នាក់រៀន</th>
-                      <th className="px-4 py-3 text-left">សាលា</th>
-                      <th className="px-4 py-3 text-center">ស្រុក</th>
-                      <th className="px-4 py-3 text-center">ខេត្ត</th>
-                      <th className="px-4 py-3 text-center">ទូរស័ព្ទ</th>
-                      <th className="px-4 py-3 text-center">ពិន្ទុ</th>
-                      <th className="px-4 py-3 text-center">មធ្យម</th>
-                      <th className="px-4 py-3 text-center">ចំណាត់</th>
-                      <th className="px-4 py-3 text-center">និទ្ទេស</th>
-                      <th className="px-4 py-3 text-center">លទ្ធផល</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {paginated.length > 0 ? paginated.map((r, i) => (
-                      <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                        <td className="px-4 py-3 text-center font-mono">{r.student_id}</td>
-                        <td className="px-4 py-3">{r.full_name}</td>
-                        <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{r.gender}</span></td>
-                        <td className="px-4 py-3 text-center font-bold">{r.grade}</td>
-                        <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.exam_class}</td>
-                        <td className="px-4 py-3">{r.school}</td>
-                        <td className="px-4 py-3 text-center text-gray-600">{r.district}</td>
-                        <td className="px-4 py-3 text-center text-blue-600 font-bold">{r.province}</td>
-                        <td className="px-4 py-3 text-center">{r.phone_number}</td>
-                        <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.score}</td>
-                        <td className="px-4 py-3 text-center font-semibold">{r.average}</td>
-                        <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-bold">{r.rank}</span></td>
-                        <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold">{r.level}</span></td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-4 py-1.5 rounded-full font-bold ${r.result === "ជាប់" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.result}</span>
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr><td colSpan={14} className="text-center py-16 text-gray-500">មិនមានទិន្នន័យ</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-
               {activeTab === "result-subject" && (
                 <div className="overflow-x-auto">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -838,7 +828,7 @@ export default function ProvinceResultsPage() {
                             let className = "";
 
                             if (showScores) {
-                              displayValue = subjectData ? subjectData.score : "0";
+                              displayValue = subjectData ? subjectData.score || "0" : "0";
                               className = displayValue !== "0" && displayValue !== 0 ? "text-blue-600 font-semibold" : "text-red-600";
                             } else {
                               if (subjectData?.level) {
@@ -976,11 +966,67 @@ export default function ProvinceResultsPage() {
               )}
             </div>
 
+            {/* Pagination controls - only show for non-total-results tabs */}
             {rowsPerPage !== ALL_DATA_VALUE && activeTab !== "total-results" && (
-              <div className="flex justify-center gap-3">
-                <Button size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>មុន</Button>
-                <span className="py-2 px-4">ទំព័រ {currentPage} / {totalPages}</span>
-                <Button size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>បន្ទាប់</Button>
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    មុន
+                  </Button>
+                  <span className="text-sm">
+                    ទំព័រ {currentPage} / {totalPages}
+                  </span>
+                  <Button size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    បន្ទាប់
+                  </Button>
+                </div>
+                
+                {/* Page number buttons for quick navigation */}
+                <div className="flex gap-1">
+                  {totalPages > 1 && (
+                    <>
+                      {/* Show first page */}
+                      <button 
+                        onClick={() => setCurrentPage(1)} 
+                        className={`px-3 py-1 text-xs rounded ${currentPage === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                      >
+                        1
+                      </button>
+                      
+                      {/* Show ellipsis if needed */}
+                      {currentPage > 3 && <span className="px-2">...</span>}
+                      
+                      {/* Show current page and adjacent pages */}
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNum = Math.max(2, currentPage - 2) + i;
+                        if (pageNum <= 1 || pageNum >= totalPages) return null;
+                        
+                        return (
+                          <button 
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)} 
+                            className={`px-3 py-1 text-xs rounded ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      }).filter(Boolean)}
+                      
+                      {/* Show ellipsis if needed */}
+                      {currentPage < totalPages - 2 && <span className="px-2">...</span>}
+                      
+                      {/* Show last page */}
+                      {totalPages > 1 && (
+                        <button 
+                          onClick={() => setCurrentPage(totalPages)} 
+                          className={`px-3 py-1 text-xs rounded ${currentPage === totalPages ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                        >
+                          {totalPages}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>
