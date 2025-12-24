@@ -31,6 +31,7 @@ const PROVINCES = [
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
 ];
 
+// Province Image Map (រក្សាដដែល)
 const provinceImageMap: Record<string, string> = {
   "ខេត្តបន្ទាយមានជ័យ": "/image/provinces/BanTeay Meanchey.jpg",
   "ខេត្តបាត់ដំបង": "/image/provinces/battambang.jpg",
@@ -60,8 +61,9 @@ const provinceImageMap: Record<string, string> = {
 };
 
 export default function ProvincesPage() {
-  // Sort by ID for consistent order
-  const sortedProvinces = [...PROVINCES].sort((a, b) => parseInt(a.id) - parseInt(b.id));
+  const provinces = PROVINCES.map(p => p.name).sort(); // តម្រៀបតាមអក្សរខ្មែរ (optional: អាច sort តាម id បើចង់)
+
+  const createSlug = (name: string) => encodeURIComponent(name.trim());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-100 p-5">
@@ -69,13 +71,27 @@ export default function ProvincesPage() {
         {/* Navigation */}
         <div className="flex justify-between sm:justify-around items-center mb-4 md:mb-6">
           <Link href="/welcome">
-            <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm md:px-5 md:py-3 md:text-base rounded-lg shadow-lg transition">
+            <button className="
+              flex items-center gap-2
+              bg-blue-600 hover:bg-blue-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg shadow-lg transition
+            ">
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> ត្រឡប់
             </button>
           </Link>
 
           <Link href="/welcome">
-            <button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm md:px-5 md:py-3 md:text-base rounded-lg shadow-lg transition">
+            <button className="
+              flex items-center gap-2
+              bg-green-600 hover:bg-green-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg shadow-lg transition
+            ">
               <Home className="w-4 h-4 sm:w-5 sm:h-5" /> ទំព័រដើម
             </button>
           </Link>
@@ -86,7 +102,13 @@ export default function ProvincesPage() {
           <div className="flex justify-center mb-4 sm:mb-6">
             <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-md ring-1 ring-gray-200">
               <div className="rounded-lg bg-blue-50 p-2 sm:p-3 ring-1 ring-blue-100">
-                <Image src="/moeys-logo.png" alt="MoEYS Logo" width={48} height={48} className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12" />
+                <Image
+                  src="/moeys-logo.png"
+                  alt="MoEYS Logo"
+                  width={48}
+                  height={48}
+                  className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
+                />
               </div>
               <div className="text-gray-900 font-semibold text-xs sm:text-sm md:text-base leading-tight text-left">
                 MoEYS EdTech - GEIP ICT Team
@@ -106,17 +128,18 @@ export default function ProvincesPage() {
         {/* Provinces Grid */}
         <div className="py-4 sm:py-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
-            {sortedProvinces.map((province) => {
-              const imagePath = provinceImageMap[province.name];
+            {provinces.map((provinceName) => {
+              const imagePath = provinceImageMap[provinceName];
+              const href = `/results/${createSlug(provinceName)}`;
 
               return (
-                <Link href={`/results/${province.id}`} key={province.id} className="group">
+                <Link href={href} key={provinceName} className="group">
                   <div className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-blue-500 cursor-pointer h-full flex flex-col">
                     {imagePath ? (
                       <div className="aspect-square relative bg-gray-100">
                         <Image
                           src={imagePath}
-                          alt={province.name}
+                          alt={provinceName}
                           fill
                           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -125,12 +148,12 @@ export default function ProvincesPage() {
                     ) : (
                       <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center p-2 sm:p-4">
                         <span className="text-center text-gray-700 font-bold text-xs sm:text-sm md:text-base whitespace-normal break-words">
-                          {province.name}
+                          {provinceName}
                         </span>
                       </div>
                     )}
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-600 to-blue-700 group-hover:from-blue-700 group-hover:to-blue-800 text-white text-center font-semibold text-xs sm:text-sm md:text-base transition whitespace-normal break-words flex-grow flex items-center justify-center">
-                      {province.name}
+                      {provinceName}
                     </div>
                   </div>
                 </Link>
@@ -139,6 +162,7 @@ export default function ProvincesPage() {
           </div>
         </div>
 
+        {/* Footer */}
         <footer className="text-center mt-8 sm:mt-12 text-gray-500 text-xs sm:text-sm">
           <p>© 2025 MoEYS EdTech - GEIP ICT Team. All rights reserved.</p>
         </footer>
