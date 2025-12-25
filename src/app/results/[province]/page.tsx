@@ -126,7 +126,6 @@ const toAverage = (avgStr: any) => {
   if (typeof avgStr === "string") return parseFloat(avgStr).toFixed(2);
   return Number(avgStr).toFixed(2);
 };
-
 const calculateLevel = (average: number) => {
   if (average >= 90) return "A";
   if (average >= 80) return "B";
@@ -135,7 +134,6 @@ const calculateLevel = (average: number) => {
   if (average >= 50) return "E";
   return "F";
 };
-
 const calculateResult = (average: number) => {
   return average >= 50 ? "ជាប់" : "ធ្លាក់";
 };
@@ -150,7 +148,7 @@ export default function ProvinceResultsPage() {
   const [summaryData, setSummaryData] = useState<any[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0); // Real progress 0-100%
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
 
@@ -160,6 +158,7 @@ export default function ProvinceResultsPage() {
   const [selectedRoom, setSelectedRoom] = useState("");
   const [selectedGender, setSelectedGender] = useState("");
   const [selectedAchievement, setSelectedAchievement] = useState("");
+  const [selectedStudentType, setSelectedStudentType] = useState("");
   const [selectedYear, setSelectedYear] = useState("2025");
   const [selectedMonth, setSelectedMonth] = useState("ធ្នូ");
   const [currentPage, setCurrentPage] = useState(1);
@@ -168,6 +167,7 @@ export default function ProvinceResultsPage() {
   const [schoolOptions, setSchoolOptions] = useState<{ id: string; name: string }[]>([]);
   const [classLevelOptions, setClassLevelOptions] = useState<string[]>([]);
   const [roomOptions, setRoomOptions] = useState<string[]>([]);
+  const [studentTypeOptions, setStudentTypeOptions] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("result-subject");
   const [showScores, setShowScores] = useState(true);
   const [countAllStudents, setCountAllStudents] = useState(true);
@@ -216,10 +216,6 @@ export default function ProvinceResultsPage() {
     const year = parseInt(selectedYear) || 2025;
 
     let baseUrl = `${API_BASE}/api/v1/result/result-Subjects-byMonth-Year/${province_id}/${monthInt}/${year}/`;
-    if (selectedDistrict) baseUrl += `districts/${encodeURIComponent(selectedDistrict)}/`;
-    if (selectedSchool) baseUrl += `schools/${selectedSchool}/`;
-    if (selectedClassLevel) baseUrl += `grades/${selectedClassLevel}/`;
-    if (selectedRoom) baseUrl += `rooms/${selectedRoom}/`;
 
     const PAGE_SIZE = 200000;
     let allData: any[] = [];
@@ -300,6 +296,7 @@ export default function ProvinceResultsPage() {
           average: toAverage(average),
           grade: r.grade || "",
           exam_class: r.room || "",
+          student_type: r.student_type || "",
           rank: "",
           level: level,
           result: result,
@@ -329,17 +326,84 @@ export default function ProvinceResultsPage() {
         setLoading(false);
       }, 300);
     }
-  }, [province_id, selectedDistrict, selectedSchool, selectedClassLevel, selectedRoom, selectedMonth, selectedYear, getAccessToken]);
+  }, [province_id, selectedMonth, selectedYear, getAccessToken]);
 
   useEffect(() => {
     if (province_id) fetchData();
-  }, [province_id, selectedDistrict, selectedSchool, selectedClassLevel, selectedRoom, selectedMonth, selectedYear, fetchData]);
+  }, [province_id, selectedMonth, selectedYear, fetchData]);
 
-  // Filter students (client-side for remaining filters)
+  // Update district options from rawStudents
+  useEffect(() => {
+    const districts = [...new Set(rawStudents.map((d: any) => d.district).filter(Boolean))].sort();
+    setDistrictOptions(districts);
+  }, [rawStudents]);
+
+  // Update school options based on selectedDistrict
+  useEffect(() => {
+    if (selectedDistrict) {
+      const schoolsMap = new Map<string, string>();
+      rawStudents.filter((s: any) => s.district === selectedDistrict).forEach((s: any) => {
+        if (s.geip_school_ID && s.school) {
+          schoolsMap.set(s.geip_school_ID, s.school);
+        }
+      });
+      const schools = Array.from(schoolsMap, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+      setSchoolOptions(schools);
+    } else {
+      setSchoolOptions([]);
+    }
+    setSelectedSchool("");
+    setSelectedClassLevel("");
+    setSelectedRoom("");
+    setSelectedStudentType("");
+  }, [selectedDistrict, rawStudents]);
+
+  // Update class level options based on selectedSchool (and district)
+  useEffect(() => {
+    if (selectedSchool) {
+      const grades = [...new Set(rawStudents.filter(g => g.district === selectedDistrict && g.geip_school_ID === selectedSchool).map((g: any) => String(g.grade ?? "")).filter(Boolean))].sort();
+      setClassLevelOptions(grades);
+    } else {
+      setClassLevelOptions([]);
+    }
+    setSelectedClassLevel("");
+    setSelectedRoom("");
+    setSelectedStudentType("");
+  }, [selectedSchool, selectedDistrict, rawStudents]);
+
+  // Update room options based on selectedClassLevel (and school)
+  useEffect(() => {
+    if (selectedClassLevel) {
+      const rooms = [...new Set(rawStudents.filter(r => r.district === selectedDistrict && r.geip_school_ID === selectedSchool && r.grade === selectedClassLevel).map((r: any) => String(r.exam_class ?? "")).filter(Boolean))].sort();
+      setRoomOptions(rooms);
+    } else {
+      setRoomOptions([]);
+    }
+    setSelectedRoom("");
+    setSelectedStudentType("");
+  }, [selectedClassLevel, selectedSchool, selectedDistrict, rawStudents]);
+
+  // Update student type options based on selectedClassLevel
+  useEffect(() => {
+    if (["11", "12"].includes(selectedClassLevel) && rawStudents.length > 0) {
+      const types = [...new Set(rawStudents.filter(s => s.grade === selectedClassLevel && s.student_type).map(s => s.student_type))].sort();
+      setStudentTypeOptions(types);
+    } else {
+      setStudentTypeOptions([]);
+      setSelectedStudentType("");
+    }
+  }, [selectedClassLevel, rawStudents]);
+
+  // Client-side filtering for all filters
   useEffect(() => {
     let tempFiltered = rawStudents;
+    if (selectedDistrict) tempFiltered = tempFiltered.filter(r => r.district === selectedDistrict);
+    if (selectedSchool) tempFiltered = tempFiltered.filter(r => r.geip_school_ID === selectedSchool);
+    if (selectedClassLevel) tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
+    if (selectedRoom) tempFiltered = tempFiltered.filter(r => r.exam_class === selectedRoom);
     if (selectedGender) tempFiltered = tempFiltered.filter(r => r.gender === selectedGender);
     if (selectedAchievement) tempFiltered = tempFiltered.filter(r => r.level === selectedAchievement);
+    if (selectedStudentType) tempFiltered = tempFiltered.filter(r => r.student_type === selectedStudentType);
     if (searchValue.trim()) {
       const val = searchValue.trim().toLowerCase();
       tempFiltered = tempFiltered.filter(r =>
@@ -352,9 +416,14 @@ export default function ProvinceResultsPage() {
     setCurrentPage(1);
   }, [
     rawStudents,
-    searchValue,
+    selectedDistrict,
+    selectedSchool,
+    selectedClassLevel,
+    selectedRoom,
     selectedGender,
     selectedAchievement,
+    selectedStudentType,
+    searchValue,
   ]);
 
   // Aggregate for total-results
@@ -413,52 +482,6 @@ export default function ProvinceResultsPage() {
     setSummaryData(Array.from(summaryMap.values()));
   }, [filteredStudents, activeTab, countAllStudents]);
 
-  // Fetch filter options
-  const fetchFilterOptions = useCallback(() => {
-    if (rawStudents.length === 0) return;
-    setIsFetchingOptions(true);
-    try {
-      const districts = [...new Set(rawStudents.map((d: any) => d.district).filter(Boolean))].sort();
-      setDistrictOptions(districts);
-      if (!selectedDistrict) {
-        setSchoolOptions([]);
-        setClassLevelOptions([]);
-        setRoomOptions([]);
-        setIsFetchingOptions(false);
-        return;
-      }
-      let schools: { id: string; name: string }[] = [];
-      if (selectedDistrict) {
-        const schoolsMap = new Map<string, string>();
-        rawStudents.filter((s: any) => s.district === selectedDistrict).forEach((s: any) => {
-          if (s.geip_school_ID && s.school) {
-            schoolsMap.set(s.geip_school_ID, s.school);
-          }
-        });
-        schools = Array.from(schoolsMap, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-      }
-      setSchoolOptions(schools);
-      let grades: string[] = [];
-      if (selectedDistrict && selectedSchool) {
-        grades = [...new Set(rawStudents.filter(g => g.district === selectedDistrict && g.geip_school_ID === selectedSchool).map((g: any) => String(g.grade ?? "")).filter(Boolean))].sort();
-      }
-      setClassLevelOptions(grades);
-      let rooms: string[] = [];
-      if (selectedDistrict && selectedSchool && selectedClassLevel) {
-        rooms = [...new Set(rawStudents.filter(r => r.district === selectedDistrict && r.geip_school_ID === selectedSchool && r.grade === selectedClassLevel).map((r: any) => String(r.exam_class ?? "")).filter(Boolean))].sort();
-      }
-      setRoomOptions(rooms);
-    } catch (err) {
-      console.error("Error loading filters:", err);
-    } finally {
-      setIsFetchingOptions(false);
-    }
-  }, [rawStudents, selectedDistrict, selectedSchool, selectedClassLevel]);
-
-  useEffect(() => {
-    fetchFilterOptions();
-  }, [fetchFilterOptions]);
-
   const handleClearFilters = () => {
     setSelectedDistrict("");
     setSelectedSchool("");
@@ -466,6 +489,7 @@ export default function ProvinceResultsPage() {
     setSelectedRoom("");
     setSelectedGender("");
     setSelectedAchievement("");
+    setSelectedStudentType("");
     setSelectedYear("2025");
     setSelectedMonth("ធ្នូ");
     setSearchValue("");
@@ -649,18 +673,21 @@ export default function ProvinceResultsPage() {
                     <SelectFilter label="និទ្ទេស" value={selectedAchievement} onChange={e => setSelectedAchievement(e.target.value)} options={achievementOptions} />
                   </>
                 )}
-                <SelectFilter label="ស្រុក" value={selectedDistrict} onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); setSelectedRoom(""); }} options={districtOptions} />
-                <SelectFilter label="សាលារៀន" value={selectedSchool} onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }} options={schoolOptions} disabled={!selectedDistrict || isFetchingOptions} />
+                <SelectFilter label="ស្រុក" value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)} options={districtOptions} />
+                <SelectFilter label="សាលារៀន" value={selectedSchool} onChange={e => setSelectedSchool(e.target.value)} options={schoolOptions} disabled={!selectedDistrict || isFetchingOptions} />
                 {activeTab !== "total-results" ? (
                   <>
-                    <SelectFilter label="កម្រិតថ្នាក់" value={selectedClassLevel} onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }} options={classLevelOptions} disabled={!selectedSchool || isFetchingOptions} />
+                    <SelectFilter label="កម្រិតថ្នាក់" value={selectedClassLevel} onChange={e => setSelectedClassLevel(e.target.value)} options={classLevelOptions} disabled={!selectedSchool || isFetchingOptions} />
                     <SelectFilter label="បន្ទប់" value={selectedRoom} onChange={e => setSelectedRoom(e.target.value)} options={roomOptions} disabled={!selectedClassLevel || isFetchingOptions} />
                   </>
                 ) : (
                   <>
-                    <SelectFilter label="កម្រិតថ្នាក់" value={selectedClassLevel} onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }} options={classLevelOptions} />
+                    <SelectFilter label="កម្រិតថ្នាក់" value={selectedClassLevel} onChange={e => setSelectedClassLevel(e.target.value)} options={classLevelOptions} disabled={!selectedSchool} />
                     <SelectFilter label="បន្ទប់" value={selectedRoom} onChange={e => setSelectedRoom(e.target.value)} options={roomOptions} disabled={!selectedClassLevel} />
                   </>
+                )}
+                {["11", "12"].includes(selectedClassLevel) && studentTypeOptions.length > 0 && (
+                  <SelectFilter label="ប្រភេទសិស្ស" value={selectedStudentType} onChange={e => setSelectedStudentType(e.target.value)} options={studentTypeOptions} />
                 )}
                 <Button onClick={handleClearFilters} className="bg-red-500 hover:bg-red-600 text-white border-0">
                   <X className="h-4 w-4" /> លុបច្រោះ
