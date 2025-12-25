@@ -127,6 +127,19 @@ const toAverage = (avgStr: any) => {
   return Number(avgStr).toFixed(2);
 };
 
+const calculateLevel = (average: number) => {
+  if (average >= 90) return "A";
+  if (average >= 80) return "B";
+  if (average >= 70) return "C";
+  if (average >= 60) return "D";
+  if (average >= 50) return "E";
+  return "F";
+};
+
+const calculateResult = (average: number) => {
+  return average >= 50 ? "ជាប់" : "ធ្លាក់";
+};
+
 export default function ProvinceResultsPage() {
   const params = useParams();
   const province_id = params.province as string;
@@ -199,8 +212,16 @@ export default function ProvinceResultsPage() {
       return;
     }
 
+    const monthInt = MONTH_NAME_TO_INT[selectedMonth] || 12;
+    const year = parseInt(selectedYear) || 2025;
+
+    let baseUrl = `${API_BASE}/api/v1/result/result-Subjects-byMonth-Year/${province_id}/${monthInt}/${year}/`;
+    if (selectedDistrict) baseUrl += `districts/${encodeURIComponent(selectedDistrict)}/`;
+    if (selectedSchool) baseUrl += `schools/${selectedSchool}/`;
+    if (selectedClassLevel) baseUrl += `grades/${selectedClassLevel}/`;
+    if (selectedRoom) baseUrl += `rooms/${selectedRoom}/`;
+
     const PAGE_SIZE = 200000;
-    const baseUrl = `${API_BASE}/api/Base/data/v1/students/${province_id}/`;
     let allData: any[] = [];
     let fetchedCount = 0;
 
@@ -258,32 +279,41 @@ export default function ProvinceResultsPage() {
 
       // Data processing (90-95%)
       setProgress(90);
-      const mapped = allData.map((r: any) => ({
-        id: `${r.student_ID || ""}${r.geip_school_ID || ""}`,
-        student_id: r.student_ID || "",
-        full_name: `${r.last_name || ""} ${r.first_name || ""}`.trim(),
-        gender: r.gender || "",
-        school: r.school_name || "",
-        district: r.district_name || "",
-        province: r.province_name || "",
-        phone_number: r.phone_number || "",
-        score: toIntegerScore(r.total_score ?? r.score ?? 0),
-        average: toAverage(r.total_average ?? r.average ?? "0"),
-        grade: r.grade || "",
-        exam_class: r.room || "",
-        rank: r.current_rank || r.rank || "",
-        level: r.overall_level || r.level || "F",
-        result: r.overall_result || r.result || "",
-        exam_year: r.exam_year || new Date().getFullYear().toString(),
-        exam_month: r.exam_month || new Date().getMonth() + 1,
-        subjects: r.subjects || {},
-        total_score: toIntegerScore(r.total_score ?? 0),
-        total_possible: toIntegerScore(r.total_possible ?? 0),
-        total_average: toAverage(r.total_average ?? "0"),
-        overall_level: r.overall_level || "F",
-        overall_result: r.overall_result || "",
-        geip_school_ID: r.geip_school_ID || "",
-      }));
+      const mapped = allData.map((r: any) => {
+        const subjects = r.subjects || {};
+        const total_score = Object.values(subjects).reduce((sum: number, s: any) => sum + (s?.score || 0), 0);
+        const total_possible = Object.values(subjects).reduce((sum: number, s: any) => sum + (s?.max_score || 0), 0);
+        const average = total_possible > 0 ? (total_score / total_possible) * 100 : 0;
+        const level = calculateLevel(average);
+        const result = calculateResult(average);
+
+        return {
+          id: `${r.student_ID || ""}${r.geip_school_ID || ""}`,
+          student_id: r.student_ID || "",
+          full_name: `${r.last_name || ""} ${r.first_name || ""}`.trim(),
+          gender: r.gender || "",
+          school: r.school_name || "",
+          district: r.district_name || "",
+          province: r.province_name || "",
+          phone_number: r.phone_number || "",
+          score: toIntegerScore(total_score),
+          average: toAverage(average),
+          grade: r.grade || "",
+          exam_class: r.room || "",
+          rank: "",
+          level: level,
+          result: result,
+          exam_year: r.exam_year || year,
+          exam_month: r.exam_month || monthInt,
+          subjects: subjects,
+          total_score: toIntegerScore(total_score),
+          total_possible: toIntegerScore(total_possible),
+          total_average: toAverage(average),
+          overall_level: level,
+          overall_result: result,
+          geip_school_ID: r.geip_school_ID || "",
+        };
+      });
       
       // Setting data (95-99%)
       setProgress(95);
@@ -299,26 +329,17 @@ export default function ProvinceResultsPage() {
         setLoading(false);
       }, 300);
     }
-  }, [province_id, getAccessToken]);
+  }, [province_id, selectedDistrict, selectedSchool, selectedClassLevel, selectedRoom, selectedMonth, selectedYear, getAccessToken]);
 
   useEffect(() => {
     if (province_id) fetchData();
-  }, [province_id, fetchData]);
+  }, [province_id, selectedDistrict, selectedSchool, selectedClassLevel, selectedRoom, selectedMonth, selectedYear, fetchData]);
 
-  // Filter students
+  // Filter students (client-side for remaining filters)
   useEffect(() => {
     let tempFiltered = rawStudents;
-    if (selectedDistrict) tempFiltered = tempFiltered.filter(r => r.district === selectedDistrict);
-    if (selectedSchool) tempFiltered = tempFiltered.filter(r => r.geip_school_ID === selectedSchool);
-    if (selectedClassLevel) tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
-    if (selectedRoom) tempFiltered = tempFiltered.filter(r => r.exam_class === selectedRoom);
     if (selectedGender) tempFiltered = tempFiltered.filter(r => r.gender === selectedGender);
     if (selectedAchievement) tempFiltered = tempFiltered.filter(r => r.level === selectedAchievement);
-    if (selectedYear) tempFiltered = tempFiltered.filter(r => String(r.exam_year) === selectedYear);
-    if (selectedMonth) {
-      const monthInt = MONTH_NAME_TO_INT[selectedMonth];
-      if (monthInt) tempFiltered = tempFiltered.filter(r => parseInt(r.exam_month) === monthInt);
-    }
     if (searchValue.trim()) {
       const val = searchValue.trim().toLowerCase();
       tempFiltered = tempFiltered.filter(r =>
@@ -332,14 +353,8 @@ export default function ProvinceResultsPage() {
   }, [
     rawStudents,
     searchValue,
-    selectedDistrict,
-    selectedSchool,
-    selectedClassLevel,
-    selectedRoom,
     selectedGender,
     selectedAchievement,
-    selectedYear,
-    selectedMonth,
   ]);
 
   // Aggregate for total-results
@@ -377,15 +392,16 @@ export default function ProvinceResultsPage() {
       SUBJECT_LIST.forEach(subject => {
         const summary = summaryMap.get(subject.code);
         filteredStudents.forEach((r: any) => {
-          if (r.subjects?.[subject.name]?.level) {
-            const level = r.subjects[subject.name].level;
+          const subjData = r.subjects?.[subject.name];
+          if (subjData?.score > 0) {
+            const level = subjData.level;
             const isFemale = r.gender === "ស្រី";
             if (level === "A") { summary.A += 1; if (isFemale) summary.A_female += 1; }
             else if (level === "B") { summary.B += 1; if (isFemale) summary.B_female += 1; }
             else if (level === "C") { summary.C += 1; if (isFemale) summary.C_female += 1; }
             else if (level === "D") { summary.D += 1; if (isFemale) summary.D_female += 1; }
             else if (level === "E") { summary.E += 1; if (isFemale) summary.E_female += 1; }
-            else if (level === "F") { summary.F += 1; if (isFemale) summary.F_female += 1; }
+            else { summary.F += 1; if (isFemale) summary.F_female += 1; }
           }
         });
         summary.ABC = summary.A + summary.B + summary.C;
