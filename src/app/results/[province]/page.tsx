@@ -16,6 +16,26 @@ import {
   BarChart3,
 } from "lucide-react";
 import { API_BASE, MOCK_USERNAME, MOCK_PASSWORD } from "../../../../api/api.js";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const SUBJECT_LIST = [
   { code: "1.3.2", name: "ភាសាខ្មែរ" },
@@ -115,29 +135,6 @@ const MONTH_NAME_TO_INT = {
 };
 const ALL_DATA_VALUE = "ទាំងអស់";
 
-const toIntegerScore = (scoreStr: any) => {
-  if (typeof scoreStr === "string") {
-    const cleaned = scoreStr.split(".")[0];
-    return parseInt(cleaned, 10) || 0;
-  }
-  return Math.floor(Number(scoreStr)) || 0;
-};
-const toAverage = (avgStr: any) => {
-  if (typeof avgStr === "string") return parseFloat(avgStr).toFixed(2);
-  return Number(avgStr).toFixed(2);
-};
-const calculateLevel = (average: number) => {
-  if (average >= 90) return "A";
-  if (average >= 80) return "B";
-  if (average >= 70) return "C";
-  if (average >= 60) return "D";
-  if (average >= 50) return "E";
-  return "F";
-};
-const calculateResult = (average: number) => {
-  return average >= 50 ? "ជាប់" : "ធ្លាក់";
-};
-
 export default function ProvinceResultsPage() {
   const params = useParams();
   const province_id = params.province as string;
@@ -171,6 +168,8 @@ export default function ProvinceResultsPage() {
   const [activeTab, setActiveTab] = useState("result-subject");
   const [showScores, setShowScores] = useState(true);
   const [countAllStudents, setCountAllStudents] = useState(true);
+  const [showChartView, setShowChartView] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(SUBJECT_LIST[0]?.code || "");
 
   const genderOptions = ["ប្រុស", "ស្រី"];
   const achievementOptions = ["A", "B", "C", "D", "E", "F"];
@@ -180,6 +179,12 @@ export default function ProvinceResultsPage() {
     "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
   ];
   const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, 200, ALL_DATA_VALUE];
+
+  // Subject options for dropdown
+  const subjectOptions = useMemo(() => [
+    { code: "ALL", name: "គ្រប់មុខវិជ្ជា" },
+    ...SUBJECT_LIST
+  ], []);
 
   const getAccessToken = useCallback(async () => {
     const res = await fetch(TOKEN_URL, {
@@ -277,11 +282,6 @@ export default function ProvinceResultsPage() {
       setProgress(90);
       const mapped = allData.map((r: any) => {
         const subjects = r.subjects || {};
-        const total_score = Object.values(subjects).reduce((sum: number, s: any) => sum + (s?.score || 0), 0);
-        const total_possible = Object.values(subjects).reduce((sum: number, s: any) => sum + (s?.max_score || 0), 0);
-        const average = total_possible > 0 ? (total_score / total_possible) * 100 : 0;
-        const level = calculateLevel(average);
-        const result = calculateResult(average);
 
         return {
           id: `${r.student_ID || ""}${r.geip_school_ID || ""}`,
@@ -292,22 +292,12 @@ export default function ProvinceResultsPage() {
           district: r.district_name || "",
           province: r.province_name || "",
           phone_number: r.phone_number || "",
-          score: toIntegerScore(total_score),
-          average: toAverage(average),
           grade: r.grade || "",
           exam_class: r.room || "",
           student_type: r.student_type || "",
-          rank: "",
-          level: level,
-          result: result,
           exam_year: r.exam_year || year,
           exam_month: r.exam_month || monthInt,
           subjects: subjects,
-          total_score: toIntegerScore(total_score),
-          total_possible: toIntegerScore(total_possible),
-          total_average: toAverage(average),
-          overall_level: level,
-          overall_result: result,
           geip_school_ID: r.geip_school_ID || "",
         };
       });
@@ -428,7 +418,7 @@ export default function ProvinceResultsPage() {
 
   // Aggregate for total-results
   useEffect(() => {
-    if (activeTab !== "total-results" || !filteredStudents.length) return;
+    if (!filteredStudents.length) return;
     const summaryMap = new Map<string, any>();
     SUBJECT_LIST.forEach(subject => {
       summaryMap.set(subject.code, {
@@ -480,7 +470,218 @@ export default function ProvinceResultsPage() {
       });
     }
     setSummaryData(Array.from(summaryMap.values()));
-  }, [filteredStudents, activeTab, countAllStudents]);
+  }, [filteredStudents, countAllStudents]);
+
+  // Calculate total for all subjects
+  const totalAllSubjects = useMemo(() => {
+    if (!summaryData.length) return null;
+    
+    const total = {
+      code: "TOTAL",
+      name: "១០ គ្រប់មុខវិជ្ជា",
+      A: 0, A_female: 0, B: 0, B_female: 0, C: 0, C_female: 0,
+      D: 0, D_female: 0, E: 0, E_female: 0, F: 0, F_female: 0,
+      ABC: 0, ABC_female: 0, DEF: 0, DEF_female: 0,
+    };
+    
+    summaryData.forEach(subject => {
+      total.A += subject.A;
+      total.A_female += subject.A_female;
+      total.B += subject.B;
+      total.B_female += subject.B_female;
+      total.C += subject.C;
+      total.C_female += subject.C_female;
+      total.D += subject.D;
+      total.D_female += subject.D_female;
+      total.E += subject.E;
+      total.E_female += subject.E_female;
+      total.F += subject.F;
+      total.F_female += subject.F_female;
+      total.ABC += subject.ABC;
+      total.ABC_female += subject.ABC_female;
+      total.DEF += subject.DEF;
+      total.DEF_female += subject.DEF_female;
+    });
+    
+    return total;
+  }, [summaryData]);
+
+  // Get selected subject data
+  const selectedSubjectData = useMemo(() => {
+    if (selectedSubject === "ALL" && totalAllSubjects) {
+      return totalAllSubjects;
+    }
+    return summaryData.find(s => s.code === selectedSubject) || summaryData[0];
+  }, [summaryData, selectedSubject, totalAllSubjects]);
+
+  // Bar chart data for A-F grades
+  const barChartData = useMemo(() => {
+    if (!selectedSubjectData) return null;
+    
+    const grades = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const totalData = grades.map(grade => selectedSubjectData[grade]);
+    const femaleData = grades.map(grade => selectedSubjectData[`${grade}_female`]);
+    const maleData = grades.map(grade => selectedSubjectData[grade] - selectedSubjectData[`${grade}_female`]);
+    
+    return {
+      labels: grades,
+      datasets: [
+        {
+          label: 'ប្រុស',
+          data: maleData,
+          backgroundColor: 'rgba(59, 130, 246, 0.7)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'ស្រី',
+          data: femaleData,
+          backgroundColor: 'rgba(236, 72, 153, 0.7)',
+          borderColor: 'rgba(236, 72, 153, 1)',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ]
+    };
+  }, [selectedSubjectData]);
+
+  // Bar chart data for ABC vs DEF
+  const abcDefBarData = useMemo(() => {
+    if (!selectedSubjectData) return null;
+    
+    const abcMale = selectedSubjectData.ABC - selectedSubjectData.ABC_female;
+    const abcFemale = selectedSubjectData.ABC_female;
+    const defMale = selectedSubjectData.DEF - selectedSubjectData.DEF_female;
+    const defFemale = selectedSubjectData.DEF_female;
+    
+    return {
+      labels: ['ABC', 'DEF'],
+      datasets: [
+        {
+          label: 'ប្រុស',
+          data: [abcMale, defMale],
+          backgroundColor: 'rgba(99, 102, 241, 0.7)',
+          borderColor: 'rgba(99, 102, 241, 1)',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'ស្រី',
+          data: [abcFemale, defFemale],
+          backgroundColor: 'rgba(236, 72, 153, 0.7)',
+          borderColor: 'rgba(236, 72, 153, 1)',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        }
+      ]
+    };
+  }, [selectedSubjectData]);
+
+  // Custom tooltip for bar charts
+  const barTooltip = {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    titleColor: '#333',
+    bodyColor: '#333',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    padding: 12,
+    displayColors: true,
+    callbacks: {
+      title: function(context: any) {
+        return context[0].label;
+      },
+      label: function(context: any) {
+        const label = context.dataset.label || '';
+        const value = context.raw || 0;
+        const total = context.chart.data.datasets.reduce((sum: number, dataset: any) => sum + dataset.data[context.dataIndex], 0);
+        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+        return `${label}: ${value} (${percentage}%)`;
+      },
+      afterBody: function(context: any) {
+        const dataIndex = context[0].dataIndex;
+        const label = context[0].label;
+        const maleValue = context[0].dataset.label === 'ប្រុស' ? context[0].raw : 
+                          context[0].chart.data.datasets.find((d: any) => d.label === 'ប្រុស')?.data[dataIndex] || 0;
+        const femaleValue = context[0].dataset.label === 'ស្រី' ? context[0].raw : 
+                           context[0].chart.data.datasets.find((d: any) => d.label === 'ស្រី')?.data[dataIndex] || 0;
+        const total = maleValue + femaleValue;
+        
+        return [
+          `សរុប: ${total}`,
+        ];
+      }
+    }
+  };
+
+  // Chart options for bar charts
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          padding: 20,
+          font: {
+            size: 14,
+            weight: 'bold'
+          },
+          usePointStyle: true,
+          pointStyle: 'rectRounded'
+        }
+      },
+      tooltip: barTooltip,
+      title: {
+        display: false
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)'
+        },
+        ticks: {
+          font: {
+            size: 12
+          },
+          precision: 0
+        },
+        title: {
+          display: true,
+          text: 'ចំនួនសិស្ស',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      }
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuart' as const
+    },
+    interaction: {
+      mode: 'index' as const,
+      intersect: false
+    }
+  };
 
   const handleClearFilters = () => {
     setSelectedDistrict("");
@@ -904,93 +1105,226 @@ export default function ProvinceResultsPage() {
                 </div>
               )}
               {activeTab === "total-results" && (
-                <div className="overflow-x-auto border rounded-lg shadow-md">
+                <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h3 className="text-lg font-semibold px-2">
                       របាយការណ៍បូកសរុបនិទ្ទេស
                     </h3>
-                    <div className="flex flex-wrap gap-2 px-2 w-full sm:w-auto">
+                    <div className="flex flex-wrap gap-2 px-2 w-full sm:w-auto mt-2 ">
                       <Button
                         onClick={() => setCountAllStudents(true)}
                         className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
                       >
                         <BarChart3 className="h-4 w-4" />
-                        <span className="text-sm">និទ្ទេសសិស្សទាំងអស់</span>
+                        <span className="text-xs sm:text-xs">ទាំងអស់</span>
                       </Button>
                       <Button
                         onClick={() => setCountAllStudents(false)}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${!countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                        className={`flex-1 xs sm:text-xs:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${!countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
                       >
                         <Eye className="h-4 w-4" />
-                        <span className="text-sm">និទ្ទេសសិស្សបានប្រឡង</span>
+                        <span className="text-xs sm:text-xs">បានប្រឡង</span>
+                      </Button>
+                      <Button
+                        onClick={() => setShowChartView(!showChartView)}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-all transform hover:scale-105 ${showChartView ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg" : "bg-gray-200 text-gray-700"}`}
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        <span className="text-sm">ក្រាហ្វិក</span>
                       </Button>
                     </div>
                   </div>
-                  <table className="min-w-full text-sm border-collapse whitespace-nowrap">
-                    <thead className="bg-blue-600 text-white">
-                      <tr>
-                        <th rowSpan={2} className="px-4 py-3 text-center border-r border-blue-500 whitespace-nowrap min-w-[60px]">សូចនាករ</th>
-                        <th rowSpan={2} className="px-6 py-3 text-center border-r border-blue-500 whitespace-nowrap min-w-[140px]">មុខវិជ្ជា</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">A</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">B</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">C</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">D</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">E</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">F</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-purple-700 whitespace-nowrap min-w-[60px]">ABC</th>
-                        <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-red-700 whitespace-nowrap min-w-[60px]">DEF</th>
-                      </tr>
-                      <tr>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 bg-purple-700 font-bold whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center bg-purple-700 font-bold whitespace-nowrap">ស្រី</th>
-                        <th className="px-2 py-1 text-center border-r border-blue-500 bg-red-700 font-bold whitespace-nowrap">សរុប</th>
-                        <th className="px-2 py-1 text-center bg-red-700 font-bold whitespace-nowrap">ស្រី</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {SUBJECT_LIST.map((subject, index) => {
-                        const data = paginated.find(d => d.code === subject.code) || {
-                          A: 0, A_female: 0, B: 0, B_female: 0, C: 0, C_female: 0,
-                          D: 0, D_female: 0, E: 0, E_female: 0, F: 0, F_female: 0,
-                          ABC: 0, ABC_female: 0, DEF: 0, DEF_female: 0,
-                        };
-                        return (
-                          <tr key={subject.code} className={`hover:bg-blue-50 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                            <td className="px-6 py-3 text-center font-mono border-r border-gray-300 whitespace-nowrap min-w-[60px]">{subject.code}</td>
-                            <td className="px-6 py-3 text-left font-bold border-r border-gray-300 whitespace-nowrap min-w-[140px]">{subject.name}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.A > 0 ? <span className="text-blue-600 font-semibold">{data.A}</span> : <span className="text-red-600">{data.A}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.A_female > 0 ? <span className="text-blue-600 font-semibold">{data.A_female}</span> : <span className="text-red-600">{data.A_female}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.B > 0 ? <span className="text-blue-600 font-semibold">{data.B}</span> : <span className="text-red-600">{data.B}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.B_female > 0 ? <span className="text-blue-600 font-semibold">{data.B_female}</span> : <span className="text-red-600">{data.B_female}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.C > 0 ? <span className="text-blue-600 font-semibold">{data.C}</span> : <span className="text-red-600">{data.C}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.C_female > 0 ? <span className="text-blue-600 font-semibold">{data.C_female}</span> : <span className="text-red-600">{data.C_female}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.D > 0 ? <span className="text-blue-600 font-semibold">{data.D}</span> : <span className="text-red-600">{data.D}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.D_female > 0 ? <span className="text-blue-600 font-semibold">{data.D_female}</span> : <span className="text-red-600">{data.D_female}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.E > 0 ? <span className="text-blue-600 font-semibold">{data.E}</span> : <span className="text-red-600">{data.E}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.E_female > 0 ? <span className="text-blue-600 font-semibold">{data.E_female}</span> : <span className="text-red-600">{data.E_female}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.F > 0 ? <span className="text-blue-600 font-semibold">{data.F}</span> : <span className="text-red-600">{data.F}</span>}</td>
-                            <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.F_female > 0 ? <span className="text-blue-600 font-semibold">{data.F_female}</span> : <span className="text-red-600">{data.F_female}</span>}</td>
-                            <td className="px-3 py-3 text-center font-bold text-purple-700 border-r border-gray-300 min-w-[60px]">{data.ABC > 0 ? <span className="text-blue-600 font-semibold">{data.ABC}</span> : <span className="text-red-600">{data.ABC}</span>}</td>
-                            <td className="px-3 py-3 text-center font-bold text-purple-700 border-r border-gray-300 min-w-[60px]">{data.ABC_female > 0 ? <span className="text-blue-600 font-semibold">{data.ABC_female}</span> : <span className="text-red-600">{data.ABC_female}</span>}</td>
-                            <td className="px-3 py-3 text-center font-bold text-red-700 border-r border-gray-300 min-w-[60px]">{data.DEF > 0 ? <span className="text-blue-600 font-semibold">{data.DEF}</span> : <span className="text-red-600">{data.DEF}</span>}</td>
-                            <td className="px-3 py-3 text-center font-bold text-red-700 min-w-[60px]">{data.DEF_female > 0 ? <span className="text-blue-600 font-semibold">{data.DEF_female}</span> : <span className="text-red-600">{data.DEF_female}</span>}</td>
+                  
+                  {showChartView ? (
+                    <div className="space-y-8">
+                      {/* Subject selector dropdown */}
+<div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100 shadow-md mx-2 sm:mx-4">
+  {/* Flex column on mobile, row on sm+ */}
+  <div className="flex flex-row items-center justify-between sm:flex-row sm:items-center sm:justify-between gap-2">
+    <h3 className="text-lg font-semibold text-purple-800 whitespace-nowrap">
+      ជ្រើសរើសមុខវិជ្ជា
+    </h3>
+
+    <div className="relative w-full sm:w-64">
+      <select
+        value={selectedSubject}
+        onChange={(e) => setSelectedSubject(e.target.value)}
+        className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 px-2 rounded-lg text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+      >
+        {subjectOptions.map((subject) => (
+          <option key={subject.code} value={subject.code}>
+            {subject.name}
+          </option>
+        ))}
+      </select>
+
+      {/* Custom dropdown arrow */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M5.293 7.293l4.5 4.5 4.5-4.5L15.707 8 10 13.707 4.293 8z" />
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+                      
+                      {/* Charts section */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:mx-2">
+                        {/* Bar chart 1: A-F grades */}
+                        <div className="bg-white rounded-xl shadow-lg py-6 px-1 border border-gray-100 hover:shadow-xl transition-shadow">
+                          <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
+                            និទ្ទេស A-F {selectedSubject === "ALL" ? "គ្រប់មុខវិជ្ជា" : `មុខវិជ្ជា៖ ${selectedSubjectData?.name}`}
+                          </h3>
+                          <div className="relative h-80">
+                            {barChartData && <Bar data={barChartData} options={barOptions} />}
+                          </div>
+                          <div className="mt-4 text-center">
+                            {/* <p className="text-sm text-gray-600">សរុបសិស្ស: {Object.values(selectedSubjectData || {}).reduce((sum: any, val: any) => typeof val === 'number' && !String(val).includes('female') ? sum + val : sum, 0)}</p> */}
+                            <p className="text-sm text-gray-600">សរុបសិស្ស: {filteredStudents.length.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Bar chart 2: ABC vs DEF */}
+                        <div className="bg-white rounded-xl shadow-lg py-6 px-1 border border-gray-100 hover:shadow-xl transition-shadow">
+                          <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
+                            និទ្ទេស ABC & DEF {selectedSubject === "ALL" ? "គ្រប់មុខវិជ្ជា" : `មុខវិជ្ជា៖ ${selectedSubjectData?.name}`}
+                          </h3>
+                          <div className="relative h-80">
+                            {abcDefBarData && <Bar data={abcDefBarData} options={barOptions} />}
+                          </div>
+                          <div className="mt-4 text-center">
+                            <p className="text-sm text-gray-600">សរុបសិស្ស: {filteredStudents.length.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Summary statistics */}
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-md">
+                        <h3 className="text-lg font-semibold mb-4 text-blue-800">សរុបនិទ្ទេស{selectedSubject === "ALL" ? "គ្រប់មុខវិជ្ជា" : "គ្រប់មុខវិជ្ជា"}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-white rounded-lg p-4 shadow-md">
+                            <h4 className="font-medium text-center mb-4 text-gray-700">សរុបនិទ្ទេស A-F</h4>
+                            <div className="space-y-3">
+                              {['A', 'B', 'C', 'D', 'E', 'F'].map(grade => {
+                                const total = selectedSubject === "ALL" 
+                                  ? selectedSubjectData[grade]
+                                  : summaryData.reduce((sum, subject) => sum + subject[grade], 0);
+                                const female = selectedSubject === "ALL"
+                                  ? selectedSubjectData[`${grade}_female`]
+                                  : summaryData.reduce((sum, subject) => sum + subject[`${grade}_female`], 0);
+                                const percentage = selectedSubject === "ALL"
+                                  ? ((total / (selectedSubjectData.A + selectedSubjectData.B + selectedSubjectData.C + selectedSubjectData.D + selectedSubjectData.E + selectedSubjectData.F)) * 100).toFixed(1)
+                                  : summaryData.reduce((sum, subject) => sum + (subject.A + subject.B + subject.C + subject.D + subject.E + subject.F), 0) > 0 
+                                    ? ((total / summaryData.reduce((sum, subject) => sum + (subject.A + subject.B + subject.C + subject.D + subject.E + subject.F), 0)) * 100).toFixed(1)
+                                    : 0;
+                                return (
+                                  <div key={grade} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                    <span className="font-medium">និទ្ទេស {grade}:</span>
+                                    <div className="text-right">
+                                      <span className="font-bold text-blue-600">{total}</span>
+                                      <span className="text-sm text-gray-500 ml-2">({percentage}%)</span>
+                                      <div className="text-xs text-gray-600">ស្រី: {female}</div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-lg p-4 shadow-md">
+                            <h4 className="font-medium text-center mb-4 text-gray-700">សរុបនិទ្ទេស ABC និង DEF</h4>
+                            <div className="space-y-3">
+                              {['ABC', 'DEF'].map(grade => {
+                                const total = selectedSubject === "ALL"
+                                  ? selectedSubjectData[grade]
+                                  : summaryData.reduce((sum, subject) => sum + subject[grade], 0);
+                                const female = selectedSubject === "ALL"
+                                  ? selectedSubjectData[`${grade}_female`]
+                                  : summaryData.reduce((sum, subject) => sum + subject[`${grade}_female`], 0);
+                                const percentage = selectedSubject === "ALL"
+                                  ? ((total / (selectedSubjectData.ABC + selectedSubjectData.DEF)) * 100).toFixed(1)
+                                  : summaryData.reduce((sum, subject) => sum + (subject.ABC + subject.DEF), 0) > 0 
+                                    ? ((total / summaryData.reduce((sum, subject) => sum + (subject.ABC + subject.DEF), 0)) * 100).toFixed(1)
+                                    : 0;
+                                return (
+                                  <div key={grade} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                    <span className="font-medium">និទ្ទេស {grade}:</span>
+                                    <div className="text-right">
+                                      <span className="font-bold text-blue-600">{total}</span>
+                                      <span className="text-sm text-gray-500 ml-2">({percentage}%)</span>
+                                      <div className="text-xs text-gray-600">ស្រី: {female}</div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto border rounded-lg shadow-md">
+                      <table className="min-w-full text-sm border-collapse whitespace-nowrap">
+                        <thead className="bg-blue-600 text-white">
+                          <tr>
+                            <th rowSpan={2} className="px-4 py-3 text-center border-r border-blue-500 whitespace-nowrap min-w-[60px]">សូចនាករ</th>
+                            <th rowSpan={2} className="px-6 py-3 text-center border-r border-blue-500 whitespace-nowrap min-w-[140px]">មុខវិជ្ជា</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">A</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">B</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">C</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">D</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">E</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-blue-700 whitespace-nowrap min-w-[60px]">F</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-purple-700 whitespace-nowrap min-w-[60px]">ABC</th>
+                            <th colSpan={2} className="px-3 py-2 text-center border-b border-blue-500 bg-red-700 whitespace-nowrap min-w-[60px]">DEF</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                          <tr>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center whitespace-nowrap">ស្រី</th>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 bg-purple-700 font-bold whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center bg-purple-700 font-bold whitespace-nowrap">ស្រី</th>
+                            <th className="px-2 py-1 text-center border-r border-blue-500 bg-red-700 font-bold whitespace-nowrap">សរុប</th>
+                            <th className="px-2 py-1 text-center bg-red-700 font-bold whitespace-nowrap">ស្រី</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {paginated.length > 0 ? paginated.map((data, index) => (
+                            <tr key={data.code} className={`hover:bg-blue-50 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                              <td className="px-6 py-3 text-center font-mono border-r border-gray-300 whitespace-nowrap min-w-[60px]">{data.code}</td>
+                              <td className="px-6 py-3 text-left font-bold border-r border-gray-300 whitespace-nowrap min-w-[140px]">{data.name}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.A > 0 ? <span className="text-blue-600 font-semibold">{data.A}</span> : <span className="text-red-600">{data.A}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.A_female > 0 ? <span className="text-blue-600 font-semibold">{data.A_female}</span> : <span className="text-red-600">{data.A_female}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.B > 0 ? <span className="text-blue-600 font-semibold">{data.B}</span> : <span className="text-red-600">{data.B}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.B_female > 0 ? <span className="text-blue-600 font-semibold">{data.B_female}</span> : <span className="text-red-600">{data.B_female}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.C > 0 ? <span className="text-blue-600 font-semibold">{data.C}</span> : <span className="text-red-600">{data.C}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.C_female > 0 ? <span className="text-blue-600 font-semibold">{data.C_female}</span> : <span className="text-red-600">{data.C_female}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.D > 0 ? <span className="text-blue-600 font-semibold">{data.D}</span> : <span className="text-red-600">{data.D}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.D_female > 0 ? <span className="text-blue-600 font-semibold">{data.D_female}</span> : <span className="text-red-600">{data.D_female}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.E > 0 ? <span className="text-blue-600 font-semibold">{data.E}</span> : <span className="text-red-600">{data.E}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.E_female > 0 ? <span className="text-blue-600 font-semibold">{data.E_female}</span> : <span className="text-red-600">{data.E_female}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.F > 0 ? <span className="text-blue-600 font-semibold">{data.F}</span> : <span className="text-red-600">{data.F}</span>}</td>
+                              <td className="px-3 py-3 text-center border-r border-gray-300 min-w-[60px]">{data.F_female > 0 ? <span className="text-blue-600 font-semibold">{data.F_female}</span> : <span className="text-red-600">{data.F_female}</span>}</td>
+                              <td className="px-3 py-3 text-center font-bold text-purple-700 border-r border-gray-300 min-w-[60px]">{data.ABC > 0 ? <span className="text-blue-600 font-semibold">{data.ABC}</span> : <span className="text-red-600">{data.ABC}</span>}</td>
+                              <td className="px-3 py-3 text-center font-bold text-purple-700 border-r border-gray-300 min-w-[60px]">{data.ABC_female > 0 ? <span className="text-blue-600 font-semibold">{data.ABC_female}</span> : <span className="text-red-600">{data.ABC_female}</span>}</td>
+                              <td className="px-3 py-3 text-center font-bold text-red-700 border-r border-gray-300 min-w-[60px]">{data.DEF > 0 ? <span className="text-blue-600 font-semibold">{data.DEF}</span> : <span className="text-red-600">{data.DEF}</span>}</td>
+                              <td className="px-3 py-3 text-center font-bold text-red-700 min-w-[60px]">{data.DEF_female > 0 ? <span className="text-blue-600 font-semibold">{data.DEF_female}</span> : <span className="text-red-600">{data.DEF_female}</span>}</td>
+                            </tr>
+                          )) : (
+                            <tr><td colSpan={18} className="text-center py-16 text-gray-500">មិនមានទិន្នន័យ</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1007,7 +1341,6 @@ export default function ProvinceResultsPage() {
     </div>
   );
 }
-
 const SelectFilter = ({ label, value, onChange, options, disabled = false }: any) => (
   <div className="relative w-full sm:w-auto">
     <select value={value} onChange={onChange} disabled={disabled} className="bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm appearance-none cursor-pointer disabled:opacity-50 w-full sm:w-auto">
