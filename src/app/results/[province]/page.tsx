@@ -113,7 +113,7 @@ const MONTH_NAME_TO_INT = {
   មករា: 1, កុម្ភៈ: 2, មីនា: 3, មេសា: 4, ឧសភា: 5, មិថុនា: 6,
   កក្កដា: 7, សីហា: 8, កញ្ញា: 9, តុលា: 10, វិច្ឆិកា: 11, ធ្នូ: 12,
 };
-const ALL_DATA_VALUE = "all";
+const ALL_DATA_VALUE = "ទាំងអស់";
 
 const toIntegerScore = (scoreStr: any) => {
   if (typeof scoreStr === "string") {
@@ -166,7 +166,7 @@ export default function ProvinceResultsPage() {
     "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
     "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
   ];
-  const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, ALL_DATA_VALUE];
+  const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, 200, ALL_DATA_VALUE];
 
   const getAccessToken = useCallback(async () => {
     const res = await fetch(TOKEN_URL, {
@@ -484,7 +484,7 @@ export default function ProvinceResultsPage() {
       ["ជាតិ សាសនា ព្រះមហាក្សត្រ"],
       ["ក្រសួងអប់រំ យុវជន និងកីឡា"],
       ["គម្រោងកែលម្អការអប់រំចំណេះដីងទូទៅ Moeys Edtech " + headerTitle],
-      ["សាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ ( ស.ព.ភ )"],
+      ["សាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ ( ស..ភ.ភព )"],
       [schoolName ? `វិទ្យាល័យ ${schoolName}` : "វិទ្យាល័យ by name school"],
       [""], [""],
       [`ទិន្នន័យសិស្សក្នុង${selectedMonth ? ` ខែ ${selectedMonth}` : ""}${selectedYear ? ` ឆ្នាំ ${selectedYear}` : ""}`],
@@ -538,7 +538,7 @@ export default function ProvinceResultsPage() {
               {progress > 10 && `${progress}%`}
             </div>
           </div>
-          <p className="text-sm text-gray-600 mt-4">សូមរង់ចាំបន្តិច... កំពុងទាញយកទិន្នន័យពេញខេត្ត</p>
+          <p className="text-sm text-gray-600 mt-4">សូមរង់ចាំបន្តិច... កំពុងទាញយកទិន្នន័យ</p>
         </div>
       </div>
     );
@@ -670,7 +670,7 @@ export default function ProvinceResultsPage() {
             {activeTab !== "total-results" && (
               <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
                 <p className="text-sm text-gray-600">បង្ហាញ {displayStart} - {displayEnd} ក្នុងចំណោម {(activeTab === "total-results" ? summaryData.length : filteredStudents.length).toLocaleString()}</p>
-                <SelectFilter label="បង្ហាញ" value={rowsPerPage} onChange={e => { const v = e.target.value; setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); setCurrentPage(1); }} options={rowsPerPageOptions} />
+                <SelectFilter label="ទទេ" value={rowsPerPage} onChange={e => { const v = e.target.value; setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); setCurrentPage(1); }} options={rowsPerPageOptions} />
               </div>
             )}
             <div className="overflow-x-auto border rounded-lg">
@@ -701,11 +701,11 @@ export default function ProvinceResultsPage() {
                     <thead className="bg-blue-600 text-white">
                       <tr>
                         <th className="px-4 py-3 text-left whitespace-nowrap">អត្តលេខ</th>
-                        <th className="px-4 py-3 text-left whitespace-nowrap">ឈ្មោះសិស្ស</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">គោត្តនាម និងនាម</th>
                         <th className="px-4 py-3 text-center whitespace-nowrap">ភេទ</th>
                         <th className="px-4 py-3 text-center whitespace-nowrap">ថ្នាក់</th>
                         <th className="px-4 py-3 text-center whitespace-nowrap">បន្ទប់</th>
-                        <th className="px-4 py-3 text-left whitespace-nowrap">សាលា</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">សាលា</th>
                         <th className="px-4 py-3 text-center whitespace-nowrap">ស្រុក</th>
                         <th className="px-4 py-3 text-center whitespace-nowrap">ខេត្ត</th>
                         {SUBJECT_LIST.map(subject => (
@@ -717,41 +717,41 @@ export default function ProvinceResultsPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {paginated.length > 0 ? paginated.map((r, i) => (
-                        <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                          <td className="px-4 py-3 text-center font-mono whitespace-nowrap">{r.student_id}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">{r.full_name}</td>
-                          <td className="px-4 py-3 text-center whitespace-nowrap">
+                        <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white " : "bg-gray-50"}`}>
+                          <td className="px-4 py-3 text-center font-mono whitespace-nowrap border-r border-gray-200 ">{r.student_id}</td>
+                          <td className="px-4 py-3 whitespace-nowrap border-r border-gray-200">{r.full_name}</td>
+                          <td className="px-4 py-3 text-center whitespace-nowrap border-r border-gray-200">
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{r.gender}</span>
                           </td>
-                          <td className="px-4 py-3 text-center font-bold whitespace-nowrap">{r.grade}</td>
-                          <td className="px-4 py-3 text-center text-indigo-600 font-bold whitespace-nowrap">{r.exam_class}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">{r.school}</td>
-                          <td className="px-4 py-3 text-center text-gray-600 whitespace-nowrap">{r.district}</td>
-                          <td className="px-4 py-3 text-center text-blue-600 font-bold whitespace-nowrap">{r.province}</td>
+                          <td className="px-4 py-3 text-center font-bold whitespace-nowrap border-r border-gray-200">{r.grade}</td>
+                          <td className="px-4 py-3 text-center text-indigo-600 font-bold whitespace-nowrap border-r border-gray-200">{r.exam_class}</td>
+                          <td className="px-4 py-3 whitespace-nowrap border-r border-gray-200">{r.school}</td>
+                          <td className="px-4 py-3 text-center text-gray-600 whitespace-nowrap border-r border-gray-200">{r.district}</td>
+                          <td className="px-4 py-3 text-center text-blue-600 font-bold whitespace-nowrap border-r border-gray-200">{r.province}</td>
                           {SUBJECT_LIST.map(subject => {
                             const subjectData = r.subjects?.[subject.name];
                             let displayValue = "";
                             let className = "";
                             if (showScores) {
                               displayValue = subjectData ? subjectData.score : "0";
-                              className = displayValue !== "0" && displayValue !== 0 ? "text-blue-600 font-semibold" : "text-red-600";
+                              className = displayValue !== "0" && displayValue !== 0 ? "text-blue-600 font-semibold " : "text-red-600";
                             } else {
                               if (subjectData?.level) {
                                 displayValue = subjectData.level;
                                 className =
-                                  subjectData.level === "A" ? "bg-red-100 text-red-700" :
+                                  subjectData.level === "A" ? "bg-red-100 text-red-700 " :
                                     subjectData.level === "B" ? "bg-purple-100 text-purple-700" :
                                       subjectData.level === "C" ? "bg-orange-100 text-orange-700" :
                                         subjectData.level === "D" ? "bg-blue-100 text-blue-700" :
                                           subjectData.level === "E" ? "bg-green-100 text-green-700" :
-                                            "bg-gray-100 text-gray-700";
+                                            "bg-gray-100 text-gray-700 ";
                               } else {
                                 displayValue = "F";
                                 className = "bg-gray-100 text-gray-700";
                               }
                             }
                             return (
-                              <td key={`${r.id}-${subject.code}`} className="px-2 py-3 text-center whitespace-nowrap min-w-[120px]">
+                              <td key={`${r.id}-${subject.code}`} className="px-2 py-3 text-center whitespace-nowrap min-w-[120px] border-r border-gray-200">
                                 {showScores ? (
                                   <span className={className}>{displayValue}</span>
                                 ) : (

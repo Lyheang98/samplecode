@@ -143,7 +143,7 @@ export default function WelcomePage() {
 
                             {/* Alert Dialog */}
                             <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
-                                <AlertDialogContent>
+                                <AlertDialogContent className='rounded-xl'>
                                     <AlertDialogHeader>
                                         <div className="flex items-center justify-center mb-2">
                                             <Image src="/moeys-logo.png" alt="MoEYS Logo" width={64} height={64} className="h-16 w-16" />
