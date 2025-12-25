@@ -583,40 +583,55 @@ export default function RegisterExamCodePage() {
       <div className="relative z-10 p-4 sm:p-6 lg:p-8">
         {/* Navigation & Header */}
         <div className="max-w-5xl mx-auto flex md:justify-between justify-between sm:justify-start sm:gap-4 mb-6">
-          <Button onClick={handleBackToCode} variant="back">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            ត្រឡប់
-          </Button>
+            <button className="
+              flex items-center gap-2
+              bg-blue-600 hover:bg-blue-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg shadow-lg transition
+            ">
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> ត្រឡប់
+            </button>
           <Link href="/welcome">
-            <Button className="bg-white text-purple-700 border border-purple-200 hover:bg-purple-50 shadow-lg">
-              <Home className="h-4 w-4 mr-2" />
-              ទំព័រដើម
-            </Button>
+            <button className="
+              flex items-center gap-2
+              bg-green-600 hover:bg-green-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg shadow-lg transition
+            ">
+              <Home className="w-4 h-4 sm:w-5 sm:h-5" /> ទំព័រដើម
+            </button>
           </Link>
         </div>
 
-        <header className="text-center mb-6 max-w-5xl mx-auto">
-          <div className="flex justify-center mb-5">
-            <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl border-2 border-blue-400">
-              <div className="rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5">
+        <header className="text-center mb-6 sm:mb-8">
+          <div className="flex justify-center mb-4 sm:mb-6">
+            <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-md ring-1 ring-gray-200">
+              <div className="rounded-lg bg-blue-50 p-2 sm:p-3 ring-1 ring-blue-100">
                 <Image
                   src="/moeys-logo.png"
-                  alt="Logo"
+                  alt="MoEYS Logo"
                   width={48}
                   height={48}
+                  className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
                 />
               </div>
-              <div className="font-bold">MoEYS EdTech - Online Exam</div>
+              <div className="text-gray-900 font-semibold text-xs sm:text-sm md:text-base leading-tight text-left">
+                MoEYS EdTech - Online Exam
+              </div>
             </div>
           </div>
-          <h1 className="text-3xl p-2 font-bold bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
+          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-blue-800 mb-2 sm:mb-3 leading-tight px-2">
             {currentStep === "code"
               ? "សូមបំពេញព័ត៍មានដើម្បីទទួលបានកូដប្រឡង"
               : "ជ្រើសរើសមុខវិជ្ជាប្រឡង"}
           </h1>
-          <p className="text-gray-600 mt-2 text-lg">
+          <p className="text-gray-600 mt-2 text-xs sm:text-lg px-2">
             {currentStep === "code"
-              ? "បញ្ជាក់៖ សូមជ្រើសរើសទីតាំងតាម​ ខេត្ត/ស្រុក/សាលារៀន/ឈ្មោះ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
+              ? "បញ្ជាក់៖ សូមជ្រើសរើស​ ខេត្ត/ស្រុក/សាលារៀន/ឈ្មោះ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
               : "ជ្រើសរើសមុខវិជ្ជាដើម្បីចូលរួមប្រឡង"}
           </p>
         </header>
@@ -793,11 +808,11 @@ export default function RegisterExamCodePage() {
                     </div>
                   ) : examCode && examCode !== "Error" ? (
                     <>
-                      <p className="text-white/90 mb-4 text-base">
+                      <p className="text-gray-100 mb-2 text-xs sm:text-lg px-2">
                         សូមចម្លងកូដខាងក្រោម​ មុនពេលចាប់ផ្តើមប្រឡង៖
                       </p>
                       <div className="text-center bg-white/20 backdrop-blur-sm p-5 rounded-2xl border border-white/30 w-full">
-                        <p className="text-xl font-mono font-bold text-white tracking-wider select-all break-all">
+                        <p className="text-white mt-2 text-sm sm:text-lg px-2">
                           {examCode}
                         </p>
                         <div className="flex gap-3 mt-4 justify-center">

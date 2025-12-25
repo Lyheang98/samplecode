@@ -1,12 +1,10 @@
 "use client";
 import React from "react";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-
 import {
-  Download,
   Search,
   RefreshCw,
   ArrowLeft,
@@ -14,7 +12,6 @@ import {
   X,
   Filter,
   FileDown,
-  ArrowRight,
   Eye,
   BarChart3,
 } from "lucide-react";
@@ -32,6 +29,7 @@ const SUBJECT_LIST = [
   { code: "1.3.10", name: "ភូមិវិទ្យា" },
   { code: "1.3.11", name: "អង់គ្លេស" },
 ];
+
 const PROVINCES = [
   { id: "1", name: "ខេត្តបន្ទាយមានជ័យ" },
   { id: "2", name: "ខេត្តបាត់ដំបង" },
@@ -59,7 +57,8 @@ const PROVINCES = [
   { id: "24", name: "ខេត្តឧត្តរមានជ័យ" },
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
 ];
-// --- UI Components ---
+
+// UI Components
 const Card = ({ className = "", children }) => (
   <div className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}>
     {children}
@@ -78,18 +77,12 @@ const Button = ({
 }) => {
   let baseStyles =
     "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
-
   if (size === "sm") baseStyles += " h-9 px-3 text-xs";
   else baseStyles += " h-10 px-4 py-2";
-
   if (variant === "default") baseStyles += " bg-blue-600 text-white hover:bg-blue-700";
-  else if (variant === "outline") baseStyles += " border border-input bg-background hover:bg-accent hover:text-accent-foreground";
-  else if (variant === "ghost") baseStyles += " hover:bg-accent hover:text-accent-foreground";
-
   if (className.includes("bg-green-500") || className.includes("bg-red-500") || className.includes("bg-indigo-600") || className.includes("bg-purple-600")) {
     baseStyles = baseStyles.replace(/bg-blue-600/, "").replace(/hover:bg-blue-700/, "");
   }
-
   return (
     <button onClick={onClick} className={`${baseStyles} ${className}`} disabled={disabled} type="button">
       {children}
@@ -114,19 +107,13 @@ const Input = ({
   />
 );
 
-// --- Constants ---
+// Constants
 const TOKEN_URL = `${API_BASE}/api/token/`;
 const MONTH_NAME_TO_INT = {
   មករា: 1, កុម្ភៈ: 2, មីនា: 3, មេសា: 4, ឧសភា: 5, មិថុនា: 6,
   កក្កដា: 7, សីហា: 8, កញ្ញា: 9, តុលា: 10, វិច្ឆិកា: 11, ធ្នូ: 12,
 };
 const ALL_DATA_VALUE = "all";
-
-const decodeProvinceName = (slug: string | string[] | undefined) => {
-  if (!slug) return "";
-  const value = Array.isArray(slug) ? slug[slug.length - 1] : slug;
-  return decodeURIComponent(value);
-};
 
 const toIntegerScore = (scoreStr: any) => {
   if (typeof scoreStr === "string") {
@@ -142,17 +129,17 @@ const toAverage = (avgStr: any) => {
 
 export default function ProvinceResultsPage() {
   const params = useParams();
-  const router = useRouter();
-  const province_name = useMemo(() => decodeProvinceName(params?.province), [params?.province]);
+  const province_id = params.province as string;
+  const province_name = useMemo(() => PROVINCES.find(p => p.id === province_id)?.name || "", [province_id]);
 
   const [rawStudents, setRawStudents] = useState<any[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
   const [summaryData, setSummaryData] = useState<any[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0); // Real progress 0-100%
   const [error, setError] = useState("");
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
-  const [tokenRetries, setTokenRetries] = useState(0);
 
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
@@ -162,18 +149,15 @@ export default function ProvinceResultsPage() {
   const [selectedAchievement, setSelectedAchievement] = useState("");
   const [selectedYear, setSelectedYear] = useState("2025");
   const [selectedMonth, setSelectedMonth] = useState("ធ្នូ");
-
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
-
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
   const [schoolOptions, setSchoolOptions] = useState<{ id: string; name: string }[]>([]);
   const [classLevelOptions, setClassLevelOptions] = useState<string[]>([]);
   const [roomOptions, setRoomOptions] = useState<string[]>([]);
-
-  const [activeTab, setActiveTab] = useState("result-subject"); // Default to result-subject
+  const [activeTab, setActiveTab] = useState("result-subject");
   const [showScores, setShowScores] = useState(true);
-  const [countAllStudents, setCountAllStudents] = useState(true); // New state for counting mode
+  const [countAllStudents, setCountAllStudents] = useState(true);
 
   const genderOptions = ["ប្រុស", "ស្រី"];
   const achievementOptions = ["A", "B", "C", "D", "E", "F"];
@@ -185,66 +169,96 @@ export default function ProvinceResultsPage() {
   const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, ALL_DATA_VALUE];
 
   const getAccessToken = useCallback(async () => {
-    try {
-      const res = await fetch(TOKEN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: MOCK_USERNAME, password: MOCK_PASSWORD }),
-        credentials: "omit",
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        if (tokenRetries < 1) {
-          setTokenRetries(prev => prev + 1);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return getAccessToken();
-        }
-        throw new Error(`Failed to get token: ${res.status}`);
-      }
-
-      setTokenRetries(0);
-      const data = await res.json();
-      return data.access;
-    } catch (err) {
-      if (tokenRetries < 1) {
-        setTokenRetries(prev => prev + 1);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return getAccessToken();
-      }
-      throw err;
-    }
-  }, [tokenRetries]);
+    const res = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: MOCK_USERNAME, password: MOCK_PASSWORD }),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Token failed");
+    const data = await res.json();
+    return data.access;
+  }, []);
 
   const fetchData = useCallback(async () => {
-    if (!province_name) return;
+    if (!province_id) return;
     setLoading(true);
     setError("");
+    setProgress(0); // Start from 0%
 
-    let url = "";
-    if (activeTab === "full-results") {
-      url = `${API_BASE}/api/v1/result/full-results/${encodeURIComponent(province_name)}/`;
-    } else if (activeTab === "result-subject" || activeTab === "total-results") {
-      url = `${API_BASE}/api/v1/result/result-Subjects/${encodeURIComponent(province_name)}/`;
+    let token;
+    try {
+      // Initial progress for token acquisition (5%)
+      setProgress(5);
+      token = await getAccessToken();
+      // Token acquired (10%)
+      setProgress(10);
+    } catch {
+      setError("មិនអាចទទួលបាន token");
+      setLoading(false);
+      return;
     }
 
-    try {
-      const token = await getAccessToken();
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        credentials: "omit",
-        cache: "no-store",
-      });
+    const PAGE_SIZE = 200000;
+    const baseUrl = `${API_BASE}/api/Base/data/v1/students/${province_id}/`;
+    let allData: any[] = [];
+    let fetchedCount = 0;
 
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`API ${res.status}: ${txt || res.statusText}`);
+    try {
+      // Initial progress for starting data fetch (15%)
+      setProgress(15);
+      
+      // First page
+      const firstRes = await fetch(`${baseUrl}?limit=${PAGE_SIZE}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!firstRes.ok) throw new Error("API error");
+      const firstJson = await firstRes.json();
+      allData = allData.concat(firstJson.results);
+      fetchedCount += firstJson.results.length;
+
+      const totalCount = firstJson.count || firstJson.results.length;
+      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+      // Calculate progress after first page (30% minimum)
+      const firstPageProgress = Math.max(30, Math.min(50, (fetchedCount / totalCount) * 80));
+      setProgress(Math.round(firstPageProgress));
+
+      if (totalPages > 1) {
+        const urls = [];
+        for (let offset = PAGE_SIZE; offset < totalCount; offset += PAGE_SIZE) {
+          urls.push(`${baseUrl}?limit=${PAGE_SIZE}&offset=${offset}`);
+        }
+
+        const concurrency = 5;
+        let processedBatches = 0;
+        const totalBatches = Math.ceil(urls.length / concurrency);
+        
+        for (let i = 0; i < urls.length; i += concurrency) {
+          const batch = urls.slice(i, i + concurrency);
+          const batchResults = await Promise.all(
+            batch.map(async (url) => {
+              const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+              const json = await res.json();
+              return json.results;
+            })
+          );
+          batchResults.forEach(page => {
+            allData = allData.concat(page);
+            fetchedCount += page.length;
+          });
+          processedBatches++;
+          
+          // Calculate progress based on batches processed (30-90%)
+          const batchProgress = 30 + (processedBatches / totalBatches) * 60;
+          const dataProgress = 30 + (fetchedCount / totalCount) * 60;
+          setProgress(Math.round(Math.max(batchProgress, dataProgress)));
+        }
       }
 
-      const json = await res.json();
-      const rawData = Array.isArray(json) ? json : json.results || json.data || [];
-
-      const mapped = rawData.map((r: any) => ({
+      // Data processing (90-95%)
+      setProgress(90);
+      const mapped = allData.map((r: any) => ({
         id: `${r.student_ID || ""}${r.geip_school_ID || ""}`,
         student_id: r.student_ID || "",
         full_name: `${r.last_name || ""} ${r.first_name || ""}`.trim(),
@@ -258,7 +272,7 @@ export default function ProvinceResultsPage() {
         grade: r.grade || "",
         exam_class: r.room || "",
         rank: r.current_rank || r.rank || "",
-        level: r.overall_level || r.level || "",
+        level: r.overall_level || r.level || "F",
         result: r.overall_result || r.result || "",
         exam_year: r.exam_year || new Date().getFullYear().toString(),
         exam_month: r.exam_month || new Date().getMonth() + 1,
@@ -266,35 +280,45 @@ export default function ProvinceResultsPage() {
         total_score: toIntegerScore(r.total_score ?? 0),
         total_possible: toIntegerScore(r.total_possible ?? 0),
         total_average: toAverage(r.total_average ?? "0"),
-        overall_level: r.overall_level || "",
+        overall_level: r.overall_level || "F",
         overall_result: r.overall_result || "",
+        geip_school_ID: r.geip_school_ID || "",
       }));
-
+      
+      // Setting data (95-99%)
+      setProgress(95);
       setRawStudents(mapped);
-    } catch (err: any) {
+      
+      // Complete (100%)
+      setProgress(100);
+    } catch (err) {
       setError(`មិនទាន់មានទិន្នន័យ`);
     } finally {
-      setLoading(false);
+      // Small delay to ensure 100% is visible
+      setTimeout(() => {
+        setLoading(false);
+      }, 300);
     }
-  }, [province_name, getAccessToken, activeTab]);
+  }, [province_id, getAccessToken]);
+
+  useEffect(() => {
+    if (province_id) fetchData();
+  }, [province_id, fetchData]);
 
   // Filter students
   useEffect(() => {
     let tempFiltered = rawStudents;
-
     if (selectedDistrict) tempFiltered = tempFiltered.filter(r => r.district === selectedDistrict);
-    if (selectedSchool) tempFiltered = tempFiltered.filter(r => r.school === selectedSchool);
+    if (selectedSchool) tempFiltered = tempFiltered.filter(r => r.geip_school_ID === selectedSchool);
     if (selectedClassLevel) tempFiltered = tempFiltered.filter(r => r.grade === selectedClassLevel);
     if (selectedRoom) tempFiltered = tempFiltered.filter(r => r.exam_class === selectedRoom);
     if (selectedGender) tempFiltered = tempFiltered.filter(r => r.gender === selectedGender);
     if (selectedAchievement) tempFiltered = tempFiltered.filter(r => r.level === selectedAchievement);
-
     if (selectedYear) tempFiltered = tempFiltered.filter(r => String(r.exam_year) === selectedYear);
     if (selectedMonth) {
       const monthInt = MONTH_NAME_TO_INT[selectedMonth];
       if (monthInt) tempFiltered = tempFiltered.filter(r => parseInt(r.exam_month) === monthInt);
     }
-
     if (searchValue.trim()) {
       const val = searchValue.trim().toLowerCase();
       tempFiltered = tempFiltered.filter(r =>
@@ -303,7 +327,6 @@ export default function ProvinceResultsPage() {
         r.school.toLowerCase().includes(val)
       );
     }
-
     setFilteredStudents(tempFiltered);
     setCurrentPage(1);
   }, [
@@ -322,62 +345,28 @@ export default function ProvinceResultsPage() {
   // Aggregate for total-results
   useEffect(() => {
     if (activeTab !== "total-results" || !filteredStudents.length) return;
-
     const summaryMap = new Map<string, any>();
     SUBJECT_LIST.forEach(subject => {
       summaryMap.set(subject.code, {
         code: subject.code,
         name: subject.name,
-        A: 0,
-        A_female: 0,
-        B: 0,
-        B_female: 0,
-        C: 0,
-        C_female: 0,
-        D: 0,
-        D_female: 0,
-        E: 0,
-        E_female: 0,
-        F: 0,
-        F_female: 0,
-        ABC: 0,
-        ABC_female: 0,
-        DEF: 0,
-        DEF_female: 0,
+        A: 0, A_female: 0, B: 0, B_female: 0, C: 0, C_female: 0,
+        D: 0, D_female: 0, E: 0, E_female: 0, F: 0, F_female: 0,
+        ABC: 0, ABC_female: 0, DEF: 0, DEF_female: 0,
       });
     });
-
     if (countAllStudents) {
-      // Count all students, treating missing data as "F"
       filteredStudents.forEach((r: any) => {
-        const gender = r.gender || "";
-        const isFemale = gender === "ស្រី";
-
+        const isFemale = r.gender === "ស្រី";
         SUBJECT_LIST.forEach(subject => {
-          const subjData = r.subjects?.[subject.name] || {};
-          const level = subjData.level || "F"; // Default to "F" if no data
-
+          const level = r.subjects?.[subject.name]?.level || "F";
           const summary = summaryMap.get(subject.code);
-          if (level === "A") {
-            summary.A += 1;
-            if (isFemale) summary.A_female += 1;
-          } else if (level === "B") {
-            summary.B += 1;
-            if (isFemale) summary.B_female += 1;
-          } else if (level === "C") {
-            summary.C += 1;
-            if (isFemale) summary.C_female += 1;
-          } else if (level === "D") {
-            summary.D += 1;
-            if (isFemale) summary.D_female += 1;
-          } else if (level === "E") {
-            summary.E += 1;
-            if (isFemale) summary.E_female += 1;
-          } else if (level === "F") {
-            summary.F += 1;
-            if (isFemale) summary.F_female += 1;
-          }
-
+          if (level === "A") { summary.A += 1; if (isFemale) summary.A_female += 1; }
+          else if (level === "B") { summary.B += 1; if (isFemale) summary.B_female += 1; }
+          else if (level === "C") { summary.C += 1; if (isFemale) summary.C_female += 1; }
+          else if (level === "D") { summary.D += 1; if (isFemale) summary.D_female += 1; }
+          else if (level === "E") { summary.E += 1; if (isFemale) summary.E_female += 1; }
+          else { summary.F += 1; if (isFemale) summary.F_female += 1; }
           summary.ABC = summary.A + summary.B + summary.C;
           summary.ABC_female = summary.A_female + summary.B_female + summary.C_female;
           summary.DEF = summary.D + summary.E + summary.F;
@@ -385,48 +374,26 @@ export default function ProvinceResultsPage() {
         });
       });
     } else {
-      // Count only students with actual data for each subject
       SUBJECT_LIST.forEach(subject => {
         const summary = summaryMap.get(subject.code);
-        
         filteredStudents.forEach((r: any) => {
-          const gender = r.gender || "";
-          const isFemale = gender === "ស្រី";
-          
-          // Only count if student has data for this subject
-          if (r.subjects && r.subjects[subject.name]) {
-            const subjData = r.subjects[subject.name];
-            const level = subjData.level || "";
-            
-            if (level === "A") {
-              summary.A += 1;
-              if (isFemale) summary.A_female += 1;
-            } else if (level === "B") {
-              summary.B += 1;
-              if (isFemale) summary.B_female += 1;
-            } else if (level === "C") {
-              summary.C += 1;
-              if (isFemale) summary.C_female += 1;
-            } else if (level === "D") {
-              summary.D += 1;
-              if (isFemale) summary.D_female += 1;
-            } else if (level === "E") {
-              summary.E += 1;
-              if (isFemale) summary.E_female += 1;
-            } else if (level === "F") {
-              summary.F += 1;
-              if (isFemale) summary.F_female += 1;
-            }
+          if (r.subjects?.[subject.name]?.level) {
+            const level = r.subjects[subject.name].level;
+            const isFemale = r.gender === "ស្រី";
+            if (level === "A") { summary.A += 1; if (isFemale) summary.A_female += 1; }
+            else if (level === "B") { summary.B += 1; if (isFemale) summary.B_female += 1; }
+            else if (level === "C") { summary.C += 1; if (isFemale) summary.C_female += 1; }
+            else if (level === "D") { summary.D += 1; if (isFemale) summary.D_female += 1; }
+            else if (level === "E") { summary.E += 1; if (isFemale) summary.E_female += 1; }
+            else if (level === "F") { summary.F += 1; if (isFemale) summary.F_female += 1; }
           }
         });
-        
         summary.ABC = summary.A + summary.B + summary.C;
         summary.ABC_female = summary.A_female + summary.B_female + summary.C_female;
         summary.DEF = summary.D + summary.E + summary.F;
         summary.DEF_female = summary.D_female + summary.E_female + summary.F_female;
       });
     }
-
     setSummaryData(Array.from(summaryMap.values()));
   }, [filteredStudents, activeTab, countAllStudents]);
 
@@ -437,7 +404,6 @@ export default function ProvinceResultsPage() {
     try {
       const districts = [...new Set(rawStudents.map((d: any) => d.district).filter(Boolean))].sort();
       setDistrictOptions(districts);
-
       if (!selectedDistrict) {
         setSchoolOptions([]);
         setClassLevelOptions([]);
@@ -445,26 +411,25 @@ export default function ProvinceResultsPage() {
         setIsFetchingOptions(false);
         return;
       }
-
       let schools: { id: string; name: string }[] = [];
       if (selectedDistrict) {
-        const schoolSet = new Set<string>();
+        const schoolsMap = new Map<string, string>();
         rawStudents.filter((s: any) => s.district === selectedDistrict).forEach((s: any) => {
-          if (s.school) schoolSet.add(s.school);
+          if (s.geip_school_ID && s.school) {
+            schoolsMap.set(s.geip_school_ID, s.school);
+          }
         });
-        schools = Array.from(schoolSet).map(name => ({ id: name, name })).sort((a, b) => a.name.localeCompare(b.name));
+        schools = Array.from(schoolsMap, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
       }
       setSchoolOptions(schools);
-
       let grades: string[] = [];
       if (selectedDistrict && selectedSchool) {
-        grades = [...new Set(rawStudents.filter(g => g.district === selectedDistrict && g.school === selectedSchool).map((g: any) => String(g.grade ?? "")).filter(Boolean))].sort();
+        grades = [...new Set(rawStudents.filter(g => g.district === selectedDistrict && g.geip_school_ID === selectedSchool).map((g: any) => String(g.grade ?? "")).filter(Boolean))].sort();
       }
       setClassLevelOptions(grades);
-
       let rooms: string[] = [];
       if (selectedDistrict && selectedSchool && selectedClassLevel) {
-        rooms = [...new Set(rawStudents.filter(r => r.district === selectedDistrict && r.school === selectedSchool && r.grade === selectedClassLevel).map((r: any) => String(r.exam_class ?? "")).filter(Boolean))].sort();
+        rooms = [...new Set(rawStudents.filter(r => r.district === selectedDistrict && r.geip_school_ID === selectedSchool && r.grade === selectedClassLevel).map((r: any) => String(r.exam_class ?? "")).filter(Boolean))].sort();
       }
       setRoomOptions(rooms);
     } catch (err) {
@@ -473,10 +438,6 @@ export default function ProvinceResultsPage() {
       setIsFetchingOptions(false);
     }
   }, [rawStudents, selectedDistrict, selectedSchool, selectedClassLevel]);
-
-  useEffect(() => {
-    if (province_name) fetchData();
-  }, [province_name, fetchData]);
 
   useEffect(() => {
     fetchFilterOptions();
@@ -498,97 +459,48 @@ export default function ProvinceResultsPage() {
     let headers = [];
     let rows = [];
     let headerTitle = "";
-
-    if (activeTab === "full-results") {
+    if (activeTab === "result-subject") {
       headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
-      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Phone", "Score", "Average", "Grade", "Class", "Rank", "Level", "Result", "Year", "Month"];
-      rows = filteredStudents.map(r => [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.phone_number, r.score, r.average, r.grade, r.exam_class, r.rank, r.level, r.result, r.exam_year, r.exam_month]);
-    } else if (activeTab === "result-subject") {
-      headerTitle = "បញ្ជីឈ្មោះសិស្សនិងលទ្ធផលតេស្ដស្ដង់ដា";
-      headers = ["Student ID", "Full Name", "Gender", "School", "District", "Province", "Grade", "Class"];
+      headers = ["អត្តលេខ", "គោត្តនាម និងនាម", "ភេទ", "សាលរៀន", "ស្រុក", "ខេត្ត", "កម្រិតថ្នាក់", "បន្ទប់"];
       SUBJECT_LIST.forEach(subject => {
-        if (showScores) headers.push(`${subject.name}`);
-        else headers.push(`${subject.name}`);
+        headers.push(showScores ? `${subject.name}` : `${subject.name}`);
       });
-
       rows = filteredStudents.map(r => {
         const row = [r.student_id, r.full_name, r.gender, r.school, r.district, r.province, r.grade, r.exam_class];
         SUBJECT_LIST.forEach(subject => {
-          if (r.subjects?.[subject.name]) {
-            if (showScores) {
-              row.push(r.subjects[subject.name].score || "0");
-            } else {
-              row.push(r.subjects[subject.name].level || "F");
-            }
-          } else {
-            if (showScores) {
-              row.push("0");
-            } else {
-              row.push("F");
-            }
-          }
+          const subj = r.subjects?.[subject.name];
+          row.push(showScores ? (subj?.score || "0") : (subj?.level || "F"));
         });
         return row;
       });
     } else if (activeTab === "total-results") {
       headerTitle = "របាយការណ៍បូកសរុបលទ្ធិផលតេស្ដស្ដង់ដា";
       headers = ["សូចនាករ", "មុខវិជ្ជា", "A", "ស្រី", "B", "ស្រី", "C", "ស្រី", "D", "ស្រី", "E", "ស្រី", "F", "ស្រី", "ABC", "ស្រី", "DEF", "ស្រី"];
-      rows = summaryData.map((r, i) => [r.code, r.name, r.A, r.A_female, r.B, r.B_female, r.C, r.C_female, r.D, r.D_female, r.E, r.E_female, r.F, r.F_female, r.ABC, r.ABC_female, r.DEF, r.DEF_female]);
+      rows = summaryData.map((r) => [r.code, r.name, r.A, r.A_female, r.B, r.B_female, r.C, r.C_female, r.D, r.D_female, r.E, r.E_female, r.F, r.F_female, r.ABC, r.ABC_female, r.DEF, r.DEF_female]);
     }
-
-    // Get school name from first student (or use a default if no students)
     const schoolName = filteredStudents.length > 0 ? filteredStudents[0].school : "";
-
-    // Create official header section
     const officialHeader = [
       ["ព្រះរាជាណាចក្រកម្ពុជា"],
-      ["ជាតិ​ សាសនា ព្រះមហាក្សត្រ"],
+      ["ជាតិ សាសនា ព្រះមហាក្សត្រ"],
       ["ក្រសួងអប់រំ យុវជន និងកីឡា"],
       ["គម្រោងកែលម្អការអប់រំចំណេះដីងទូទៅ Moeys Edtech " + headerTitle],
       ["សាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ ( ស.ព.ភ )"],
       [schoolName ? `វិទ្យាល័យ ${schoolName}` : "វិទ្យាល័យ by name school"],
-      [""], // Empty row for spacing
-      [""], // Empty row for spacing
+      [""], [""],
       [`ទិន្នន័យសិស្សក្នុង${selectedMonth ? ` ខែ ${selectedMonth}` : ""}${selectedYear ? ` ឆ្នាំ ${selectedYear}` : ""}`],
       [`ខេត្ត: ${province_name}`],
-      [""], // Empty row for spacing
-      [""], // Empty row for spacing
-      headers // Add the actual data headers
+      [""], [""],
+      headers
     ];
-
-    // Combine official header with data rows
     const allRows = [...officialHeader, ...rows];
-
-    // Convert to CSV format with proper Excel formatting
     const csv = allRows.map((row, index) => {
-      // Handle empty rows properly - create empty rows for spacing
-      if (row.length === 1 && row[0] === "") {
-        return "";
-      }
-
-      // For official headers, create merged cell appearance in Excel
-      if (index < 7) {
-        return `"${row[0]}"`;
-      }
-
-      // For date and province info
-      if (index === 8 || index === 9) {
-        return `"${row[0]}"`;
-      }
-
-      // For data headers and data rows
+      if (row.length === 1 && row[0] === "") return "";
+      if (index < 7 || index === 8 || index === 9) return `"${row[0]}"`;
       return row.map(cell => `"${cell}"`).join(",");
     }).join("\n");
-
-    // Create Excel-compatible CSV with BOM for Khmer characters
     const BOM = "\uFEFF";
     const csvContent = BOM + csv;
-
-    // Create and download file
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8;"
-    });
-
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
@@ -606,29 +518,27 @@ export default function ProvinceResultsPage() {
     const start = (currentPage - 1) * rowsPerPage;
     return data.slice(start, start + rowsPerPage);
   }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
-
-  const displayStart = useMemo(() => {
-    const data = activeTab === "total-results" ? summaryData : filteredStudents;
-    return data.length ? (currentPage - 1) * rowsPerPage + 1 : 0;
-  }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
-
-  const displayEnd = useMemo(() => {
-    const data = activeTab === "total-results" ? summaryData : filteredStudents;
-    return data.length ? Math.min(currentPage * rowsPerPage, data.length) : 0;
-  }, [activeTab, summaryData, filteredStudents, currentPage, rowsPerPage]);
-
+  const displayStart = useMemo(() => (currentPage - 1) * rowsPerPage + 1, [currentPage, rowsPerPage]);
+  const displayEnd = useMemo(() => Math.min(currentPage * rowsPerPage, activeTab === "total-results" ? summaryData.length : filteredStudents.length), [currentPage, rowsPerPage, activeTab, summaryData.length, filteredStudents.length]);
   const headerDateText = useMemo(() => selectedMonth || selectedYear ? (
-    <>
-      ទិន្នន័យសិស្សក្នុង {selectedMonth && <>ខែ <span className="text-blue-600 font-bold">{selectedMonth}</span></>} {selectedYear && <>{selectedMonth ? " " : ""}ឆ្នាំ <span className="text-blue-600 font-bold">{selectedYear}</span></>}
-    </>
+    <>ទិន្នន័យសិស្សក្នុង {selectedMonth && <>ខែ <span className="text-blue-600 font-bold">{selectedMonth}</span></>} {selectedYear && <>{selectedMonth ? " " : ""}ឆ្នាំ <span className="text-blue-600 font-bold">{selectedYear}</span></>}</>
   ) : "ទិន្នន័យលទ្ធផលសិស្ស", [selectedMonth, selectedYear]);
 
-  if (loading && !rawStudents.length) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center">
+        <div className="text-center max-w-md w-full px-4">
           <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
-          <p className="text-xl font-semibold text-gray-700 mt-4">កំពុងផ្ទុកទិន្នន័យ...</p>
+          <p className="text-xl font-semibold text-gray-700 mb-4">កំពុងផ្ទុកទិន្នន័យ {province_name}...</p>
+          <div className="w-full bg-gray-200 rounded-full h-8 overflow-hidden shadow-inner">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-blue-700 h-full flex items-center justify-center text-white font-bold text-lg transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            >
+              {progress > 10 && `${progress}%`}
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">សូមរង់ចាំបន្តិច... កំពុងទាញយកទិន្នន័យពេញខេត្ត</p>
         </div>
       </div>
     );
@@ -644,7 +554,7 @@ export default function ProvinceResultsPage() {
           <h2 className="text-2xl font-bold text-red-600 mb-3">មានបញ្ហា</h2>
           <p className="text-gray-700 mb-8">{error}</p>
           <div className="flex gap-4 justify-center">
-            <button onClick={() => { setError(""); setTokenRetries(0); fetchData(); }} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg">
+            <button onClick={() => { setError(""); fetchData(); }} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg">
               <RefreshCw className="inline h-4 w-4 mr-2" /> ព្យាយាមម្តងទៀត
             </button>
             <Link href="/results">
@@ -661,33 +571,51 @@ export default function ProvinceResultsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto flex justify-between sm:justify-around sm:gap-4 mb-6">
-        <Link href="/results"><button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><ArrowLeft className="h-4 w-4" />ត្រឡប់</button></Link>
-        <Link href="/welcome"><button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2"><Home className="h-4 w-4" />ទំព័រដើម</button></Link>
+        <Link href="/results"><button className="flex items-center gap-2
+              bg-blue-600 hover:bg-blue-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg shadow-lg transition"><ArrowLeft className="h-4 w-4" />ត្រឡប់</button></Link>
+        <Link href="/welcome"><button className="
+              flex items-center gap-2
+              bg-green-600 hover:bg-green-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg shadow-lg transition
+            ">
+              <Home className="w-4 h-4 sm:w-5 sm:h-5" /> ទំព័រដើម
+            </button></Link>
       </div>
-
-      <header className="text-center mb-8 max-w-7xl mx-auto">
-        <div className="flex justify-center mb-6">
-          <div className="flex items-center gap-3 px-5 py-3 bg-white/90 rounded-2xl shadow-xl">
-            <div className="rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 p-2.5">
-              <Image src="/moeys-logo.png" alt="Logo" width={48} height={48} />
+      <header className="text-center mb-6 sm:mb-8">
+        <div className="flex justify-center mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-md ring-1 ring-gray-200">
+            <div className="rounded-lg bg-blue-50 p-2 sm:p-3 ring-1 ring-blue-100">
+              <Image
+                src="/moeys-logo.png"
+                alt="MoEYS Logo"
+                width={48}
+                height={48}
+                className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
+              />
             </div>
-            <div className="font-bold">MoEYS EdTech - GEIP ICT Team</div>
+            <div className="text-gray-900 font-semibold text-xs sm:text-sm md:text-base leading-tight text-left">
+              MoEYS EdTech - GEIP ICT Team
+            </div>
           </div>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight px-2">
           លទ្ធផលប្រឡងរបស់សិស្សក្នុង <span className="text-blue-600">{province_name}</span>
         </h1>
         <p className="text-xl text-gray-600 mt-2">{headerDateText}</p>
       </header>
-
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex flex-wrap gap-2 justify-center bg-white rounded-xl p-2 shadow-md">
-          {/* <button onClick={() => setActiveTab("full-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "full-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200 hidden"}`}>លទ្ធផលសរុប</button> */}
           <button onClick={() => setActiveTab("result-subject")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "result-subject" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>មើលតាមមុខវិជ្ជា</button>
           <button onClick={() => setActiveTab("total-results")} className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "total-results" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>របាយការណ៍</button>
         </div>
       </div>
-
       <div className="max-w-7xl mx-auto">
         <Card className="bg-white shadow-lg">
           <CardContent className="p-5 space-y-6">
@@ -706,7 +634,7 @@ export default function ProvinceResultsPage() {
                   </>
                 )}
                 <SelectFilter label="ស្រុក" value={selectedDistrict} onChange={e => { setSelectedDistrict(e.target.value); setSelectedSchool(""); setSelectedClassLevel(""); setSelectedRoom(""); }} options={districtOptions} />
-                <SelectFilter label="សាលារៀន" value={selectedSchool} onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }} options={schoolOptions.map(s => s.name)} disabled={!selectedDistrict || isFetchingOptions} />
+                <SelectFilter label="សាលារៀន" value={selectedSchool} onChange={e => { setSelectedSchool(e.target.value); setSelectedClassLevel(""); setSelectedRoom(""); }} options={schoolOptions} disabled={!selectedDistrict || isFetchingOptions} />
                 {activeTab !== "total-results" ? (
                   <>
                     <SelectFilter label="កម្រិតថ្នាក់" value={selectedClassLevel} onChange={e => { setSelectedClassLevel(e.target.value); setSelectedRoom(""); }} options={classLevelOptions} disabled={!selectedSchool || isFetchingOptions} />
@@ -726,11 +654,8 @@ export default function ProvinceResultsPage() {
                     <FileDown className="h-4 w-4" /> ទាញយក
                   </Button>
                 )}
-
               </div>
             </div>
-
-            {/* Search and pagination only for non-total-results tabs */}
             {activeTab !== "total-results" && (
               <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-blue-50 rounded-lg p-4">
                 <div className="relative flex-1 sm:w-72">
@@ -742,85 +667,30 @@ export default function ProvinceResultsPage() {
                 </Button>
               </div>
             )}
-
             {activeTab !== "total-results" && (
               <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
                 <p className="text-sm text-gray-600">បង្ហាញ {displayStart} - {displayEnd} ក្នុងចំណោម {(activeTab === "total-results" ? summaryData.length : filteredStudents.length).toLocaleString()}</p>
                 <SelectFilter label="បង្ហាញ" value={rowsPerPage} onChange={e => { const v = e.target.value; setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); setCurrentPage(1); }} options={rowsPerPageOptions} />
               </div>
             )}
-
             <div className="overflow-x-auto border rounded-lg">
-              {activeTab === "full-results" && (
-                <table className="min-w-full text-sm">
-                  <thead className="bg-blue-600 text-white">
-                    <tr>
-                      <th className="px-4 py-3 text-left">អត្តលេខ</th>
-                      <th className="px-4 py-3 text-left">ឈ្មោះសិស្ស</th>
-                      <th className="px-4 py-3 text-center">ភេទ</th>
-                      <th className="px-4 py-3 text-center">ថ្នាក់</th>
-                      <th className="px-4 py-3 text-center">ថ្នាក់រៀន</th>
-                      <th className="px-4 py-3 text-left">សាលា</th>
-                      <th className="px-4 py-3 text-center">ស្រុក</th>
-                      <th className="px-4 py-3 text-center">ខេត្ត</th>
-                      <th className="px-4 py-3 text-center">ទូរស័ព្ទ</th>
-                      <th className="px-4 py-3 text-center">ពិន្ទុ</th>
-                      <th className="px-4 py-3 text-center">មធ្យម</th>
-                      <th className="px-4 py-3 text-center">ចំណាត់</th>
-                      <th className="px-4 py-3 text-center">និទ្ទេស</th>
-                      <th className="px-4 py-3 text-center">លទ្ធផល</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {paginated.length > 0 ? paginated.map((r, i) => (
-                      <tr key={r.id} className={`hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                        <td className="px-4 py-3 text-center font-mono">{r.student_id}</td>
-                        <td className="px-4 py-3">{r.full_name}</td>
-                        <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{r.gender}</span></td>
-                        <td className="px-4 py-3 text-center font-bold">{r.grade}</td>
-                        <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.exam_class}</td>
-                        <td className="px-4 py-3">{r.school}</td>
-                        <td className="px-4 py-3 text-center text-gray-600">{r.district}</td>
-                        <td className="px-4 py-3 text-center text-blue-600 font-bold">{r.province}</td>
-                        <td className="px-4 py-3 text-center">{r.phone_number}</td>
-                        <td className="px-4 py-3 text-center text-indigo-600 font-bold">{r.score}</td>
-                        <td className="px-4 py-3 text-center font-semibold">{r.average}</td>
-                        <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-bold">{r.rank}</span></td>
-                        <td className="px-4 py-3 text-center"><span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold">{r.level}</span></td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-4 py-1.5 rounded-full font-bold ${r.result === "ជាប់" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{r.result}</span>
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr><td colSpan={14} className="text-center py-16 text-gray-500">មិនមានទិន្នន័យ</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-
               {activeTab === "result-subject" && (
                 <div className="overflow-x-auto">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    {/* Title - Stays left/top */}
                     <h3 className="text-lg font-semibold px-2">
                       លទ្ធផលតាមមុខវិជ្ជា
                     </h3>
-
-                    {/* Button Group - Stacks on mobile, Rows on desktop */}
                     <div className="flex w-full sm:w-auto gap-2 px-2">
                       <Button
                         onClick={() => setShowScores(true)}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 ${showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
-                          }`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 ${showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
                       >
                         <BarChart3 className="h-4 w-4" />
                         <span>ពិន្ទុ</span>
                       </Button>
-
                       <Button
                         onClick={() => setShowScores(false)}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 ${!showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
-                          }`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 ${!showScores ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
                       >
                         <Eye className="h-4 w-4" />
                         <span>និទ្ទេស</span>
@@ -862,7 +732,6 @@ export default function ProvinceResultsPage() {
                             const subjectData = r.subjects?.[subject.name];
                             let displayValue = "";
                             let className = "";
-
                             if (showScores) {
                               displayValue = subjectData ? subjectData.score : "0";
                               className = displayValue !== "0" && displayValue !== 0 ? "text-blue-600 font-semibold" : "text-red-600";
@@ -881,7 +750,6 @@ export default function ProvinceResultsPage() {
                                 className = "bg-gray-100 text-gray-700";
                               }
                             }
-
                             return (
                               <td key={`${r.id}-${subject.code}`} className="px-2 py-3 text-center whitespace-nowrap min-w-[120px]">
                                 {showScores ? (
@@ -902,30 +770,23 @@ export default function ProvinceResultsPage() {
                   </table>
                 </div>
               )}
-
               {activeTab === "total-results" && (
                 <div className="overflow-x-auto border rounded-lg shadow-md">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    {/* Title Section */}
                     <h3 className="text-lg font-semibold px-2">
                       របាយការណ៍បូកសរុបនិទ្ទេស
                     </h3>
-
-                    {/* Buttons Section */}
                     <div className="flex flex-wrap gap-2 px-2 w-full sm:w-auto">
                       <Button
                         onClick={() => setCountAllStudents(true)}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
-                          }`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
                       >
                         <BarChart3 className="h-4 w-4" />
                         <span className="text-sm">និទ្ទេសសិស្សទាំងអស់</span>
                       </Button>
-
                       <Button
                         onClick={() => setCountAllStudents(false)}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${!countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
-                          }`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${!countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
                       >
                         <Eye className="h-4 w-4" />
                         <span className="text-sm">និទ្ទេសសិស្សបានប្រឡង</span>
@@ -972,7 +833,6 @@ export default function ProvinceResultsPage() {
                           D: 0, D_female: 0, E: 0, E_female: 0, F: 0, F_female: 0,
                           ABC: 0, ABC_female: 0, DEF: 0, DEF_female: 0,
                         };
-
                         return (
                           <tr key={subject.code} className={`hover:bg-blue-50 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
                             <td className="px-6 py-3 text-center font-mono border-r border-gray-300 whitespace-nowrap min-w-[60px]">{subject.code}</td>
@@ -1001,7 +861,6 @@ export default function ProvinceResultsPage() {
                 </div>
               )}
             </div>
-
             {rowsPerPage !== ALL_DATA_VALUE && activeTab !== "total-results" && (
               <div className="flex justify-center gap-3">
                 <Button size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>មុន</Button>
@@ -1020,11 +879,15 @@ const SelectFilter = ({ label, value, onChange, options, disabled = false }: any
   <div className="relative w-full sm:w-auto">
     <select value={value} onChange={onChange} disabled={disabled} className="bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm appearance-none cursor-pointer disabled:opacity-50 w-full sm:w-auto">
       <option value="">{label}</option>
-      {options.map((opt: any) => (
-        <option key={typeof opt === "object" ? opt.id || opt.name : opt} value={typeof opt === "object" ? opt.name || opt : opt}>
-          {typeof opt === "object" ? opt.name || opt : opt}
-        </option>
-      ))}
+      {options.map((opt: any) => {
+        const optValue = typeof opt === "object" ? opt.id : opt;
+        const optLabel = typeof opt === "object" ? opt.name : opt;
+        return (
+          <option key={optValue} value={optValue}>
+            {optLabel}
+          </option>
+        );
+      })}
     </select>
     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
       <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293l4.5 4.5 4.5-4.5L15.707 8 10 13.707 4.293 8z" /></svg>

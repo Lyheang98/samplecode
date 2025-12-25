@@ -61,9 +61,9 @@ const provinceImageMap: Record<string, string> = {
 };
 
 export default function ProvincesPage() {
-  const provinces = PROVINCES.map(p => p.name).sort(); // តម្រៀបតាមអក្សរខ្មែរ (optional: អាច sort តាម id បើចង់)
+  const provinces = PROVINCES.map(p => p.id).sort(); // តម្រៀបតាមអក្សរខ្មែរ (optional: អាច sort តាម id បើចង់)
 
-  const createSlug = (name: string) => encodeURIComponent(name.trim());
+  const createSlug = (id: string) => encodeURIComponent(id.trim());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-100 p-5">
@@ -128,18 +128,18 @@ export default function ProvincesPage() {
         {/* Provinces Grid */}
         <div className="py-4 sm:py-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
-            {provinces.map((provinceName) => {
-              const imagePath = provinceImageMap[provinceName];
-              const href = `/results/${createSlug(provinceName)}`;
+            {PROVINCES.map((province) => {
+              const imagePath = provinceImageMap[province.name];
+              const href = `/results/${createSlug(province.id)}`; // Changed to use province.id
 
               return (
-                <Link href={href} key={provinceName} className="group">
+                <Link href={href} key={province.id} className="group">
                   <div className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-blue-500 cursor-pointer h-full flex flex-col">
                     {imagePath ? (
                       <div className="aspect-square relative bg-gray-100">
                         <Image
                           src={imagePath}
-                          alt={provinceName}
+                          alt={province.name}
                           fill
                           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -148,12 +148,12 @@ export default function ProvincesPage() {
                     ) : (
                       <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center p-2 sm:p-4">
                         <span className="text-center text-gray-700 font-bold text-xs sm:text-sm md:text-base whitespace-normal break-words">
-                          {provinceName}
+                          {province.name}
                         </span>
                       </div>
                     )}
                     <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-600 to-blue-700 group-hover:from-blue-700 group-hover:to-blue-800 text-white text-center font-semibold text-xs sm:text-sm md:text-base transition whitespace-normal break-words flex-grow flex items-center justify-center">
-                      {provinceName}
+                      {province.name}
                     </div>
                   </div>
                 </Link>
