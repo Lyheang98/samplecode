@@ -659,11 +659,87 @@ export default function ProvinceResultsPage() {
       <div className="max-w-7xl mx-auto">
         <Card className="bg-white shadow-lg">
           <CardContent className="p-5 space-y-6">
+            {/* === FILTER SECTION - UPDATED === */}
             <div className="bg-gray-50 rounded-xl p-4 border">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <Filter className="h-5 w-5 text-blue-600" />
                 <h3 className="font-semibold">ការច្រោះយកទិន្នន័យ</h3>
               </div>
+
+              {/* Phone layout: Multiple rows */}
+              <div className="sm:hidden">
+                {/* Top row: ឆ្នាំ ខែ ភេទ និទ្ទេស */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <SelectFilter label="ឆ្នាំ" value={selectedYear} onChange={e => setSelectedYear(e.target.value)} options={yearfilterOptions} />
+                  <SelectFilter label="ខែ" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} options={monthfilterOptions} />
+                  {activeTab !== "total-results" && (
+                    <>
+                      <SelectFilter label="ភេទ" value={selectedGender} onChange={e => setSelectedGender(e.target.value)} options={genderOptions} />
+                      <SelectFilter label="និទ្ទេស" value={selectedAchievement} onChange={e => setSelectedAchievement(e.target.value)} options={achievementOptions} />
+                    </>
+                  )}
+                  {activeTab === "total-results" && (
+                    <>
+                      <div></div><div></div>
+                    </>
+                  )}
+                </div>
+
+                {/* ស្រុក and សាលារៀន */}
+                <div className="grid grid-cols-1 gap-3 mb-3">
+                  <SelectFilter label="ស្រុក" value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)} options={districtOptions} />
+                  <SelectFilter 
+                    label="សាលារៀន" 
+                    value={selectedSchool} 
+                    onChange={e => setSelectedSchool(e.target.value)} 
+                    options={schoolOptions} 
+                    disabled={!selectedDistrict || isFetchingOptions} 
+                  />
+                </div>
+
+                {/* កម្រិតថ្នាក់ and បន្ទប់ */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <SelectFilter 
+                    label="កម្រិតថ្នាក់" 
+                    value={selectedClassLevel} 
+                    onChange={e => setSelectedClassLevel(e.target.value)} 
+                    options={classLevelOptions} 
+                    disabled={!selectedSchool || isFetchingOptions} 
+                  />
+                  <SelectFilter 
+                    label="បន្ទប់" 
+                    value={selectedRoom} 
+                    onChange={e => setSelectedRoom(e.target.value)} 
+                    options={roomOptions} 
+                    disabled={!selectedClassLevel || isFetchingOptions} 
+                  />
+                </div>
+
+                {/* Optional ប្រភេទសិស្ស + Clear button */}
+                <div className="space-y-3">
+                  {["11", "12"].includes(selectedClassLevel) && studentTypeOptions.length > 0 && (
+                    <SelectFilter 
+                      label="ប្រភេទសិស្ស" 
+                      value={selectedStudentType} 
+                      onChange={e => setSelectedStudentType(e.target.value)} 
+                      options={studentTypeOptions} 
+                    />
+                  )}
+                  <div className="flex gap-3">
+                    <Button onClick={handleClearFilters} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
+                      <X className="h-4 w-4" /> លុបច្រោះ
+                    </Button>
+                    {activeTab === "total-results" && (
+                      <Button onClick={handleDownloadCSV} className="flex-1 bg-green-500 hover:bg-green-600 text-white">
+                        <FileDown className="h-4 w-4" /> ទាញយក
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+            {/* Non-phone layout: Single row for all filters */}
+            <div className="hidden sm:block">
               <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 overflow-x-auto pb-2">
                 <SelectFilter label="ឆ្នាំ" value={selectedYear} onChange={e => setSelectedYear(e.target.value)} options={yearfilterOptions} />
                 <SelectFilter label="ខែ" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} options={monthfilterOptions} />
@@ -699,28 +775,42 @@ export default function ProvinceResultsPage() {
                 )}
               </div>
             </div>
+          </div>
             {activeTab !== "total-results" && (
-              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-blue-50 rounded-lg p-4">
+              <div className="flex flex-row sm:flex-row gap-2 justify-between items-center bg-blue-50 rounded-lg p-4">
                 <div className="relative flex-1 sm:w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input placeholder="ស្វែងរកឈ្មោះ ឬ អត្តលេខ..." value={searchValue} onChange={e => setSearchValue(e.target.value)} className="pl-9" />
+                  <Input placeholder="ស្វែងរកឈ្មោះ ឬអត្តលេខ..." value={searchValue} onChange={e => setSearchValue(e.target.value)} className="pl-9" />
                 </div>
                 <Button onClick={handleDownloadCSV} className="bg-green-500 hover:bg-green-600 text-white">
-                  <FileDown className="h-4 w-4" /> ទាញយកទិន្នន័យ
+                  <FileDown className="h-4 w-4" /> ទាញយក
                 </Button>
               </div>
             )}
             {activeTab !== "total-results" && (
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-                <p className="text-sm text-gray-600">បង្ហាញ {displayStart} - {displayEnd} ក្នុងចំណោម {(activeTab === "total-results" ? summaryData.length : filteredStudents.length).toLocaleString()}</p>
-                <SelectFilter label="ទទេ" value={rowsPerPage} onChange={e => { const v = e.target.value; setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); setCurrentPage(1); }} options={rowsPerPageOptions} />
+              <div className="flex flex-row sm:flex-row justify-between items-center gap-2 bg-gray-50 rounded-lg px-4 py-3">
+                <p className="text-sm text-gray-600 text-center sm:text-left">
+                  បង្ហាញ {displayStart} - {displayEnd}, សរុប {filteredStudents.length.toLocaleString()}
+                </p>
+                <div className="w-auto">
+                  <SelectFilter 
+                    label="" 
+                    value={rowsPerPage} 
+                    onChange={e => { 
+                      const v = e.target.value; 
+                      setRowsPerPage(v === ALL_DATA_VALUE ? ALL_DATA_VALUE : Number(v)); 
+                      setCurrentPage(1); 
+                    }} 
+                    options={rowsPerPageOptions} 
+                  />
+                </div>
               </div>
             )}
             <div className="overflow-x-auto border rounded-lg">
               {activeTab === "result-subject" && (
                 <div className="overflow-x-auto">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    <h3 className="text-lg font-semibold px-2">
+                  <div className="flex flex-row sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+                    <h3 className="text-sm sm:text-lg font-semibold px-2">
                       លទ្ធផលតាមមុខវិជ្ជា
                     </h3>
                     <div className="flex w-full sm:w-auto gap-2 px-2">
