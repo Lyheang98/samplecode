@@ -1138,35 +1138,35 @@ export default function ProvinceResultsPage() {
                   {showChartView ? (
                     <div className="space-y-8">
                       {/* Subject selector dropdown */}
-<div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100 shadow-md mx-2 sm:mx-4">
-  {/* Flex column on mobile, row on sm+ */}
-  <div className="flex flex-row items-center justify-between sm:flex-row sm:items-center sm:justify-between gap-2">
-    <h3 className="text-lg font-semibold text-purple-800 whitespace-nowrap">
-      ជ្រើសរើសមុខវិជ្ជា
-    </h3>
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100 shadow-md mx-2 sm:mx-4">
+                        {/* Flex column on mobile, row on sm+ */}
+                        <div className="flex flex-row items-center justify-between sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <h3 className="text-lg font-semibold text-purple-800 whitespace-nowrap">
+                            ជ្រើសរើសមុខវិជ្ជា
+                          </h3>
 
-    <div className="relative w-full sm:w-64">
-      <select
-        value={selectedSubject}
-        onChange={(e) => setSelectedSubject(e.target.value)}
-        className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 px-2 rounded-lg text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-      >
-        {subjectOptions.map((subject) => (
-          <option key={subject.code} value={subject.code}>
-            {subject.name}
-          </option>
-        ))}
-      </select>
+                          <div className="relative w-full sm:w-64">
+                            <select
+                              value={selectedSubject}
+                              onChange={(e) => setSelectedSubject(e.target.value)}
+                              className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 px-2 rounded-lg text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                            >
+                              {subjectOptions.map((subject) => (
+                                <option key={subject.code} value={subject.code}>
+                                  {subject.name}
+                                </option>
+                              ))}
+                            </select>
 
-      {/* Custom dropdown arrow */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M5.293 7.293l4.5 4.5 4.5-4.5L15.707 8 10 13.707 4.293 8z" />
-        </svg>
-      </div>
-    </div>
-  </div>
-</div>
+                            {/* Custom dropdown arrow */}
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M5.293 7.293l4.5 4.5 4.5-4.5L15.707 8 10 13.707 4.293 8z" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       
                       {/* Charts section */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:mx-2">
