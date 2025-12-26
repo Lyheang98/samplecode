@@ -31,9 +31,12 @@ import { getExamLink } from "@/utils/examLinks";
 import SubjectSelection from "@/components/SubjectSelection";
 
 // NOTE: These API constants should match your project's configuration
-const API_BASE = "https://moeys-exam-qbfys.ondigitalocean.app";
-const MOCK_USERNAME = "Staff";
-const MOCK_PASSWORD = "staffmoeysedtech2025";
+// const API_BASE = "https://moeys-exam-qbfys.ondigitalocean.app";
+// const MOCK_USERNAME = "Staff";
+// const MOCK_PASSWORD = "staffmoeysedtech2025";
+export const API_BASE = "http://127.0.0.1:8000"
+export const MOCK_USERNAME = "admin"
+export const MOCK_PASSWORD = "1234567"
 const TOKEN_URL = `${API_BASE}/api/token/`;
 
 // --- Constants (PROVINCES list) ---

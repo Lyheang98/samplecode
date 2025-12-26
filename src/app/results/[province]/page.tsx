@@ -222,7 +222,7 @@ export default function ProvinceResultsPage() {
 
     let baseUrl = `${API_BASE}/api/v1/result/result-Subjects-byMonth-Year/${province_id}/${monthInt}/${year}/`;
 
-    const PAGE_SIZE = 200000;
+    const PAGE_SIZE = 20000;
     let allData: any[] = [];
     let fetchedCount = 0;
 
