@@ -762,7 +762,7 @@ export default function ProvinceResultsPage() {
             </div>
           </div>
           <p className="text-sm text-gray-600 mt-4">
-            កំពុងទាញយកទិន្នន័យសិស្ស... {loadedCount.toLocaleString()}នាក់ដំបូង
+            កំពុងទាញយកទិន្នន័យសិស្ស... {loadedCount.toLocaleString()} នាក់ដំបូង។
           </p>
         </div>
       </div>
