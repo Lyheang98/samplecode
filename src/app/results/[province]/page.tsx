@@ -26,7 +26,6 @@ import {
   Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
-
 // Register Chart.js components
 ChartJS.register(
   CategoryScale,
@@ -36,7 +35,6 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-
 const SUBJECT_LIST = [
   { code: "1.3.2", name: "ភាសាខ្មែរ" },
   { code: "1.3.3", name: "គណិតវិទ្យា" },
@@ -49,7 +47,6 @@ const SUBJECT_LIST = [
   { code: "1.3.10", name: "ភូមិវិទ្យា" },
   { code: "1.3.11", name: "អង់គ្លេស" },
 ];
-
 const PROVINCES = [
   { id: "1", name: "ខេត្តបន្ទាយមានជ័យ" },
   { id: "2", name: "ខេត្តបាត់ដំបង" },
@@ -77,7 +74,6 @@ const PROVINCES = [
   { id: "24", name: "ខេត្តឧត្តរមានជ័យ" },
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
 ];
-
 // UI Components
 const Card = ({ className = "", children }) => (
   <div className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}>
@@ -126,7 +122,6 @@ const Input = ({
     className={`flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
   />
 );
-
 // Constants
 const TOKEN_URL = `${API_BASE}/api/token/`;
 const MONTH_NAME_TO_INT = {
@@ -134,21 +129,21 @@ const MONTH_NAME_TO_INT = {
   កក្កដា: 7, សីហា: 8, កញ្ញា: 9, តុលា: 10, វិច្ឆិកា: 11, ធ្នូ: 12,
 };
 const ALL_DATA_VALUE = "ទាំងអស់";
-
 export default function ProvinceResultsPage() {
   const params = useParams();
   const province_id = params.province as string;
   const province_name = useMemo(() => PROVINCES.find(p => p.id === province_id)?.name || "", [province_id]);
-
   const [rawStudents, setRawStudents] = useState<any[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
   const [summaryData, setSummaryData] = useState<any[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [loadedCount, setLoadedCount] = useState(0); // Track loaded count
+  const [totalCount, setTotalCount] = useState(0); // Track total count
   const [error, setError] = useState("");
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
-
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedClassLevel, setSelectedClassLevel] = useState("");
@@ -170,7 +165,6 @@ export default function ProvinceResultsPage() {
   const [countAllStudents, setCountAllStudents] = useState(true);
   const [showChartView, setShowChartView] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_LIST[0]?.code || "");
-
   const genderOptions = ["ប្រុស", "ស្រី"];
   const achievementOptions = ["A", "B", "C", "D", "E", "F"];
   const yearfilterOptions = ["2025", "2026", "2027"];
@@ -179,13 +173,11 @@ export default function ProvinceResultsPage() {
     "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
   ];
   const rowsPerPageOptions = [10, 20, 30, 40, 50, 100, 200, ALL_DATA_VALUE];
-
   // Subject options for dropdown
   const subjectOptions = useMemo(() => [
     { code: "ALL", name: "គ្រប់មុខវិជ្ជា" },
     ...SUBJECT_LIST
   ], []);
-
   const getAccessToken = useCallback(async () => {
     const res = await fetch(TOKEN_URL, {
       method: "POST",
@@ -197,13 +189,14 @@ export default function ProvinceResultsPage() {
     const data = await res.json();
     return data.access;
   }, []);
-
   const fetchData = useCallback(async () => {
     if (!province_id) return;
     setLoading(true);
+    setBackgroundLoading(true);
     setError("");
     setProgress(0); // Start from 0%
-
+    setLoadedCount(20); // Reset loaded count
+    setTotalCount(0); // Reset total count
     let token;
     try {
       // Initial progress for token acquisition (5%)
@@ -214,75 +207,25 @@ export default function ProvinceResultsPage() {
     } catch {
       setError("មិនអាចទទួលបាន token");
       setLoading(false);
+      setBackgroundLoading(false);
       return;
     }
-
     const monthInt = MONTH_NAME_TO_INT[selectedMonth] || 12;
     const year = parseInt(selectedYear) || 2025;
-
     let baseUrl = `${API_BASE}/api/v1/result/result-Subjects-byMonth-Year/${province_id}/${monthInt}/${year}/`;
-
-    const PAGE_SIZE = 20000;
-    let allData: any[] = [];
-    let fetchedCount = 0;
-
+    // First, fetch just 20 rows to show immediately
     try {
-      // Initial progress for starting data fetch (15%)
+      // Progress for starting initial fetch (15%)
       setProgress(15);
-      
-      // First page
-      const firstRes = await fetch(`${baseUrl}?limit=${PAGE_SIZE}`, {
+      // Fetch first 20 rows
+      const initialRes = await fetch(`${baseUrl}?limit=20`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!firstRes.ok) throw new Error("API error");
-      const firstJson = await firstRes.json();
-      allData = allData.concat(firstJson.results);
-      fetchedCount += firstJson.results.length;
-
-      const totalCount = firstJson.count || firstJson.results.length;
-      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-      // Calculate progress after first page (30% minimum)
-      const firstPageProgress = Math.max(30, Math.min(50, (fetchedCount / totalCount) * 80));
-      setProgress(Math.round(firstPageProgress));
-
-      if (totalPages > 1) {
-        const urls = [];
-        for (let offset = PAGE_SIZE; offset < totalCount; offset += PAGE_SIZE) {
-          urls.push(`${baseUrl}?limit=${PAGE_SIZE}&offset=${offset}`);
-        }
-
-        const concurrency = 5;
-        let processedBatches = 0;
-        const totalBatches = Math.ceil(urls.length / concurrency);
-        
-        for (let i = 0; i < urls.length; i += concurrency) {
-          const batch = urls.slice(i, i + concurrency);
-          const batchResults = await Promise.all(
-            batch.map(async (url) => {
-              const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-              const json = await res.json();
-              return json.results;
-            })
-          );
-          batchResults.forEach(page => {
-            allData = allData.concat(page);
-            fetchedCount += page.length;
-          });
-          processedBatches++;
-          
-          // Calculate progress based on batches processed (30-90%)
-          const batchProgress = 30 + (processedBatches / totalBatches) * 60;
-          const dataProgress = 30 + (fetchedCount / totalCount) * 60;
-          setProgress(Math.round(Math.max(batchProgress, dataProgress)));
-        }
-      }
-
-      // Data processing (90-95%)
-      setProgress(90);
-      const mapped = allData.map((r: any) => {
+      if (!initialRes.ok) throw new Error("API error");
+      const initialJson = await initialRes.json();
+      // Process and display the first 20 rows immediately
+      const initialMapped = initialJson.results.map((r: any) => {
         const subjects = r.subjects || {};
-
         return {
           id: `${r.student_ID || ""}${r.geip_school_ID || ""}`,
           student_id: r.student_ID || "",
@@ -301,11 +244,76 @@ export default function ProvinceResultsPage() {
           geip_school_ID: r.geip_school_ID || "",
         };
       });
-      
-      // Setting data (95-99%)
-      setProgress(95);
-      setRawStudents(mapped);
-      
+      // Update UI with initial data (30%)
+      setProgress(30);
+      setRawStudents(initialMapped);
+      setLoadedCount(initialMapped.length); // Update loaded count
+      setTotalCount(initialJson.count || initialMapped.length); // Set total count
+      // Stop the main loading indicator since we have data to show
+      setLoading(false);
+      // Now fetch the rest of the data in the background
+      const totalCountValue = initialJson.count || initialJson.results.length;
+      // If there's more data to fetch, continue in background
+      if (totalCountValue > 20) {
+        // Start background fetch (35%)
+        setProgress(35);
+        // Fetch remaining data in chunks of 10,000
+        const CHUNK_SIZE = 10000;
+        let allData = [...initialMapped];
+        let fetchedCount = initialMapped.length;
+        // Create URLs for remaining chunks
+        const urls = [];
+        for (let offset = 20; offset < totalCountValue; offset += CHUNK_SIZE) {
+          urls.push(`${baseUrl}?limit=${CHUNK_SIZE}&offset=${offset}`);
+        }
+        // Process chunks with concurrency control
+        const concurrency = 3; // Reduced concurrency to avoid overwhelming the server
+        let processedBatches = 0;
+        const totalBatches = Math.ceil(urls.length / concurrency);
+        for (let i = 0; i < urls.length; i += concurrency) {
+          const batch = urls.slice(i, i + concurrency);
+          const batchResults = await Promise.all(
+            batch.map(async (url) => {
+              const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+              const json = await res.json();
+              return json.results;
+            })
+          );
+          // Process batch results
+          batchResults.forEach(page => {
+            const mappedPage = page.map((r: any) => {
+              const subjects = r.subjects || {};
+              return {
+                id: `${r.student_ID || ""}${r.geip_school_ID || ""}`,
+                student_id: r.student_ID || "",
+                full_name: `${r.last_name || ""} ${r.first_name || ""}`.trim(),
+                gender: r.gender || "",
+                school: r.school_name || "",
+                district: r.district_name || "",
+                province: r.province_name || "",
+                phone_number: r.phone_number || "",
+                grade: r.grade || "",
+                exam_class: r.room || "",
+                student_type: r.student_type || "",
+                exam_year: r.exam_year || year,
+                exam_month: r.exam_month || monthInt,
+                subjects: subjects,
+                geip_school_ID: r.geip_school_ID || "",
+              };
+            });
+            allData = allData.concat(mappedPage);
+            fetchedCount += mappedPage.length;
+            setLoadedCount(fetchedCount); // Update loaded count
+          });
+          processedBatches++;
+          // Update progress based on batches processed (35-95%)
+          const batchProgress = 35 + (processedBatches / totalBatches) * 60;
+          const dataProgress = 35 + (fetchedCount / totalCountValue) * 60;
+          setProgress(Math.round(Math.max(batchProgress, dataProgress)));
+          // Update UI with new data
+          setRawStudents([...allData]);
+        }
+      }
       // Complete (100%)
       setProgress(100);
     } catch (err) {
@@ -313,21 +321,18 @@ export default function ProvinceResultsPage() {
     } finally {
       // Small delay to ensure 100% is visible
       setTimeout(() => {
-        setLoading(false);
+        setBackgroundLoading(false);
       }, 300);
     }
   }, [province_id, selectedMonth, selectedYear, getAccessToken]);
-
   useEffect(() => {
     if (province_id) fetchData();
   }, [province_id, selectedMonth, selectedYear, fetchData]);
-
   // Update district options from rawStudents
   useEffect(() => {
     const districts = [...new Set(rawStudents.map((d: any) => d.district).filter(Boolean))].sort();
     setDistrictOptions(districts);
   }, [rawStudents]);
-
   // Update school options based on selectedDistrict
   useEffect(() => {
     if (selectedDistrict) {
@@ -347,7 +352,6 @@ export default function ProvinceResultsPage() {
     setSelectedRoom("");
     setSelectedStudentType("");
   }, [selectedDistrict, rawStudents]);
-
   // Update class level options based on selectedSchool (and district)
   useEffect(() => {
     if (selectedSchool) {
@@ -360,7 +364,6 @@ export default function ProvinceResultsPage() {
     setSelectedRoom("");
     setSelectedStudentType("");
   }, [selectedSchool, selectedDistrict, rawStudents]);
-
   // Update room options based on selectedClassLevel (and school)
   useEffect(() => {
     if (selectedClassLevel) {
@@ -372,7 +375,6 @@ export default function ProvinceResultsPage() {
     setSelectedRoom("");
     setSelectedStudentType("");
   }, [selectedClassLevel, selectedSchool, selectedDistrict, rawStudents]);
-
   // Update student type options based on selectedClassLevel
   useEffect(() => {
     if (["11", "12"].includes(selectedClassLevel) && rawStudents.length > 0) {
@@ -383,7 +385,6 @@ export default function ProvinceResultsPage() {
       setSelectedStudentType("");
     }
   }, [selectedClassLevel, rawStudents]);
-
   // Client-side filtering for all filters
   useEffect(() => {
     let tempFiltered = rawStudents;
@@ -415,7 +416,6 @@ export default function ProvinceResultsPage() {
     selectedStudentType,
     searchValue,
   ]);
-
   // Aggregate for total-results
   useEffect(() => {
     if (!filteredStudents.length) return;
@@ -471,11 +471,9 @@ export default function ProvinceResultsPage() {
     }
     setSummaryData(Array.from(summaryMap.values()));
   }, [filteredStudents, countAllStudents]);
-
   // Calculate total for all subjects
   const totalAllSubjects = useMemo(() => {
     if (!summaryData.length) return null;
-    
     const total = {
       code: "TOTAL",
       name: "១០ គ្រប់មុខវិជ្ជា",
@@ -483,7 +481,6 @@ export default function ProvinceResultsPage() {
       D: 0, D_female: 0, E: 0, E_female: 0, F: 0, F_female: 0,
       ABC: 0, ABC_female: 0, DEF: 0, DEF_female: 0,
     };
-    
     summaryData.forEach(subject => {
       total.A += subject.A;
       total.A_female += subject.A_female;
@@ -502,10 +499,8 @@ export default function ProvinceResultsPage() {
       total.DEF += subject.DEF;
       total.DEF_female += subject.DEF_female;
     });
-    
     return total;
   }, [summaryData]);
-
   // Get selected subject data
   const selectedSubjectData = useMemo(() => {
     if (selectedSubject === "ALL" && totalAllSubjects) {
@@ -513,16 +508,13 @@ export default function ProvinceResultsPage() {
     }
     return summaryData.find(s => s.code === selectedSubject) || summaryData[0];
   }, [summaryData, selectedSubject, totalAllSubjects]);
-
   // Bar chart data for A-F grades
   const barChartData = useMemo(() => {
     if (!selectedSubjectData) return null;
-    
     const grades = ['A', 'B', 'C', 'D', 'E', 'F'];
     const totalData = grades.map(grade => selectedSubjectData[grade]);
     const femaleData = grades.map(grade => selectedSubjectData[`${grade}_female`]);
     const maleData = grades.map(grade => selectedSubjectData[grade] - selectedSubjectData[`${grade}_female`]);
-    
     return {
       labels: grades,
       datasets: [
@@ -547,16 +539,13 @@ export default function ProvinceResultsPage() {
       ]
     };
   }, [selectedSubjectData]);
-
   // Bar chart data for ABC vs DEF
   const abcDefBarData = useMemo(() => {
     if (!selectedSubjectData) return null;
-    
     const abcMale = selectedSubjectData.ABC - selectedSubjectData.ABC_female;
     const abcFemale = selectedSubjectData.ABC_female;
     const defMale = selectedSubjectData.DEF - selectedSubjectData.DEF_female;
     const defFemale = selectedSubjectData.DEF_female;
-    
     return {
       labels: ['ABC', 'DEF'],
       datasets: [
@@ -581,7 +570,6 @@ export default function ProvinceResultsPage() {
       ]
     };
   }, [selectedSubjectData]);
-
   // Custom tooltip for bar charts
   const barTooltip = {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -610,14 +598,12 @@ export default function ProvinceResultsPage() {
         const femaleValue = context[0].dataset.label === 'ស្រី' ? context[0].raw : 
                            context[0].chart.data.datasets.find((d: any) => d.label === 'ស្រី')?.data[dataIndex] || 0;
         const total = maleValue + femaleValue;
-        
         return [
           `សរុប: ${total}`,
         ];
       }
     }
   };
-
   // Chart options for bar charts
   const barOptions = {
     responsive: true,
@@ -682,7 +668,6 @@ export default function ProvinceResultsPage() {
       intersect: false
     }
   };
-
   const handleClearFilters = () => {
     setSelectedDistrict("");
     setSelectedSchool("");
@@ -695,7 +680,6 @@ export default function ProvinceResultsPage() {
     setSelectedMonth("ធ្នូ");
     setSearchValue("");
   };
-
   const handleDownloadCSV = () => {
     let headers = [];
     let rows = [];
@@ -751,7 +735,6 @@ export default function ProvinceResultsPage() {
     link.click();
     document.body.removeChild(link);
   };
-
   const totalPages = useMemo(() => rowsPerPage === ALL_DATA_VALUE ? 1 : Math.max(1, Math.ceil((activeTab === "total-results" ? summaryData.length : filteredStudents.length) / rowsPerPage)), [activeTab, summaryData.length, filteredStudents.length, rowsPerPage]);
   const paginated = useMemo(() => {
     const data = activeTab === "total-results" ? summaryData : filteredStudents;
@@ -764,7 +747,6 @@ export default function ProvinceResultsPage() {
   const headerDateText = useMemo(() => selectedMonth || selectedYear ? (
     <>ទិន្នន័យសិស្សក្នុង {selectedMonth && <>ខែ <span className="text-blue-600 font-bold">{selectedMonth}</span></>} {selectedYear && <>{selectedMonth ? " " : ""}ឆ្នាំ <span className="text-blue-600 font-bold">{selectedYear}</span></>}</>
   ) : "ទិន្នន័យលទ្ធផលសិស្ស", [selectedMonth, selectedYear]);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -772,19 +754,20 @@ export default function ProvinceResultsPage() {
           <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
           <p className="text-xl font-semibold text-gray-700 mb-4">កំពុងផ្ទុកទិន្នន័យ {province_name}...</p>
           <div className="w-full bg-gray-200 rounded-full h-8 overflow-hidden shadow-inner">
-            <div 
+            <div
               className="bg-gradient-to-r from-blue-500 to-blue-700 h-full flex items-center justify-center text-white font-bold text-lg transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             >
-              {progress > 10 && `${progress}%`}
+              {progress > 10 && `${loadedCount.toLocaleString()}`}
             </div>
           </div>
-          <p className="text-sm text-gray-600 mt-4">សូមរង់ចាំបន្តិច... កំពុងទាញយកទិន្នន័យ</p>
+          <p className="text-sm text-gray-600 mt-4">
+            កំពុងទាញយកទិន្នន័យសិស្ស... {loadedCount.toLocaleString()}នាក់ដំបូង
+          </p>
         </div>
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 via-pink-50 to-orange-50">
@@ -808,7 +791,6 @@ export default function ProvinceResultsPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto flex justify-between sm:justify-around sm:gap-4 mb-6">
@@ -866,7 +848,6 @@ export default function ProvinceResultsPage() {
                 <Filter className="h-5 w-5 text-blue-600" />
                 <h3 className="font-semibold">ការច្រោះយកទិន្នន័យ</h3>
               </div>
-
               {/* Phone layout: Multiple rows */}
               <div className="sm:hidden">
                 {/* Top row: ឆ្នាំ ខែ ភេទ និទ្ទេស */}
@@ -885,7 +866,6 @@ export default function ProvinceResultsPage() {
                     </>
                   )}
                 </div>
-
                 {/* ស្រុក and សាលារៀន */}
                 <div className="grid grid-cols-1 gap-3 mb-3">
                   <SelectFilter label="ស្រុក" value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)} options={districtOptions} />
@@ -897,7 +877,6 @@ export default function ProvinceResultsPage() {
                     disabled={!selectedDistrict || isFetchingOptions} 
                   />
                 </div>
-
                 {/* កម្រិតថ្នាក់ and បន្ទប់ */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <SelectFilter 
@@ -915,7 +894,6 @@ export default function ProvinceResultsPage() {
                     disabled={!selectedClassLevel || isFetchingOptions} 
                   />
                 </div>
-
                 {/* Optional ប្រភេទសិស្ស + Clear button */}
                 <div className="space-y-3">
                   {["11", "12"].includes(selectedClassLevel) && studentTypeOptions.length > 0 && (
@@ -938,7 +916,6 @@ export default function ProvinceResultsPage() {
                   </div>
                 </div>
               </div>
-
             {/* Non-phone layout: Single row for all filters */}
             <div className="hidden sm:block">
               <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 overflow-x-auto pb-2">
@@ -991,7 +968,8 @@ export default function ProvinceResultsPage() {
             {activeTab !== "total-results" && (
               <div className="flex flex-row sm:flex-row justify-between items-center gap-2 bg-gray-50 rounded-lg px-4 py-3">
                 <p className="text-sm text-gray-600 text-center sm:text-left">
-                  បង្ហាញ {displayStart} - {displayEnd}, សរុប {filteredStudents.length.toLocaleString()}
+                  {displayStart} - {displayEnd}, សរុប៖ {filteredStudents.length.toLocaleString()}
+                  {backgroundLoading && <span className="ml-2 text-blue-600 font-medium">ផ្ទុកបន្ថែម... / {totalCount.toLocaleString()} នាក់</span>}
                 </p>
                 <div className="w-auto">
                   <SelectFilter 
@@ -1110,7 +1088,7 @@ export default function ProvinceResultsPage() {
                     <h3 className="text-lg font-semibold px-2">
                       របាយការណ៍បូកសរុបនិទ្ទេស
                     </h3>
-                    <div className="flex flex-wrap gap-2 px-2 w-full sm:w-auto mt-2 ">
+                    <div className="flex flex-wrap gap-2 px-0 sm:p-2 w-full sm:w-auto mt-2 ">
                       <Button
                         onClick={() => setCountAllStudents(true)}
                         className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-4 rounded-md transition-colors ${countAllStudents ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
@@ -1134,17 +1112,15 @@ export default function ProvinceResultsPage() {
                       </Button>
                     </div>
                   </div>
-                  
                   {showChartView ? (
                     <div className="space-y-8">
                       {/* Subject selector dropdown */}
-                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100 shadow-md mx-2 sm:mx-4">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mx-2 sm:mx-4">
                         {/* Flex column on mobile, row on sm+ */}
-                        <div className="flex flex-row items-center justify-between sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <h3 className="text-lg font-semibold text-purple-800 whitespace-nowrap">
+                        <div className="flex flex-row items-center justify-between gap-8 sm:flex-row sm:items-center sm:justify-between">
+                          <h3 className="text-sm sm:text-lg font-semibold text-blue-900 whitespace-nowrap">
                             ជ្រើសរើសមុខវិជ្ជា
                           </h3>
-
                           <div className="relative w-full sm:w-64">
                             <select
                               value={selectedSubject}
@@ -1157,7 +1133,6 @@ export default function ProvinceResultsPage() {
                                 </option>
                               ))}
                             </select>
-
                             {/* Custom dropdown arrow */}
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -1167,7 +1142,6 @@ export default function ProvinceResultsPage() {
                           </div>
                         </div>
                       </div>
-                      
                       {/* Charts section */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:mx-2">
                         {/* Bar chart 1: A-F grades */}
@@ -1183,7 +1157,6 @@ export default function ProvinceResultsPage() {
                             <p className="text-sm text-gray-600">សរុបសិស្ស: {filteredStudents.length.toLocaleString()}</p>
                           </div>
                         </div>
-                        
                         {/* Bar chart 2: ABC vs DEF */}
                         <div className="bg-white rounded-xl shadow-lg py-6 px-1 border border-gray-100 hover:shadow-xl transition-shadow">
                           <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
@@ -1197,7 +1170,6 @@ export default function ProvinceResultsPage() {
                           </div>
                         </div>
                       </div>
-                      
                       {/* Summary statistics */}
                       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-md">
                         <h3 className="text-lg font-semibold mb-4 text-blue-800">សរុបនិទ្ទេស{selectedSubject === "ALL" ? "គ្រប់មុខវិជ្ជា" : "គ្រប់មុខវិជ្ជា"}</h3>
