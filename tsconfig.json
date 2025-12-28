@@ -42,7 +42,7 @@
     "types/**/*.d.ts",
     "src/app/admin/page.tsx",
     ".next/dev/types/**/*.ts"
-  ],
+, "src/utils/localStudentData.ts", "src/app/registerexamcode/data/students/index.ts"  ],
   "exclude": [
     "node_modules"
   ]
