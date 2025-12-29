@@ -2991,11 +2991,11 @@ export default function RegisterExamCodePage() {
               ? "បញ្ជាក់៖ សូមជ្រើសរើស​ ខេត្ត/ស្រុក/សាលារៀន/ឈ្មោះ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
               : "ជ្រើសរើសមុខវិជ្ជាដើម្បីចូលរួមប្រឡង"}
           </p>
-          <div className="mt-2 px-2">
+          {/* <div className="mt-2 px-2">
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {/* ទាញទិន្នន័យបានជោគជ័យ */}
+                {ទាញទិន្នន័យបានជោគជ័យ}
               </span>
-            </div>
+            </div> */}
           
         </header>
 
