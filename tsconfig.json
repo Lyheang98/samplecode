@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -19,14 +15,9 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
-    "typeRoots": [
-      "./types",
-      "./node_modules/@types"
-    ],
+    "typeRoots": ["./types", "./node_modules/@types"],
     "plugins": [
       {
         "name": "next"
@@ -41,9 +32,9 @@
     "src/app/(auth)/register-exam-code/page.jsx",
     "types/**/*.d.ts",
     "src/app/admin/page.tsx",
-    ".next/dev/types/**/*.ts"
-, "src/utils/localStudentData.ts", "src/app/registerexamcode/data/students/index.ts"  ],
-  "exclude": [
-    "node_modules"
-  ]
+    ".next/dev/types/**/*.ts",
+    "src/utils/localStudentData.ts",
+    "src/data/students/index.ts"
+  ],
+  "exclude": ["node_modules"]
 }
