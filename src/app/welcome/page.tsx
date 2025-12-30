@@ -42,7 +42,8 @@ export default function WelcomePage() {
     // ✅ New function to show exam results
     const handleShowresults = () => {
         setIsLoading(true);
-        router.push('/results');
+        // router.push('/results');
+        router.push('/wait');
     };
 
     return (
