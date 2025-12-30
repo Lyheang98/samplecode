@@ -43,7 +43,7 @@ export default function WelcomePage() {
     const handleShowresults = () => {
         setIsLoading(true);
         // router.push('/results');
-        router.push('/wait');
+        // router.push('/wait');
     };
 
     return (
