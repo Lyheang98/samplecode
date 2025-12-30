@@ -2358,10 +2358,10 @@ export const provinceData: School[] = [
   ...(rattanakiriSchoolData as School[]),
   ...(siemreapSchoolData as School[]),
   ...(stungtrengSchoolData as School[]),
+  ...(kandalSchoolData as School[]),
   ...(svayriengSchoolData as School[]),
   ...(takaeoSchoolData as School[]),
   ...(tboungKhmumSchoolData as School[]),
-  ...(kandalSchoolData as School[]),
 ];
 
 // Function to extract available grades for each school from student data
@@ -2427,9 +2427,9 @@ const PROVINCES: Province[] = [
   { id: "19", name: "ខេត្តស្ទឹងត្រែង" },
   { id: "20", name: "ខេត្តស្វាយរៀង" },
   { id: "21", name: "ខេត្តតាកែវ" },
-  { id: "22", name: "ខេត្តឧត្តរមានជ័យ" },
-  { id: "23", name: "ខេត្តកែប" },
-  { id: "24", name: "ខេត្តប៉ៃលិន" },
+  { id: "22", name: "ខេត្តកែប" },
+  { id: "23", name: "ខេត្តប៉ៃលិន" },  // Changed from Kep to Pailin
+  { id: "24", name: "ខេត្តឧត្តរមានជ័យ" }, 
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
 ];
 
