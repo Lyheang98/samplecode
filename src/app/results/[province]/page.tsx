@@ -254,7 +254,7 @@ export default function ProvinceResultsPage() {
       // Now fetch the rest of the data in the background
       const totalCountValue = initialJson.count || initialJson.results.length;
       // If there's more data to fetch, continue in background
-      if (totalCountValue > 55000) {
+      if (totalCountValue > 20) {
         // Start background fetch (35%)
         setProgress(35);
         // Fetch remaining data in chunks of 10,000
