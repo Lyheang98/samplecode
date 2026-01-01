@@ -27,8 +27,8 @@ import {
   Tooltip,
   Legend,
   ArcElement,
- BarController,
-  DoughnutController,
+  BarController,
+  PieController,
 } from "chart.js";
 
 interface ExamStats {
@@ -40,37 +40,45 @@ interface ExamStats {
     participation_rate_percent: number;
   };
   by_province: Array<{
-    school__province_name: string;
+    province_name: string;
+    province_id: string;
     total: number;
     examined: number;
     not_examined: number;
+    participation_rate_percent: number;
   }>;
   by_district: Array<{
-    school__province_name: string;
-    school__district_name: string;
+    province_name: string;
+    province_id: string;
+    district_name: string;
     total: number;
     examined: number;
     not_examined: number;
+    participation_rate_percent: number;
   }>;
   by_school: Array<{
-    school__geip_school_ID: string;
-    school__school_name: string;
-    school__province_name: string;
-    school__district_name: string;
+    geip_school_ID: string;
+    school_name: string;
+    province_name: string;
+    province_id: string;
+    district_name: string;
     total: number;
     examined: number;
     not_examined: number;
+    participation_rate_percent: number;
   }>;
   by_room: Array<{
-    school__geip_school_ID: string;
-    school__school_name: string;
-    school__province_name: string;
-    school__district_name: string;
+    geip_school_ID: string;
+    school_name: string;
+    province_name: string;
+    province_id: string;
+    district_name: string;
     grade: string;
     room: string;
     total: number;
     examined: number;
     not_examined: number;
+    participation_rate_percent: number;
   }>;
 }
 
@@ -136,7 +144,7 @@ export default function ExamParticipationReport() {
       LinearScale,
       BarElement,
       BarController,
-      DoughnutController,
+      PieController,
       Title,
       Tooltip,
       Legend,
@@ -174,7 +182,7 @@ export default function ExamParticipationReport() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "ចូលប្រព័ន្ធមិនបាន");
+        throw new Error(err.detail || "ចូលប្រព័ន្មិនបាន");
       }
 
       const json = await res.json();
@@ -194,10 +202,27 @@ export default function ExamParticipationReport() {
       const dataCategory = category || activeTab;
       let url = `${STATS_URL}?category=${dataCategory}`;
 
+      // Add filter parameters to the URL
+      if (selectedProvince !== "all") {
+        url += `&province_name=${encodeURIComponent(selectedProvince)}`;
+      }
+      if (selectedDistrict !== "all") {
+        url += `&district_name=${encodeURIComponent(selectedDistrict)}`;
+      }
+      if (selectedSchool !== "all") {
+        url += `&geip_school_ID=${encodeURIComponent(selectedSchool)}`;
+      }
+      if (selectedGrade !== "all") {
+        url += `&grade=${encodeURIComponent(selectedGrade)}`;
+      }
+
+      // Determine limit based on tab
+      const limit = (dataCategory === "school" || dataCategory === "room") ? 500 : 100;
+
       if (loadMore && data && getCurrentData().length > 0) {
-        url += `&offset=${getCurrentData().length}&limit=100`;
+        url += `&offset=${getCurrentData().length}&limit=${limit}`;
       } else if (activeTab !== "summary") {
-        url += `&offset=0&limit=100`;
+        url += `&offset=0&limit=${limit}`;
       }
 
       if (loadMore) setIsLoadingMore(true);
@@ -232,7 +257,19 @@ export default function ExamParticipationReport() {
           });
         } else {
           setData((prev) => ({
-            ...(prev || ({} as ExamStats)),
+            ...(prev || { 
+              by_province: [], 
+              by_district: [], 
+              by_school: [], 
+              by_room: [], 
+              exam_period: { year: 0, month: 0 }, 
+              summary: { 
+                total_students: 0, 
+                examined_students: 0, 
+                not_examined_students: 0, 
+                participation_rate_percent: 0 
+              } 
+            } as ExamStats),
             [resultsKey]: json.results,
           }));
         }
@@ -266,85 +303,63 @@ export default function ExamParticipationReport() {
     setLoginError("");
   };
 
-  // Reset filters on tab change
+  // Refetch data when filters change
   useEffect(() => {
-    setSelectedProvince("all");
-    setSelectedDistrict("all");
-    setSelectedSchool("all");
-    setSelectedGrade("all");
     setHasMore(true);
-  }, [activeTab]);
+    if (token && activeTab !== "summary") {
+      fetchStats(token, activeTab, false);
+    }
+  }, [activeTab, selectedProvince, selectedDistrict, selectedSchool, selectedGrade]);
 
-  // Reset dependent filters
-  useEffect(() => {
-    setSelectedDistrict("all");
-    setSelectedSchool("all");
-    setSelectedGrade("all");
-    if (token && activeTab !== "summary") fetchStats(token, activeTab, false);
-  }, [selectedProvince]);
-
-  useEffect(() => {
-    setSelectedSchool("all");
-    setSelectedGrade("all");
-    if (token && activeTab !== "summary") fetchStats(token, activeTab, false);
-  }, [selectedDistrict]);
-
-  useEffect(() => {
-    setSelectedGrade("all");
-    if (token && activeTab !== "summary") fetchStats(token, activeTab, false);
-  }, [selectedSchool]);
-
-  // Derived filter options
-  const provinces = data
-    ? [...new Set(data.by_province?.map((p) => p.school__province_name))].sort()
+  // Derived filter options - FIX: Add null checks
+  const provinces = data?.by_province
+    ? [...new Set(data.by_province.map((p) => p.province_name))].filter(Boolean).sort()
     : [];
 
-  const districts = data
+  const districts = data?.by_district
     ? [
         ...new Set(
           data.by_district
-            ?.filter(
+            .filter(
               (d) =>
                 selectedProvince === "all" ||
-                d.school__province_name === selectedProvince
+                d.province_name === selectedProvince
             )
-            .map((d) => d.school__district_name)
+            .map((d) => d.district_name)
         ),
-      ].sort()
+      ].filter(Boolean).sort()
     : [];
 
-  const schools = data
+  const schools = data?.by_school
     ? data.by_school
-        ?.filter(
+        .filter(
           (s) =>
             (selectedProvince === "all" ||
-              s.school__province_name === selectedProvince) &&
+              s.province_name === selectedProvince) &&
             (selectedDistrict === "all" ||
-              s.school__district_name === selectedDistrict)
+              s.district_name === selectedDistrict)
         )
         .sort((a, b) =>
-          (a.school__school_name || "").localeCompare(
-            b.school__school_name || ""
-          )
+          (a.school_name || "").localeCompare(b.school_name || "")
         )
     : [];
 
-  const grades = data
+  const grades = data?.by_room
     ? [
         ...new Set(
           data.by_room
-            ?.filter(
+            .filter(
               (r) =>
                 (selectedProvince === "all" ||
-                  r.school__province_name === selectedProvince) &&
+                  r.province_name === selectedProvince) &&
                 (selectedDistrict === "all" ||
-                  r.school__district_name === selectedDistrict) &&
+                  r.district_name === selectedDistrict) &&
                 (selectedSchool === "all" ||
-                  r.school__geip_school_ID === selectedSchool)
+                  r.geip_school_ID === selectedSchool)
             )
             .map((r) => r.grade)
         ),
-      ].sort((a, b) => parseInt(a || "0") - parseInt(b || "0"))
+      ].filter(Boolean).sort((a, b) => parseInt(a || "0") - parseInt(b || "0"))
     : [];
 
   const getCurrentData = () => {
@@ -395,6 +410,50 @@ export default function ExamParticipationReport() {
   };
 
   const filteredSummary = getFilteredSummary();
+
+  // New function to get entity summary
+  const getEntitySummary = () => {
+    if (activeTab === "summary") return null;
+
+    const data = getCurrentData();
+    if (data.length === 0) return null;
+
+    let totalEntities = 0;
+    let entitiesWithExam = 0;
+    let entityLabel = "";
+
+    switch (activeTab) {
+      case "province":
+        totalEntities = data.length;
+        entitiesWithExam = data.filter(p => p.examined > 0).length;
+        entityLabel = "ខេត្ត/រាជធានី";
+        break;
+      case "district":
+        totalEntities = data.length;
+        entitiesWithExam = data.filter(d => d.examined > 0).length;
+        entityLabel = "ស្រុក/ខណ្ឌ";
+        break;
+      case "school":
+        totalEntities = data.length;
+        entitiesWithExam = data.filter(s => s.examined > 0).length;
+        entityLabel = "សាលារៀន";
+        break;
+      case "room":
+        totalEntities = data.length;
+        entitiesWithExam = data.filter(r => r.examined > 0).length;
+        entityLabel = "បន្ទប់";
+        break;
+    }
+
+    return {
+      totalEntities,
+      entitiesWithExam,
+      entityLabel,
+      percentage: totalEntities > 0 ? ((entitiesWithExam / totalEntities) * 100).toFixed(1) : 0
+    };
+  };
+
+  const entitySummary = getEntitySummary();
 
   const loadMoreData = async () => {
     if (!token || isLoadingMore || !hasMore) return;
@@ -458,6 +517,8 @@ export default function ExamParticipationReport() {
     if (activeTab === "summary" || !hasMore || currentData.length === 0)
       return null;
 
+    const limit = (activeTab === "school" || activeTab === "room") ? 200 : 100;
+
     return (
       <div className="flex items-center justify-center mt-4">
         <button
@@ -472,7 +533,7 @@ export default function ExamParticipationReport() {
             </>
           ) : (
             <>
-              បង្ហាញបន្ថែម
+              បង្ហាញបន្ថែម {limit} ជួរ
               <ChevronDown className="h-4 w-4" />
             </>
           )}
@@ -602,7 +663,6 @@ export default function ExamParticipationReport() {
   const handleTabClick = (key: any) => {
     setActiveTab(key);
     setHasMore(true);
-    if (token) fetchStats(token, key, false);
   };
 
   // Login Screen
@@ -775,6 +835,34 @@ export default function ExamParticipationReport() {
           </div>
         </div>
 
+        {/* Entity Summary Cards - New addition */}
+        {entitySummary && (
+          <div className="flex gap-6 items-center justify-center mb-10 mx-40">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 w-[300px] text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100">ចំនួន{entitySummary.entityLabel}សរុប</p>
+                  <p className="text-2xl font-bold mt-2">
+                    {entitySummary.totalEntities.toLocaleString()}
+                  </p>
+                </div>
+                <MapPin className="h-8 w-8 text-blue-200" />
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 w-[300px] text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100">{entitySummary.entityLabel}ដែលមានសិស្សប្រឡង</p>
+                  <p className="text-2xl font-bold mt-2">
+                    {entitySummary.entitiesWithExam.toLocaleString()} ({entitySummary.percentage}%)
+                  </p>
+                </div>
+                <UserCheck className="h-8 w-8 text-green-200" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex flex-wrap gap-4 items-center">
@@ -812,24 +900,24 @@ export default function ExamParticipationReport() {
                   if (val === "all") setSelectedSchool("all");
                   else {
                     const school = schools.find(
-                      (s) => s.school__school_name === val
+                      (s) => s.school_name === val
                     );
-                    setSelectedSchool(school?.school__geip_school_ID || "all");
+                    setSelectedSchool(school?.geip_school_ID || "all");
                   }
                 }}
-                options={schools.map((s) => s.school__school_name || "")}
+                options={schools.map((s) => s.school_name || "")}
                 displayValue={
                   selectedSchool === "all"
                     ? "all"
-                    : schools.find((s) => s.school__geip_school_ID === selectedSchool)
-                        ?.school__school_name
+                    : schools.find((s) => s.geip_school_ID === selectedSchool)
+                        ?.school_name
                 }
                 showDropdown={showSchoolDropdown}
                 setShowDropdown={setShowSchoolDropdown}
               />
             )}
 
-            {activeTab === "room" && (
+            {/* {activeTab === "room" && (
               <Dropdown
                 label="ថ្នាក់ទី"
                 value={selectedGrade}
@@ -838,7 +926,7 @@ export default function ExamParticipationReport() {
                 showDropdown={showGradeDropdown}
                 setShowDropdown={setShowGradeDropdown}
               />
-            )}
+            )} */}
 
             {activeTab !== "summary" && (
               <button
@@ -847,6 +935,10 @@ export default function ExamParticipationReport() {
                   setSelectedDistrict("all");
                   setSelectedSchool("all");
                   setSelectedGrade("all");
+                  // Refetch data after resetting filters
+                  if (token && activeTab !== "summary") {
+                    fetchStats(token, activeTab, false);
+                  }
                 }}
                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
               >
@@ -865,7 +957,7 @@ export default function ExamParticipationReport() {
                 { key: "province", label: "ខេត្ត/រាជធានី", icon: MapPin },
                 { key: "district", label: "ស្រុក/ខណ្ឌ", icon: MapPin },
                 { key: "school", label: "សាលារៀន", icon: School },
-                { key: "room", label: "បន្ទប់", icon: DoorOpen },
+                // { key: "room", label: "បន្ទប់", icon: DoorOpen },
               ].map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
@@ -993,11 +1085,11 @@ export default function ExamParticipationReport() {
                     <tbody className="divide-y divide-gray-200">
                       {currentData.map((p: any) => (
                         <tr
-                          key={p.school__province_name}
+                          key={p.province_name}
                           className="hover:bg-blue-50"
                         >
                           <td className="px-6 py-4 font-medium">
-                            {p.school__province_name || "មិនដឹង"}
+                            {p.province_name || "-"}
                           </td>
                           <td className="px-6 py-4 text-center">
                             {p.total.toLocaleString()}
@@ -1009,9 +1101,9 @@ export default function ExamParticipationReport() {
                             {p.not_examined.toLocaleString()}
                           </td>
                           <td className="px-6 py-4 text-center font-bold text-blue-600">
-                            {p.total
+                            {p.participation_rate_percent || (p.total
                               ? ((p.examined / p.total) * 100).toFixed(1)
-                              : 0}
+                              : 0)}
                             %
                           </td>
                         </tr>
@@ -1040,14 +1132,14 @@ export default function ExamParticipationReport() {
                     <tbody className="divide-y divide-gray-200">
                       {currentData.map((d: any) => (
                         <tr
-                          key={`${d.school__province_name}-${d.school__district_name}`}
+                          key={`${d.province_name}-${d.district_name}`}
                           className="hover:bg-indigo-50"
                         >
                           <td className="px-6 py-4">
-                            {d.school__province_name || "មិនដឹង"}
+                            {d.province_name || "-"}
                           </td>
                           <td className="px-6 py-4 font-medium">
-                            {d.school__district_name || "មិនដឹង"}
+                            {d.district_name || "-"}
                           </td>
                           <td className="px-6 py-4 text-center">
                             {d.total.toLocaleString()}
@@ -1076,6 +1168,8 @@ export default function ExamParticipationReport() {
                       <tr>
                         <th className="px-6 py-4 text-left">លេខកូដសាលា</th>
                         <th className="px-6 py-4 text-left">ឈ្មោះសាលា</th>
+                        <th className="px-6 py-4 text-left">ខេត្ត/រាជធានី</th>
+                        <th className="px-6 py-4 text-left">ស្រុក/ខណ្ឌ</th>
                         <th className="px-6 py-4 text-center">សរុប</th>
                         <th className="px-6 py-4 text-center">បានប្រឡង</th>
                         <th className="px-6 py-4 text-center">មិនបានប្រឡង</th>
@@ -1084,14 +1178,20 @@ export default function ExamParticipationReport() {
                     <tbody className="divide-y divide-gray-200">
                       {currentData.map((s: any) => (
                         <tr
-                          key={s.school__geip_school_ID}
+                          key={s.geip_school_ID}
                           className="hover:bg-purple-50"
                         >
                           <td className="px-6 py-4 font-mono">
-                            {s.school__geip_school_ID || "មិនដឹង"}
+                            {s.geip_school_ID || "-"}
                           </td>
                           <td className="px-6 py-4">
-                            {s.school__school_name || "មិនដឹង"}
+                            {s.school_name || "-"}
+                          </td>
+                          <td className="px-6 py-4">
+                            {s.province_name || "-"}
+                          </td>
+                          <td className="px-6 py-4">
+                            {s.district_name || "-"}
                           </td>
                           <td className="px-6 py-4 text-center">
                             {s.total.toLocaleString()}
@@ -1112,7 +1212,7 @@ export default function ExamParticipationReport() {
             )}
 
             {/* Room Tab */}
-            {activeTab === "room" && (
+            {/* {activeTab === "room" && (
               <div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -1129,17 +1229,17 @@ export default function ExamParticipationReport() {
                     <tbody className="divide-y divide-gray-200">
                       {currentData.map((r: any) => (
                         <tr
-                          key={`${r.school__geip_school_ID}-${r.grade}-${r.room}`}
+                          key={`${r.geip_school_ID}-${r.grade}-${r.room}`}
                           className="hover:bg-orange-50"
                         >
                           <td className="px-6 py-4">
-                            {r.school__school_name || "មិនដឹង"}
+                            {r.school_name || "-"}
                           </td>
                           <td className="px-6 py-4 text-center font-bold">
-                            ថ្នាក់ {r.grade || "មិនដឹង"}
+                            ថ្នាក់ {r.grade || "-"}
                           </td>
                           <td className="px-6 py-4 text-center font-bold text-indigo-600">
-                            {r.room || "មិនដឹង"}
+                            {r.room || "-"}
                           </td>
                           <td className="px-6 py-4 text-center">
                             {r.total.toLocaleString()}
@@ -1157,7 +1257,7 @@ export default function ExamParticipationReport() {
                 </div>
                 <LoadMore />
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
