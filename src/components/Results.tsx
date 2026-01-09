@@ -1,16 +1,17 @@
 "use client";
 
+import React, { FC } from "react";
 import { motion } from "framer-motion";
 import { 
   CheckCircle, 
   XCircle, 
   Clock, 
   Trophy, 
-  RotateCcw,
   Download,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
+// Types remain the same as your definitions...
 interface ResultsProps {
   score: number;
   totalQuestions: number;
@@ -22,6 +23,9 @@ interface ResultsProps {
   averageTimePerQuestion: string;
   examCode?: string;
   studentInfo?: any;
+  schoolName?: string;
+  grade?: string; // Added grade prop
+  subjectName?: string; // Added subject name prop
   submitError?: string | null;
   isSubmitting?: boolean;
   resultsSaved?: boolean;
@@ -38,6 +42,9 @@ const Results: FC<ResultsProps> = ({
   averageTimePerQuestion,
   examCode,
   studentInfo,
+  schoolName,
+  grade, // Destructured grade
+  subjectName, // Destructured subjectName
   submitError,
   isSubmitting,
   resultsSaved
@@ -56,40 +63,42 @@ const Results: FC<ResultsProps> = ({
   };
 
   const getGradeMessage = () => {
-    if (percentage >= 80) return "Excellent work!";
-    if (percentage >= 60) return "Good job!";
-    if (percentage >= 40) return "Keep practicing!";
-    return "More practice needed.";
-  };
-
-  const handleRetry = () => {
-    window.location.reload();
+    if (percentage >= 80) return "Excellent work! (ល្អណាស់)";
+    if (percentage >= 60) return "Good job! (ល្អ)";
+    if (percentage >= 40) return "Keep practicing! (មធ្យម)";
+    return "More practice needed. (ខ្សោយ)";
   };
 
   const handleDownloadResults = () => {
-    // Create a simple text representation of the results
+    // Properly handle school name and grade
+    const SchoolName = schoolName ? `វិទ្យាល័យ ${schoolName}` : "មិនស្គាល់វិទ្យាល័យ";
+    const Grade = grade ? `ថ្នាក់ទី ${grade}` : "មិនស្គាល់ថ្នាក់";
+    const Subject = subjectName || "មិនស្គាល់មុខវិជ្ជា";
+    
     const resultsText = `
-Exam Results
-============
-Exam Code: ${examCode}
-Student: ${studentInfo?.fullName}
-Date: ${new Date().toLocaleDateString()}
+លទ្ធផលប្រឡង (Exam Results)
+=========================
+លេខកូដវិញ្ញាសា (Exam Code): ${examCode}
+ឈ្មោះសិស្ស (Student): ${studentInfo?.fullName || "N/A"}
+វិទ្យាល័យ (School): ${SchoolName}
+ថ្នាក់ (Grade): ${Grade}
+មុខវិជ្ជា (Subject): ${Subject}
+កាលបរិច្ឆេទ (Date): ${new Date().toLocaleDateString('km-KH')}
 
-Score: ${score}/${totalQuestions * 4} (${percentage}%)
-Correct Answers: ${correctAnswers}/${totalQuestions}
-Wrong Answers: ${wrongAnswers}
-Unattempted: ${unattemptedQuestions}
+ពិន្ទុសរុប (Score): ${score}/${totalQuestions * 4} (${percentage}%)
+ឆ្លើយត្រូវ (Correct): ${correctAnswers}/${totalQuestions}
+ឆ្លើយខុស (Wrong): ${wrongAnswers}
+មិនបានឆ្លើយ (Unattempted): ${unattemptedQuestions}
 
-Time Spent: ${formatTime(timeSpent)}
-Average Time per Question: ${averageTimePerQuestion} seconds
+រយៈពេលប្រើប្រាស់ (Time Spent): ${formatTime(timeSpent)}
+មធ្យមភាគក្នុងមួយសំណួរ: ${averageTimePerQuestion} វិនាទី
     `.trim();
 
-    // Create a blob and download
-    const blob = new Blob([resultsText], { type: "text/plain" });
+    const blob = new Blob([resultsText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `exam-results-${examCode}-${studentInfo?.fullName || "student"}.txt`;
+    a.download = `result-${studentInfo?.fullName || "student"}-${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -101,114 +110,103 @@ Average Time per Question: ${averageTimePerQuestion} seconds
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className="max-w-4xl mx-auto"
+      className="max-w-4xl mx-auto p-4"
     >
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
-          <h1 className="text-3xl font-bold mb-2">Quiz Results</h1>
-          <p className="text-blue-100">Exam Code: {examCode}</p>
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white text-center">
+          <h1 className="text-3xl font-bold mb-2">លទ្ធផលនៃការធ្វើតេស្ត</h1>
+          <p className="text-blue-100 font-mono">Exam Code: {examCode}</p>
         </div>
 
         <div className="p-6 md:p-8">
-          {/* Score Summary */}
+          {/* Score Circle */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gray-100 mb-4">
+            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gray-50 mb-4 border-4 border-gray-100">
               <Trophy className={`w-16 h-16 ${getGradeColor()}`} />
             </div>
-            <h2 className={`text-4xl font-bold ${getGradeColor()} mb-2`}>
+            <h2 className={`text-5xl font-extrabold ${getGradeColor()} mb-2`}>
               {percentage}%
             </h2>
-            <p className="text-xl text-gray-600">{getGradeMessage()}</p>
-          </div>
-
-          {/* Results Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-gray-50 rounded-xl p-6">
-              <div className="flex items-center mb-4">
-                <CheckCircle className="w-8 h-8 text-green-500 mr-3" />
-                <h3 className="text-lg font-semibold">Correct Answers</h3>
-              </div>
-              <p className="text-3xl font-bold text-green-600">{correctAnswers}</p>
-              <p className="text-gray-600">out of {totalQuestions} questions</p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-6">
-              <div className="flex items-center mb-4">
-                <XCircle className="w-8 h-8 text-red-500 mr-3" />
-                <h3 className="text-lg font-semibold">Wrong Answers</h3>
-              </div>
-              <p className="text-3xl font-bold text-red-600">{wrongAnswers}</p>
-              <p className="text-gray-600">out of {totalQuestions} questions</p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-6">
-              <div className="flex items-center mb-4">
-                <Clock className="w-8 h-8 text-blue-500 mr-3" />
-                <h3 className="text-lg font-semibold">Time Spent</h3>
-              </div>
-              <p className="text-3xl font-bold text-blue-600">{formatTime(timeSpent)}</p>
-              <p className="text-gray-600">Avg: {averageTimePerQuestion}s per question</p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-6">
-              <div className="flex items-center mb-4">
-                <AlertCircle className="w-8 h-8 text-amber-500 mr-3" />
-                <h3 className="text-lg font-semibold">Unattempted</h3>
-              </div>
-              <p className="text-3xl font-bold text-amber-600">{unattemptedQuestions}</p>
-              <p className="text-gray-600">out of {totalQuestions} questions</p>
+            <p className="text-xl font-medium text-gray-700">{getGradeMessage()}</p>
+            
+            {/* Display additional info */}
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {schoolName && (
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  {schoolName}
+                </span>
+              )}
+              {grade && (
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                  ថ្នាក់ទី {grade}
+                </span>
+              )}
+              {subjectName && (
+                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                  {subjectName}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Save Status */}
-          {isSubmitting && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
-              <p className="text-blue-700">Saving your results...</p>
-            </div>
-          )}
-
-          {!isSubmitting && resultsSaved && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-              <p className="text-green-700">Your results have been saved successfully.</p>
-            </div>
-          )}
-
-          {!isSubmitting && !resultsSaved && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-center">
-              <AlertCircle className="h-5 w-5 text-amber-600 mr-3" />
-              <p className="text-amber-700">Results could not be saved to the server, but you can download them below.</p>
-            </div>
-          )}
-
-          {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center">
-              <XCircle className="h-5 w-5 text-red-600 mr-3" />
-              <p className="text-red-700">{submitError}</p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={handleRetry}
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-6 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-            >
-              <RotateCcw className="w-5 h-5" />
-              Try Again
-            </button>
-            <button
-              onClick={handleDownloadResults}
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-6 bg-gray-200 text-gray-800 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
-            >
-              <Download className="w-5 h-5" />
-              Download Results
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <ResultCard icon={<CheckCircle className="text-green-500" />} label="ឆ្លើយត្រូវ" value={correctAnswers} subLabel={`ពីចំណោម ${totalQuestions}`} color="text-green-600" />
+            <XCircleCard icon={<XCircle className="text-red-500" />} label="ឆ្លើយខុស" value={wrongAnswers} color="text-red-600" />
+            <ResultCard icon={<Clock className="text-blue-500" />} label="រយៈពេល" value={formatTime(timeSpent)} subLabel={`មធ្យម ${averageTimePerQuestion}ស/សំណួរ`} color="text-blue-600" />
+            <ResultCard icon={<AlertCircle className="text-amber-500" />} label="មិនបានឆ្លើយ" value={unattemptedQuestions} color="text-amber-600" />
           </div>
+
+          {/* Status Messages */}
+          {isSubmitting && <StatusBox color="blue" message="កំពុងរក្សាទុកលទ្ធផល..." loading />}
+          {!isSubmitting && resultsSaved && <StatusBox color="green" message="លទ្ធផលត្រូវបានរក្សាទុកដោយជោគជ័យ!" />}
+          {!isSubmitting && !resultsSaved && !submitError && <StatusBox color="amber" message="មិនអាចតភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេបានទេ ប៉ុន្តែអ្នកអាចទាញយកលទ្ធផលបាន។" />}
+
+          <button
+            onClick={handleDownloadResults}
+            className="w-full flex items-center justify-center gap-2 py-4 px-6 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95"
+          >
+            <Download className="w-5 h-5" />
+            ទាញយកលទ្ធផល (Download PDF/Text)
+          </button>
         </div>
       </div>
     </motion.div>
+  );
+};
+
+// Helper Components for cleaner code
+const ResultCard = ({ icon, label, value, subLabel, color }: any) => (
+  <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+    <div className="flex items-center mb-2">
+      {React.cloneElement(icon, { className: "w-6 h-6 mr-2" })}
+      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">{label}</h3>
+    </div>
+    <p className={`text-2xl font-bold ${color}`}>{value}</p>
+    {subLabel && <p className="text-xs text-gray-400">{subLabel}</p>}
+  </div>
+);
+
+const XCircleCard = ({ icon, label, value, color }: any) => (
+    <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+      <div className="flex items-center mb-2">
+        {React.cloneElement(icon, { className: "w-6 h-6 mr-2" })}
+        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">{label}</h3>
+      </div>
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+    </div>
+  );
+
+const StatusBox = ({ color, message, loading }: any) => {
+  const colors: any = {
+    blue: "bg-blue-50 border-blue-200 text-blue-700",
+    green: "bg-green-50 border-green-200 text-green-700",
+    amber: "bg-amber-50 border-amber-200 text-amber-700",
+  };
+  return (
+    <div className={`border rounded-lg p-4 mb-6 flex items-center ${colors[color]}`}>
+      {loading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-3" />}
+      <p className="text-sm font-medium">{message}</p>
+    </div>
   );
 };
 

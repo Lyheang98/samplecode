@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import { PointsProvider } from "@/app/context/PointsContext";
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'MoEYS EdTech Examination System',
@@ -36,13 +37,16 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="MoEYs Exam" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        <Toaster />
-        <ServiceWorkerRegistration />
         <PointsProvider>
           {children}
         </PointsProvider>
+        <Toaster />
+        <ServiceWorkerRegistration />
+        <Script 
+          src="https://cdn.jsdelivr.net/npm/chart.js" 
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
 }
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

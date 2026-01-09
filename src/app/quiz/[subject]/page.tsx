@@ -327,66 +327,53 @@ const Quiz: FC<QuizProps> = ({
               {/* Options */}
               <AnimatePresence>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {currentQuestion?.options.map((option, index) => (
-                    <motion.button
-                      key={option}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      onClick={() => handleAnswer(option)}
-                      disabled={isAnswered}
-                      className={`p-4 rounded-xl font-medium text-lg transition-all duration-300 focus:outline-none ${
-                        isAnswered && option === currentQuestion.answer
-                          ? "bg-green-100 border-2 border-green-500 text-green-800"
-                          : isAnswered && option === selectedOption
-                          ? "bg-red-100 border-2 border-red-500 text-red-800"
-                          : "bg-gray-50 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-100 focus:border-gray-400"
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3 font-bold">
-                          {String.fromCharCode(65 + index)}
-                        </span>
-                        <span className="text-left">{option}</span>
-                        {isAnswered && option === currentQuestion.answer && (
-                          <svg className="w-6 h-6 ml-auto text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
+                  {currentQuestion?.options.map((option, index) => {
+                    const isCorrect = option === currentQuestion.answer;
+                    const isSelected = option === selectedOption;
+                    
+                    // Determine button styles
+                    let btnClass = "p-4 rounded-xl font-medium text-lg transition-all duration-300 border-2 relative flex justify-between items-center w-full text-left ";
+                    
+  
+
+                    return (
+                      <motion.button
+                        key={option}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        onClick={() => handleAnswer(option)}
+                        disabled={isAnswered}
+                        className={btnClass}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="flex-1">{option}</span>
+                        </div>
+
+                        {/* Icons Section */}
+                        {isAnswered && (
+                          <div className="flex-shrink-0 ml-2">
+                            {isCorrect && 
+                              <div className="p-1 rounded-full text-white shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              </div>
+                            }
+                            {isSelected && !isCorrect && (
+                              <div className="p-1 rounded-full  text-white shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                              </div>
+                            )}
+                          </div>
                         )}
-                        {isAnswered && option === selectedOption && option !== currentQuestion.answer && (
-                          <svg className="w-6 h-6 ml-auto text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                    </motion.button>
-                  ))}
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </AnimatePresence>
 
               {/* Explanation */}
-              <AnimatePresence>
-                {isAnswered && showExplanation && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`p-4 rounded-lg mb-6 ${
-                      selectedOption === currentQuestion.answer
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-red-50 border border-red-200'
-                    }`}
-                  >
-                    <p className="font-medium">
-                      {selectedOption === currentQuestion.answer
-                        ? 'Correct! Well done.'
-                        : `Incorrect. The correct answer is: ${currentQuestion.answer}`}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+             
 
               {/* Next Button */}
               <AnimatePresence>

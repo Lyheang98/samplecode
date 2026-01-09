@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
+  Home,
   Lock,
   X,
   MessageSquare,
@@ -196,31 +198,37 @@ export default function SubjectSelection({
     return (
       <div className="fixed inset-0 z-[60] bg-white overflow-y-auto">
         <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center p-4 border-b">
-                <h1 className="text-xl font-bold text-blue-700">
-                    {selectedSubject} - ថ្នាក់ទី {selectedGrade}
-                    {(selectedGrade === "11" || selectedGrade === "12") && (
-                      <span className="ml-2 text-sm">
-                        ({selectedStream === "science" ? "វិទ្យាសាស្រ្ដ" : "វិទ្យាសាស្រ្ដសង្គម"})
-                      </span>
-                    )}
-                </h1>
-                <button 
-                    onClick={() => setStartQuiz(false)}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition"
-                >
-                    <X className="h-5 w-5" /> បញ្ឈប់ការប្រឡង
-                </button>
-            </div>
-            <Quiz 
-              params={{ subject: selectedSubject }} 
-              examCode={examCode}
-              selectedStudent={selectedStudent}
-              selectedSchool={selectedSchool}
-              selectedGrade={selectedGrade}
-              selectedProvinceId={selectedProvinceId}
-              selectedStream={selectedStream}
-            />
+          <div className="flex justify-between items-center p-4 border-b">
+            <h1 className="text-xl font-bold text-blue-700">
+              {selectedSubject} - ថ្នាក់ទី {selectedGrade}
+              {(selectedGrade === "11" || selectedGrade === "12") && (
+                <span className="ml-2 text-sm">
+                  ({selectedStream === "science" ? "វិទ្យាសាស្រ្ដ" : "វិទ្យាសាស្រ្ដសង្គម"})
+                </span>
+              )}
+            </h1>
+            <Link href="/welcome">
+              <button className="
+              flex items-center gap-2
+              bg-green-600 hover:bg-green-700 text-white font-bold
+              px-3 py-2 text-xs
+              sm:px-4 sm:py-2 sm:text-sm
+              md:px-5 md:py-3 md:text-base
+              rounded-lg shadow-lg transition
+            ">
+                <Home className="w-4 h-4 sm:w-5 sm:h-5" /> ទំព័រដើម
+              </button>
+            </Link>
+          </div>
+          <Quiz
+            params={{ subject: selectedSubject }}
+            examCode={examCode}
+            selectedStudent={selectedStudent}
+            selectedSchool={selectedSchool}
+            selectedGrade={selectedGrade}
+            selectedProvinceId={selectedProvinceId}
+            selectedStream={selectedStream}
+          />
         </div>
       </div>
     );
@@ -239,7 +247,7 @@ export default function SubjectSelection({
             <p><span className="text-gray-500">សាលា៖</span> {selectedSchool?.name}</p>
             <p><span className="text-gray-500">កូដ៖</span> <code className="bg-gray-100 px-1 rounded">{examCode}</code></p>
           </div>
-          <button 
+          <button
             onClick={handleBackToCode}
             className="mt-4 w-full text-blue-600 text-xs font-bold hover:underline"
           >
@@ -250,7 +258,7 @@ export default function SubjectSelection({
         {/* Subject Grid */}
         <div className="md:col-span-2 bg-white p-6 rounded-3xl shadow-xl border border-purple-100">
           <h2 className="text-xl font-bold mb-6">សូមជ្រើសរើសមុខវិជ្ជា</h2>
-          
+
           {/* Stream selection for grades 11 and 12 */}
           {(selectedGrade === "11" || selectedGrade === "12") && (
             <div className="mb-6 p-4 bg-blue-50 rounded-xl">
@@ -258,39 +266,36 @@ export default function SubjectSelection({
               <div className="flex gap-4">
                 <button
                   onClick={() => setSelectedStream("science")}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    selectedStream === "science"
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStream === "science"
                       ? "bg-blue-600 text-white"
                       : "bg-white text-blue-600 border border-blue-300"
-                  }`}
+                    }`}
                 >
                   ថ្នាក់វិទ្យាសាស្រ្ដ
                 </button>
                 <button
                   onClick={() => setSelectedStream("social")}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    selectedStream === "social"
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStream === "social"
                       ? "bg-blue-600 text-white"
                       : "bg-white text-blue-600 border border-blue-300"
-                  }`}
+                    }`}
                 >
                   ថ្នាក់វិទ្យាសាស្រ្ដសង្គម
                 </button>
               </div>
             </div>
           )}
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {subjects.map((subject: string) => (
               <button
                 key={subject}
                 onClick={() => handleSubjectClick(subject)}
-                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
-                  selectedSubject === subject ? "border-blue-500 bg-blue-50" : "border-gray-50 hover:border-blue-200"
-                }`}
+                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedSubject === subject ? "border-blue-500 bg-blue-50" : "border-gray-50 hover:border-blue-200"
+                  }`}
               >
                 <div className="p-3 bg-white rounded-xl shadow-sm">
-                    {SUBJECT_ICONS[subject] || <MessageSquare className="h-5 w-5" />}
+                  {SUBJECT_ICONS[subject] || <MessageSquare className="h-5 w-5" />}
                 </div>
                 <span className="text-sm font-bold">{subject}</span>
               </button>
@@ -319,13 +324,13 @@ export default function SubjectSelection({
             />
             {passwordError && <p className="text-red-500 text-xs font-bold mb-4 text-center">{passwordError}</p>}
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => setShowPasswordModal(false)}
                 className="flex-1 py-3 font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition"
               >
                 បោះបង់
               </button>
-              <button 
+              <button
                 onClick={verifyPassword}
                 className="flex-1 py-3 font-bold bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition"
               >
