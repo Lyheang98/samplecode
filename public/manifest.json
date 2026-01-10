@@ -1,15 +1,16 @@
 {
-  "name": "MoEYs Exam Platform",
-  "short_name": "MoEYs Exam",
-  "description": "Ministry of Education, Youth and Sport Exam Platform",
+  "name": "MoEYS Exam Platform",
+  "short_name": "MoEYS Exam",
+  "description": "Ministry of Education, Youth and Sport Online Exam Platform",
   "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
-  "orientation": "portrait-primary",
   "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0f4c81",
   "lang": "en",
   "categories": ["education", "productivity"],
+
   "icons": [
     {
       "src": "/moeys-logo.png",
@@ -24,28 +25,31 @@
       "purpose": "any maskable"
     }
   ],
+
   "shortcuts": [
     {
       "name": "Home",
       "short_name": "Home",
-      "description": "Go to home page",
+      "description": "Go to Home page",
       "url": "/",
       "icons": [
         {
           "src": "/moeys-logo.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "Provinces",
-      "short_name": "Provinces",
-      "description": "View provinces",
-      "url": "/provinces",
+      "name": "Register Exam",
+      "short_name": "Register",
+      "description": "Register exam code",
+      "url": "/registerexamcode",
       "icons": [
         {
           "src": "/moeys-logo.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
@@ -57,22 +61,28 @@
       "icons": [
         {
           "src": "/moeys-logo.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     }
   ],
+
   "screenshots": [
     {
       "src": "/moeys-logo.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"
+    },
+    {
+      "src": "/moeys-logo.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ],
+
   "prefer_related_applications": false,
-  "related_applications": [],
-  "edge_side_panel": {
-    "preferred_width": 400
-  }
+  "related_applications": []
 }

@@ -7,13 +7,79 @@
         {
           "id": "1",
           "text": "What is 2 + 2?",
-          "options": ["3", "4", "5", "6"],
+          "imageButton": {
+            "label": "View Question Image",
+            "imageUrl": "https://example.com/images/math_q1.png"
+          },
+          "options": [
+            {
+              "text": "3",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_3.png"
+              }
+            },
+            {
+              "text": "4",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_4.png"
+              }
+            },
+            {
+              "text": "5",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_5.png"
+              }
+            },
+            {
+              "text": "6",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_6.png"
+              }
+            }
+          ],
           "answer": "4"
         },
         {
           "id": "2",
           "text": "What is 5 * 5?",
-          "options": ["20", "25", "30", "35"],
+          "imageButton": {
+            "label": "View Question Image",
+            "imageUrl": "https://example.com/images/math_q2.png"
+          },
+          "options": [
+            {
+              "text": "20",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_20.png"
+              }
+            },
+            {
+              "text": "25",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_25.png"
+              }
+            },
+            {
+              "text": "30",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_30.png"
+              }
+            },
+            {
+              "text": "35",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_35.png"
+              }
+            }
+          ],
           "answer": "25"
         }
       ]
@@ -25,7 +91,40 @@
         {
           "id": "3",
           "text": "What is the chemical symbol for water?",
-          "options": ["H2O", "CO2", "O2", "N2"],
+          "imageButton": {
+            "label": "View Question Image",
+            "imageUrl": "https://example.com/images/science_q1.png"
+          },
+          "options": [
+            {
+              "text": "H2O",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_h2o.png"
+              }
+            },
+            {
+              "text": "CO2",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_co2.png"
+              }
+            },
+            {
+              "text": "O2",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_o2.png"
+              }
+            },
+            {
+              "text": "N2",
+              "imageButton": {
+                "label": "Option Image",
+                "imageUrl": "https://example.com/images/option_n2.png"
+              }
+            }
+          ],
           "answer": "H2O"
         }
       ]

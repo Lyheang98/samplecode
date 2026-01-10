@@ -241,15 +241,15 @@ export default function SubjectSelection({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Student Summary Card */}
         <div className="bg-white p-6 rounded-3xl shadow-xl border border-blue-100">
-          <h2 className="text-lg font-bold mb-4 text-gray-800">ព័ត៌មានបេក្ខជន</h2>
-          <div className="space-y-2 text-sm">
-            <p><span className="text-gray-500">ឈ្មោះ៖</span> <strong>{selectedStudent?.fullName}</strong></p>
-            <p><span className="text-gray-500">សាលា៖</span> {selectedSchool?.name}</p>
-            <p><span className="text-gray-500">កូដ៖</span> <code className="bg-gray-100 px-1 rounded">{examCode}</code></p>
+          <h2 className="text-xl font-bold mb-4 text-gray-800">ព័ត៌មានបេក្ខជន</h2>
+          <div className="space-y-2 text-l">
+            <p><span className="text-orange-500 ">ឈ្មោះ៖</span> <strong>{selectedStudent?.fullName}</strong></p>
+            <p><span className="text-orange-500">សាលា៖</span> {selectedSchool?.name}</p>
+            <p><span className="text-orange-500">កូដ៖</span> <code className="bg-gray-100 px-1 rounded">{examCode}</code></p>
           </div>
           <button
             onClick={handleBackToCode}
-            className="mt-4 w-full text-blue-600 text-xs font-bold hover:underline"
+            className="mt-4 w-full text-blue-600 text-xl font-bold hover:underline"
           >
             កែប្រែព័ត៌មាន
           </button>

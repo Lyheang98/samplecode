@@ -1,8 +1,6 @@
-
-
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -20,14 +18,10 @@ import {
   School,
   Users,
   BookOpen,
-  Sparkles,
-  Award,
   ArrowLeft,
-  Zap,
   FileText,
   CheckCircle,
 } from "lucide-react";
-
 
 import SubjectSelection from "@/components/SubjectSelection";
 
@@ -85,8 +79,8 @@ import takaeoSchoolData from "@/data/schools/school-tekav.json";
 import tboungKhmumSchoolData from "@/data/schools/school-tbongkhom.json";
 import kandalSchoolData from "@/data/schools/school-kondal.json";
 
-// Define types for our data structures
-interface School {
+// ---------------- Types ----------------
+interface SchoolType {
   geip_school_ID: string;
   school_name: string;
   province_ID: string;
@@ -111,7 +105,7 @@ interface Province {
   name: string;
 }
 
-// --- Import student data as arrays and combine them ---
+// ---------------- Data Combine ----------------
 export const allStudents: Student[] = [
   ...(banteayMeancheyStudentsData as Student[]),
   ...(battambangStudentsData as Student[]),
@@ -140,33 +134,32 @@ export const allStudents: Student[] = [
   ...(tboungKhmumStudentsData as Student[]),
 ];
 
-// --- Use the actual school data from your imports ---
-export const provinceData: School[] = [
-  ...(banteayMeancheySchoolData as School[]),
-  ...(battambangSchoolData as School[]),
-  ...(kepSchoolData as School[]),
-  ...(kohkongSchoolData as School[]),
-  ...(kompongchamSchoolData as School[]),
-  ...(kompongchhnangSchoolData as School[]),
-  ...(kompongspeuSchoolData as School[]),
-  ...(kompongThomSchoolData as School[]),
-  ...(kompotSchoolData as School[]),
-  ...(kratieSchoolData as School[]),
-  ...(mondolkiriSchoolData as School[]),
-  ...(oddarMeancheySchoolData as School[]),
-  ...(pailinSchoolData as School[]),
-  ...(phnompenhSchoolData as School[]),
-  ...(preahSihanoukSchoolData as School[]),
-  ...(preahVihearSchoolData as School[]),
-  ...(preyvengSchoolData as School[]),
-  ...(pursatSchoolData as School[]),
-  ...(rattanakiriSchoolData as School[]),
-  ...(siemreapSchoolData as School[]),
-  ...(stungtrengSchoolData as School[]),
-  ...(kandalSchoolData as School[]),
-  ...(svayriengSchoolData as School[]),
-  ...(takaeoSchoolData as School[]),
-  ...(tboungKhmumSchoolData as School[]),
+export const provinceData: SchoolType[] = [
+  ...(banteayMeancheySchoolData as SchoolType[]),
+  ...(battambangSchoolData as SchoolType[]),
+  ...(kepSchoolData as SchoolType[]),
+  ...(kohkongSchoolData as SchoolType[]),
+  ...(kompongchamSchoolData as SchoolType[]),
+  ...(kompongchhnangSchoolData as SchoolType[]),
+  ...(kompongspeuSchoolData as SchoolType[]),
+  ...(kompongThomSchoolData as SchoolType[]),
+  ...(kompotSchoolData as SchoolType[]),
+  ...(kratieSchoolData as SchoolType[]),
+  ...(mondolkiriSchoolData as SchoolType[]),
+  ...(oddarMeancheySchoolData as SchoolType[]),
+  ...(pailinSchoolData as SchoolType[]),
+  ...(phnompenhSchoolData as SchoolType[]),
+  ...(preahSihanoukSchoolData as SchoolType[]),
+  ...(preahVihearSchoolData as SchoolType[]),
+  ...(preyvengSchoolData as SchoolType[]),
+  ...(pursatSchoolData as SchoolType[]),
+  ...(rattanakiriSchoolData as SchoolType[]),
+  ...(siemreapSchoolData as SchoolType[]),
+  ...(stungtrengSchoolData as SchoolType[]),
+  ...(kandalSchoolData as SchoolType[]),
+  ...(svayriengSchoolData as SchoolType[]),
+  ...(takaeoSchoolData as SchoolType[]),
+  ...(tboungKhmumSchoolData as SchoolType[]),
 ];
 
 // Function to extract available grades for each school from student data
@@ -174,19 +167,17 @@ const extractSchoolGrades = (): Map<string, string[]> => {
   const schoolGradesMap = new Map<string, Set<string>>();
 
   // Initialize with empty sets for all schools
-  provinceData.forEach(school => {
+  provinceData.forEach((school) => {
     schoolGradesMap.set(school.geip_school_ID, new Set());
   });
 
   // Populate with grades from student data
-  allStudents.forEach(student => {
+  allStudents.forEach((student) => {
     if (student.school && student.grade) {
       const schoolId = student.school;
       if (schoolGradesMap.has(schoolId)) {
         const grades = schoolGradesMap.get(schoolId);
-        if (grades) {
-          grades.add(student.grade);
-        }
+        if (grades) grades.add(student.grade);
       }
     }
   });
@@ -204,12 +195,12 @@ const extractSchoolGrades = (): Map<string, string[]> => {
 const schoolGradesMap = extractSchoolGrades();
 
 // Update provinceData to include grades for each school
-const updatedProvinceData: School[] = provinceData.map(school => ({
+const updatedProvinceData: SchoolType[] = provinceData.map((school) => ({
   ...school,
-  grades: schoolGradesMap.get(school.geip_school_ID) || []
+  grades: schoolGradesMap.get(school.geip_school_ID) || [],
 }));
 
-// --- Constants (PROVINCES list) ---
+// ---------------- Constants ----------------
 const PROVINCES: Province[] = [
   { id: "1", name: "ខេត្តបន្ទាយមានជ័យ" },
   { id: "2", name: "ខេត្តបាត់ដំបង" },
@@ -233,7 +224,7 @@ const PROVINCES: Province[] = [
   { id: "20", name: "ខេត្តស្វាយរៀង" },
   { id: "21", name: "ខេត្តតាកែវ" },
   { id: "22", name: "ខេត្តកែប" },
-  { id: "23", name: "ខេត្តប៉ៃលិន" },  // Changed from Kep to Pailin
+  { id: "23", name: "ខេត្តប៉ៃលិន" },
   { id: "24", name: "ខេត្តឧត្តរមានជ័យ" },
   { id: "25", name: "ខេត្តត្បូងឃ្មុំ" },
 ];
@@ -314,8 +305,16 @@ const SUBJECTS: Record<string, string[]> = {
   ],
 };
 
-// --- UI Components ---
-const Card = ({ children, className = "", variant = "default" }: any) => {
+// ---------------- UI Components ----------------
+const Card = ({
+  children,
+  className = "",
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  variant?: "default" | "gradient" | "glass" | "success";
+}) => {
   const variants = {
     default:
       "bg-white border border-purple-100 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden",
@@ -326,8 +325,9 @@ const Card = ({ children, className = "", variant = "default" }: any) => {
 
   return (
     <div
-      className={`rounded-3xl ${variants[variant as keyof typeof variants]
-        } ${className}`}
+      className={`rounded-3xl ${
+        variants[variant as keyof typeof variants]
+      } ${className}`}
     >
       {variant === "gradient" && (
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600" />
@@ -366,8 +366,9 @@ const Button = ({
   return (
     <button
       onClick={onClick}
-      className={`${baseClasses} ${variantClasses[variant as keyof typeof variantClasses]
-        } ${className}`}
+      className={`${baseClasses} ${
+        variantClasses[variant as keyof typeof variantClasses]
+      } ${className}`}
       disabled={disabled}
       type="button"
       {...props}
@@ -418,16 +419,15 @@ const SelectFilter = ({
   </div>
 );
 
-// --- Main Component ---
+// ---------------- Main Page ----------------
 export default function RegisterExamCodePage() {
   const router = useRouter();
+
   const [loadingStep, setLoadingStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [examCode, setExamCode] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Add state to track current step (code generation or subject selection)
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentStep, setCurrentStep] = useState<"code" | "subject">("code");
 
   // Filter states
@@ -439,7 +439,9 @@ export default function RegisterExamCodePage() {
 
   // Data options states
   const [districts, setDistricts] = useState<string[]>([]);
-  const [schools, setSchools] = useState<{ id: string; name: string; grades?: string[] }[]>([]);
+  const [schools, setSchools] = useState<
+    { id: string; name: string; grades?: string[] }[]
+  >([]);
   const [grades, setGrades] = useState<string[]>([]);
   const [students, setStudents] = useState<any[]>([]);
 
@@ -448,16 +450,25 @@ export default function RegisterExamCodePage() {
     [schools, selectedSchoolId]
   );
 
+  // Copy state (NO TIME LIMIT)
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    if (!examCode) return;
+    navigator.clipboard.writeText(examCode);
+    setCopied(true); // stays true forever
+  };
+
   // --- Static Data Functions ---
   const fetchDistrictsFromStatic = useCallback(() => {
     if (!selectedProvinceId) return;
 
     const provinceSchools = updatedProvinceData.filter(
-      (school: School) => school.province_ID === selectedProvinceId
+      (school: SchoolType) => school.province_ID === selectedProvinceId
     );
 
     if (provinceSchools.length === 0) {
-      setError(`មិនមានទិន្នន័យសម្រាប់ខេត្តដែលបានជ្រើសរើស។ សូមជ្រើសរើសខេត្តផ្សេង។`);
+      setError("មិនមានទិន្នន័យសម្រាប់ខេត្តដែលបានជ្រើសរើស។ សូមជ្រើសរើសខេត្តផ្សេង។");
       setDistricts([]);
       return;
     }
@@ -465,7 +476,7 @@ export default function RegisterExamCodePage() {
     const districtNames = Array.from(
       new Set(
         provinceSchools
-          .map((school: School) => school.district_name)
+          .map((school: SchoolType) => school.district_name)
           .filter((name: string) => name && name.trim() !== "")
       )
     ).sort() as string[];
@@ -481,15 +492,15 @@ export default function RegisterExamCodePage() {
     }
 
     const filteredSchools = updatedProvinceData.filter(
-      (school: School) =>
+      (school: SchoolType) =>
         school.province_ID === selectedProvinceId &&
         school.district_name === selectedDistrict
     );
 
-    const mappedSchools = filteredSchools.map((school: School) => ({
+    const mappedSchools = filteredSchools.map((school: SchoolType) => ({
       id: school.geip_school_ID,
       name: school.school_name,
-      grades: school.grades || []
+      grades: school.grades || [],
     }));
 
     setSchools(mappedSchools);
@@ -503,51 +514,33 @@ export default function RegisterExamCodePage() {
     }
 
     const school = updatedProvinceData.find(
-      (s: School) => s.geip_school_ID === selectedSchoolId
+      (s: SchoolType) => s.geip_school_ID === selectedSchoolId
     );
 
     if (school && school.grades && school.grades.length > 0) {
       setGrades(school.grades);
     } else {
-      const defaultGrades = ["7", "8", "9", "10", "11", "12"];
-      setGrades(defaultGrades);
+      setGrades(["7", "8", "9", "10", "11", "12"]);
     }
 
     setSelectedGrade("");
   }, [selectedProvinceId, selectedDistrict, selectedSchoolId]);
 
   const fetchStudentsFromStatic = useCallback(() => {
-    if (
-      !selectedProvinceId ||
-      !selectedDistrict ||
-      !selectedSchoolId ||
-      !selectedGrade
-    ) {
+    if (!selectedProvinceId || !selectedDistrict || !selectedSchoolId || !selectedGrade) {
       setStudents([]);
       return;
     }
 
     const normalizedSelectedSchoolId = selectedSchoolId.toLowerCase().trim();
-    const normalizedSelectedGrade = selectedGrade
-      .toString()
-      .toLowerCase()
-      .trim();
+    const normalizedSelectedGrade = selectedGrade.toString().toLowerCase().trim();
 
     const filteredStudents = allStudents.filter((student: Student) => {
-      const studentSchoolId = student.school
-        ? student.school.toLowerCase().trim()
-        : "";
-      const studentGrade = student.grade
-        ? student.grade.toString().toLowerCase().trim()
-        : "";
-
-      return (
-        studentSchoolId === normalizedSelectedSchoolId &&
-        studentGrade === normalizedSelectedGrade
-      );
+      const studentSchoolId = student.school ? student.school.toLowerCase().trim() : "";
+      const studentGrade = student.grade ? student.grade.toString().toLowerCase().trim() : "";
+      return studentSchoolId === normalizedSelectedSchoolId && studentGrade === normalizedSelectedGrade;
     });
 
-    // Create proper student objects with fullName for display
     const mappedStudents = filteredStudents.map((student) => ({
       ...student,
       id: student.student_ID || `${student.last_name}${student.first_name}${student.grade}`,
@@ -607,15 +600,6 @@ export default function RegisterExamCodePage() {
     setError(null);
   };
 
-  // --- Copy to clipboard function ---
-  const copyToClipboard = useCallback(() => {
-    if (examCode) {
-      navigator.clipboard.writeText(examCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    }
-  }, [examCode]);
-
   // --- Start Exam function ---
   const handleStartExam = useCallback(() => {
     if (!examCode || examCode === "Error") {
@@ -624,7 +608,9 @@ export default function RegisterExamCodePage() {
     }
 
     if (selectedSchool && selectedSchool.grades && !selectedSchool.grades.includes(selectedGrade)) {
-      setError(`ថ្នាក់ ${selectedGrade} មិនមាននៅសាលារៀន ${selectedSchool.name} ទេ។ សូមជ្រើសរើសថ្នាក់ផ្សេង។`);
+      setError(
+        `ថ្នាក់ ${selectedGrade} មិនមាននៅសាលារៀន ${selectedSchool.name} ទេ។ សូមជ្រើសរើសថ្នាក់ផ្សេង។`
+      );
       return;
     }
 
@@ -645,12 +631,14 @@ export default function RegisterExamCodePage() {
     if (!selectedStudent || !selectedSchoolId) return;
 
     if (selectedSchool && selectedSchool.grades && !selectedSchool.grades.includes(selectedGrade)) {
-      setError(`ថ្នាក់ ${selectedGrade} មិនមាននៅសាលារៀន ${selectedSchool.name} ទេ។ សូមជ្រើសរើសថ្នាក់ផ្សេង។`);
+      setError(
+        `ថ្នាក់ ${selectedGrade} មិនមាននៅសាលារៀន ${selectedSchool.name} ទេ។ សូមជ្រើសរើសថ្នាក់ផ្សេង។`
+      );
       return;
     }
 
     // VALIDATION: Check student_type for grades 11 and 12
-    if ((selectedGrade === "11" || selectedGrade === "12")) {
+    if (selectedGrade === "11" || selectedGrade === "12") {
       if (!selectedStudent.student_type || selectedStudent.student_type === "") {
         setError("សិស្សថ្នាក់ 11 និង 12 ត្រូវបានបញ្ជាក់ប្រភេទវិទ្យាសាស្រ្ដ ឬ វិទ្យាសាស្រ្ដសង្គម ទើបអាចកូដប្រឡង។");
         return;
@@ -663,55 +651,41 @@ export default function RegisterExamCodePage() {
     setCopied(false);
 
     try {
-      // Use static data approach - CHANGED FORMAT: firstName.lastName instead of lastName.firstName
       const schoolId = selectedSchoolId;
       const studentId = selectedStudent.student_ID || "00000";
       const firstName = (selectedStudent.first_name || "").replace(/\s+/g, "");
       const lastName = (selectedStudent.last_name || "").replace(/\s+/g, "");
-      // CHANGED: firstName.lastName instead of lastName.firstName
       const examCodeResult = `${schoolId}.${studentId}.${firstName}.${lastName}`;
       setExamCode(examCodeResult);
     } catch (err: any) {
-      setError(`សិស្សមិ​នមានការបញ្ជាក់ថ្នាក់វិទ្យាសាស្រ្ដ ឬ ថ្នាក់វិទ្យាសាស្រ្ដសង្គម`);
+      setError("សិស្សមិ​នមានការបញ្ជាក់ថ្នាក់វិទ្យាសាស្រ្ដ ឬ ថ្នាក់វិទ្យាសាស្រ្ដសង្គម");
       setExamCode("Error");
     } finally {
       setLoadingStep(null);
     }
   }, [
     selectedStudent,
-    selectedProvinceId,
-    selectedDistrict,
     selectedSchoolId,
     selectedGrade,
     selectedSchool,
   ]);
 
   // --- useEffect Hooks ---
-  // 1. Fetch Districts
   useEffect(() => {
     fetchDistrictsFromStatic();
   }, [selectedProvinceId, fetchDistrictsFromStatic]);
 
-  // 2. Fetch Schools
   useEffect(() => {
     fetchSchoolsFromStatic();
   }, [selectedProvinceId, selectedDistrict, fetchSchoolsFromStatic]);
 
-  // 3. Fetch Grades
   useEffect(() => {
     fetchGradesFromStatic();
   }, [selectedProvinceId, selectedDistrict, selectedSchoolId, fetchGradesFromStatic]);
 
-  // 4. Fetch Students
   useEffect(() => {
     fetchStudentsFromStatic();
-  }, [
-    selectedProvinceId,
-    selectedDistrict,
-    selectedSchoolId,
-    selectedGrade,
-    fetchStudentsFromStatic,
-  ]);
+  }, [selectedProvinceId, selectedDistrict, selectedSchoolId, selectedGrade, fetchStudentsFromStatic]);
 
   const studentOptions = students;
 
@@ -728,12 +702,8 @@ export default function RegisterExamCodePage() {
             <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-full mb-4 shadow-2xl">
               <CheckCircle className="h-12 w-12 text-white animate-pulse" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              ការដាក់របាយល្អ!
-            </h2>
-            <p className="text-gray-600">
-              កំពុងប្តូទៅទំព័រជ្រើសរើសមុខវិជ្ជា...
-            </p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">ការដាក់របាយល្អ!</h2>
+            <p className="text-gray-600">កំពុងប្តូទៅទំព័រជ្រើសរើសមុខវិជ្ជា...</p>
             <div className="mt-4">
               <Loader2 className="h-8 w-8 text-green-600 animate-spin mx-auto" />
             </div>
@@ -745,25 +715,33 @@ export default function RegisterExamCodePage() {
       <div className="relative z-10 p-4 sm:p-6 lg:p-8">
         {/* Navigation & Header */}
         <div className="max-w-5xl mx-auto flex md:justify-between justify-between sm:justify-start sm:gap-4 mb-6">
-          <button className="
+          <button
+            className="
               flex items-center gap-2
               bg-blue-600 hover:bg-blue-700 text-white font-bold
               px-3 py-2 text-xs
               sm:px-4 sm:py-2 sm:text-sm
               md:px-5 md:py-3 md:text-base
               rounded-lg shadow-lg transition
-            ">
+            "
+            onClick={() => router.back()}
+            type="button"
+          >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> ត្រឡប់
           </button>
+
           <Link href="/welcome">
-            <button className="
-              flex items-center gap-2
-              bg-green-600 hover:bg-green-700 text-white font-bold
-              px-3 py-2 text-xs
-              sm:px-4 sm:py-2 sm:text-sm
-              md:px-5 md:py-3 md:text-base
-              rounded-lg shadow-lg transition
-            ">
+            <button
+              className="
+                flex items-center gap-2
+                bg-green-600 hover:bg-green-700 text-white font-bold
+                px-3 py-2 text-xs
+                sm:px-4 sm:py-2 sm:text-sm
+                md:px-5 md:py-3 md:text-base
+                rounded-lg shadow-lg transition
+              "
+              type="button"
+            >
               <Home className="w-4 h-4 sm:w-5 sm:h-5" /> ទំព័រដើម
             </button>
           </Link>
@@ -786,29 +764,24 @@ export default function RegisterExamCodePage() {
               </div>
             </div>
           </div>
+
           <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-blue-800 mb-2 sm:mb-3 leading-tight px-2">
             {currentStep === "code"
               ? "សូមបំពេញព័ត៍មានដើម្បីទទួលបានកូដប្រឡង"
-              : "ជ្រើសរើសមុខវិជ្ជាប្រឡង"}
+              : "សូមជ្រើសរើសមុខវិជ្ជាប្រឡង"}
           </h1>
+
           <p className="text-gray-600 mt-2 text-xs sm:text-lg px-2">
             {currentStep === "code"
-              ? "បញ្ជាក់៖ សូមជ្រើសរើស​ ខេត្ត/ស្រុក/សាលារៀន/ឈ្មោះ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
+              ? "បញ្ជាក់៖ សូមពិនិត្យជ្រើសរើស​ ខេត្ត/ស្រុក/សាលារៀន/ឈ្មោះ របស់អ្នកឲ្យបានត្រឹមត្រូវ"
               : "ជ្រើសរើសមុខវិជ្ជាដើម្បីចូលរួមប្រឡង"}
           </p>
-          {/* <div className="mt-2 px-2">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {ទាញទិន្នន័យបានជោគជ័យ}
-              </span>
-            </div> */}
-
         </header>
 
         <div className="max-w-5xl mx-auto">
           {currentStep === "code" ? (
-            // Code Generation Step
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* --- Student Selection (Left Card) --- */}
+              {/* Student Selection (Left Card) */}
               <Card className="p-6">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl shadow-lg">
@@ -827,13 +800,8 @@ export default function RegisterExamCodePage() {
                     <SelectFilter
                       label=""
                       value={selectedProvinceId}
-                      onChange={(e: any) =>
-                        handleProvinceChange(e.target.value)
-                      }
-                      options={PROVINCES.map((p) => ({
-                        value: p.id,
-                        name: p.name,
-                      }))}
+                      onChange={(e: any) => handleProvinceChange(e.target.value)}
+                      options={PROVINCES.map((p) => ({ value: p.id, name: p.name }))}
                       icon={<MapPin className="h-4 w-4 text-purple-500" />}
                     />
                   </div>
@@ -845,9 +813,7 @@ export default function RegisterExamCodePage() {
                     <SelectFilter
                       label=""
                       value={selectedDistrict}
-                      onChange={(e: any) =>
-                        handleDistrictChange(e.target.value)
-                      }
+                      onChange={(e: any) => handleDistrictChange(e.target.value)}
                       options={districts}
                       disabled={!selectedProvinceId}
                       loading={loadingStep === "ស្រុក"}
@@ -863,10 +829,7 @@ export default function RegisterExamCodePage() {
                       label=""
                       value={selectedSchoolId}
                       onChange={(e: any) => handleSchoolChange(e.target.value)}
-                      options={schools.map((s) => ({
-                        value: s.id,
-                        name: s.name,
-                      }))}
+                      options={schools.map((s) => ({ value: s.id, name: s.name }))}
                       disabled={!selectedDistrict}
                       loading={loadingStep === "សាលារៀន"}
                       icon={<School className="h-4 w-4 text-purple-500" />}
@@ -897,12 +860,11 @@ export default function RegisterExamCodePage() {
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
                         <Users className="h-4 w-4 text-purple-500" />
                       </div>
+
                       <select
                         value={selectedStudent?.id || ""}
                         onChange={(e) => {
-                          const student = studentOptions.find(
-                            (s) => s.id === e.target.value
-                          );
+                          const student = studentOptions.find((s) => s.id === e.target.value);
                           setSelectedStudent(student || null);
                           setExamCode("");
                           setCopied(false);
@@ -918,15 +880,18 @@ export default function RegisterExamCodePage() {
                           {loadingStep === `សិស្សថ្នាក់ ${selectedGrade}`
                             ? "កំពុងផ្ទុកសិស្ស..."
                             : studentOptions.length > 0
-                              ? "ជ្រើសរើសឈ្មោះសិស្ស"
-                              : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
+                            ? "ជ្រើសរើសឈ្មោះសិស្ស"
+                            : "មិនមានសិស្សក្នុងថ្នាក់នេះ"}
                         </option>
                         {studentOptions.map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.fullName || `${s.last_name || ""} ${s.first_name || ""}`.trim()} ({s.student_ID || "N/A"})
+                            {s.fullName ||
+                              `${s.last_name || ""} ${s.first_name || ""}`.trim()}{" "}
+                            ({s.student_ID || "N/A"})
                           </option>
                         ))}
                       </select>
+
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-400 z-10">
                         <ChevronDown className="h-4 w-4" />
                       </div>
@@ -948,7 +913,7 @@ export default function RegisterExamCodePage() {
                 </Button>
               </Card>
 
-              {/* --- Exam Code Result (Right Card) --- */}
+              {/* Exam Code Result (Right Card) */}
               <Card variant="success" className="p-6">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl border border-blue-400 shadow-lg">
@@ -979,10 +944,12 @@ export default function RegisterExamCodePage() {
                       <p className="text-gray-100 mb-2 text-xs sm:text-lg px-2">
                         សូមចម្លងកូដខាងក្រោម​ មុនពេលចាប់ផ្តើមប្រឡង៖
                       </p>
+
                       <div className="text-center bg-white/20 backdrop-blur-sm p-5 rounded-2xl border border-white/30 w-full">
                         <p className="text-white mt-2 text-sm sm:text-lg px-2 font-mono break-all">
                           {examCode}
                         </p>
+
                         <div className="flex gap-3 mt-4 justify-center">
                           <Button
                             onClick={copyToClipboard}
@@ -1015,8 +982,8 @@ export default function RegisterExamCodePage() {
                         <li>៥. សូមជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីទទួលបានកូដប្រឡង។</li>
                       </ol>
                       <p className="pt-3">
-                        <strong className="text-yellow-300">សម្គាល់៖</strong>
-                        សូមយកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង
+                        <strong className="text-yellow-300">សម្គាល់៖</strong>{" "}
+                        សូមចម្លងកូដនេះដើម្បីទុកបំពេញក្នុងទម្រង់ប្រឡង
                       </p>
                     </div>
                   )}
@@ -1037,7 +1004,6 @@ export default function RegisterExamCodePage() {
               </Card>
             </div>
           ) : (
-            // Subject Selection Step
             <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
               <SubjectSelection
                 selectedStudent={selectedStudent}
@@ -1046,7 +1012,7 @@ export default function RegisterExamCodePage() {
                 selectedProvinceId={selectedProvinceId}
                 examCode={examCode}
                 SUBJECTS={SUBJECTS}
-                handleBackToCode={handleBackToCode} // Key for returning to the first step
+                handleBackToCode={handleBackToCode}
               />
             </div>
           )}
