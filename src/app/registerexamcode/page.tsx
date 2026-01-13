@@ -2225,6 +2225,7 @@ import {
 // Import utility to get the correct exam link
 import { getExamLink } from "@/utils/examLinks";
 import SubjectSelection from "@/components/SubjectSelection";
+import { PointsProvider } from "@/app/context/PointsContext";
 
 // Student Data Imports (all JSON files contain student data)
 import banteayMeancheyStudentsData from "@/data/students/BanteayMeanChey.json";
@@ -3234,16 +3235,18 @@ export default function RegisterExamCodePage() {
           ) : (
             // Subject Selection Step
             <div>
-              <SubjectSelection
-                selectedStudent={selectedStudent}
-                selectedSchool={selectedSchool}
-                selectedGrade={selectedGrade}
-                selectedProvinceId={selectedProvinceId}
-                examCode={examCode}
-                SUBJECTS={SUBJECTS}
-                PROVINCES={PROVINCES}
-                handleBackToCode={handleBackToCode}
-              />
+              <PointsProvider>
+                <SubjectSelection
+                  selectedStudent={selectedStudent}
+                  selectedSchool={selectedSchool}
+                  selectedGrade={selectedGrade}
+                  selectedProvinceId={selectedProvinceId}
+                  examCode={examCode}
+                  SUBJECTS={SUBJECTS}
+                  PROVINCES={PROVINCES}
+                  handleBackToCode={handleBackToCode}
+                />
+              </PointsProvider>
             </div>
           )}
         </div>
