@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Kantumruy_Pro } from "next/font/google";
+import { PointsProvider } from "./context/PointsContext";
 
 export const metadata: Metadata = {
   title: "MoEYS EdTech Examination System",
@@ -17,7 +18,9 @@ const kantumruy = Kantumruy_Pro({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="km" className={kantumruy.variable} suppressHydrationWarning>
-      <body className="font-khmer antialiased">{children}</body>
+      <body className="font-khmer antialiased">
+        <PointsProvider>{children}</PointsProvider>
+      </body>
     </html>
   );
 }

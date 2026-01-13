@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   Home,
   Lock,
-  X,
   MessageSquare,
   Calculator,
   Zap,
@@ -16,8 +16,21 @@ import {
   Users,
   Globe,
   Languages,
+  Loader2,
 } from "lucide-react";
-import Quiz from "@/app/quiz/[subject]/page";
+
+
+const Quiz = dynamic(() => import("@/app/quiz/[subject]/page"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <div className="flex items-center gap-3 rounded-2xl border bg-white px-6 py-4 shadow-lg">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="font-semibold text-gray-700">Loading questions...</span>
+      </div>
+    </div>
+  ),
+});
 
 // Configuration for UI
 const SUBJECT_ICONS: Record<string, any> = {
@@ -40,9 +53,15 @@ const SUBJECT_ICONS: Record<string, any> = {
 };
 
 const SUBJECT_PASSWORDS: Record<string, string> = {
-  "ភាសាខ្មែរ": "1221", "គណិតវិទ្យា": "1222", "រូបវិទ្យា": "1223",
-  "គីមីវិទ្យា": "1224", "ជីវវិទ្យា": "1225", "ប្រវត្តិវិទ្យា": "1226",
-  "ភូមិវិទ្យា": "1227", "សីលធម៌-ពលរដ្ឋវិជ្ជា": "1228", "ផែនដីវិទ្យា": "1229",
+  "ភាសាខ្មែរ": "1221",
+  "គណិតវិទ្យា": "1222",
+  "រូបវិទ្យា": "1223",
+  "គីមីវិទ្យា": "1224",
+  "ជីវវិទ្យា": "1225",
+  "ប្រវត្តិវិទ្យា": "1226",
+  "ភូមិវិទ្យា": "1227",
+  "សីលធម៌-ពលរដ្ឋវិជ្ជា": "1228",
+  "ផែនដីវិទ្យា": "1229",
   "អង់គ្លេស": "1220",
   "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)": "1222",
   "រូបវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)": "1223",
@@ -53,104 +72,30 @@ const SUBJECT_PASSWORDS: Record<string, string> = {
 };
 
 // Define subjects for each grade and stream
-const SUBJECTS: Record<string, { science: string[], social: string[] }> = {
+const SUBJECTS: Record<string, { science: string[]; social: string[] }> = {
   "7": {
-    science: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា",
-      "រូបវិទ្យា",
-      "គីមីវិទ្យា",
-      "ជីវវិទ្យា",
-      "ប្រវត្តិវិទ្យា",
-      "ភូមិវិទ្យា",
-      "សីលធម៌-ពលរដ្ឋវិជ្ជា",
-      "ផែនដីវិទ្យា",
-      "អង់គ្លេស",
-    ],
-    social: []
+    science: ["ភាសាខ្មែរ", "គណិតវិទ្យា", "រូបវិទ្យា", "គីមីវិទ្យា", "ជីវវិទ្យា", "ប្រវត្តិវិទ្យា", "ភូមិវិទ្យា", "សីលធម៌-ពលរដ្ឋវិជ្ជា", "ផែនដីវិទ្យា", "អង់គ្លេស"],
+    social: [],
   },
   "8": {
-    science: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា",
-      "រូបវិទ្យា",
-      "គីមីវិទ្យា",
-      "ជីវវិទ្យា",
-      "ប្រវត្តិវិទ្យា",
-      "ភូមិវិទ្យា",
-      "សីលធម៌-ពលរដ្ឋវិជ្ជា",
-      "ផែនដីវិទ្យា",
-      "អង់គ្លេស",
-    ],
-    social: []
+    science: ["ភាសាខ្មែរ", "គណិតវិទ្យា", "រូបវិទ្យា", "គីមីវិទ្យា", "ជីវវិទ្យា", "ប្រវត្តិវិទ្យា", "ភូមិវិទ្យា", "សីលធម៌-ពលរដ្ឋវិជ្ជា", "ផែនដីវិទ្យា", "អង់គ្លេស"],
+    social: [],
   },
   "9": {
-    science: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា",
-      "រូបវិទ្យា",
-      "គីមីវិទ្យា",
-      "ជីវវិទ្យា",
-      "ប្រវត្តិវិទ្យា",
-      "ភូមិវិទ្យា",
-      "សីលធម៌-ពលរដ្ឋវិជ្ជា",
-      "ផែនដីវិទ្យា",
-      "អង់គ្លេស",
-    ],
-    social: []
+    science: ["ភាសាខ្មែរ", "គណិតវិទ្យា", "រូបវិទ្យា", "គីមីវិទ្យា", "ជីវវិទ្យា", "ប្រវត្តិវិទ្យា", "ភូមិវិទ្យា", "សីលធម៌-ពលរដ្ឋវិជ្ជា", "ផែនដីវិទ្យា", "អង់គ្លេស"],
+    social: [],
   },
   "10": {
-    science: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា",
-      "រូបវិទ្យា",
-      "គីមីវិទ្យា",
-      "ជីវវិទ្យា",
-      "ប្រវត្តិវិទ្យា",
-      "ភូមិវិទ្យា",
-      "សីលធម៌-ពលរដ្ឋវិជ្ជា",
-      "ផែនដីវិទ្យា",
-      "អង់គ្លេស",
-    ],
-    social: []
+    science: ["ភាសាខ្មែរ", "គណិតវិទ្យា", "រូបវិទ្យា", "គីមីវិទ្យា", "ជីវវិទ្យា", "ប្រវត្តិវិទ្យា", "ភូមិវិទ្យា", "សីលធម៌-ពលរដ្ឋវិជ្ជា", "ផែនដីវិទ្យា", "អង់គ្លេស"],
+    social: [],
   },
   "11": {
-    science: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "រូបវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "គីមីវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "ជីវវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "អង់គ្លេស",
-    ],
-    social: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដសង្គម)",
-      "ប្រវត្តិវិទ្យា (សង្គម)",
-      "ភូមិវិទ្យា",
-      "សីលធម៌-ពលរដ្ឋវិជ្ជា",
-      "ផែនដីវិទ្យា",
-      "អង់គ្លេស",
-    ]
+    science: ["ភាសាខ្មែរ", "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "រូបវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "គីមីវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "ជីវវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "អង់គ្លេស"],
+    social: ["ភាសាខ្មែរ", "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដសង្គម)", "ប្រវត្តិវិទ្យា (សង្គម)", "ភូមិវិទ្យា", "សីលធម៌-ពលរដ្ឋវិជ្ជា", "ផែនដីវិទ្យា", "អង់គ្លេស"],
   },
   "12": {
-    science: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "រូបវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "គីមីវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "ជីវវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)",
-      "អង់គ្លេស",
-    ],
-    social: [
-      "ភាសាខ្មែរ",
-      "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដសង្គម)",
-      "ប្រវត្តិវិទ្យា (សង្គម)",
-      "ភូមិវិទ្យា",
-      "សីលធម៌-ពលរដ្ឋវិជ្ជា",
-      "ផែនដីវិទ្យា",
-      "អង់គ្លេស",
-    ]
+    science: ["ភាសាខ្មែរ", "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "រូបវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "គីមីវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "ជីវវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដ)", "អង់គ្លេស"],
+    social: ["ភាសាខ្មែរ", "គណិតវិទ្យា (ថ្នាក់វិទ្យាសាស្រ្ដសង្គម)", "ប្រវត្តិវិទ្យា (សង្គម)", "ភូមិវិទ្យា", "សីលធម៌-ពលរដ្ឋវិជ្ជា", "ផែនដីវិទ្យា", "អង់គ្លេស"],
   },
 };
 
@@ -160,7 +105,7 @@ export default function SubjectSelection({
   selectedGrade,
   selectedProvinceId,
   examCode,
-  handleBackToCode
+  handleBackToCode,
 }: any) {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [startQuiz, setStartQuiz] = useState(false);
@@ -168,6 +113,14 @@ export default function SubjectSelection({
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [selectedStream, setSelectedStream] = useState<"science" | "social">("science");
+  const [isPending, startTransition] = useTransition();
+
+  // subjects list
+  const subjects = useMemo(() => {
+    if (!selectedGrade) return [];
+    if (selectedGrade === "11" || selectedGrade === "12") return SUBJECTS[selectedGrade][selectedStream];
+    return SUBJECTS[selectedGrade]?.science || [];
+  }, [selectedGrade, selectedStream]);
 
   const handleSubjectClick = (subject: string) => {
     setSelectedSubject(subject);
@@ -178,20 +131,22 @@ export default function SubjectSelection({
 
   const verifyPassword = () => {
     if (password === SUBJECT_PASSWORDS[selectedSubject]) {
-      setStartQuiz(true);
-      setShowPasswordModal(false);
+      // ✅ transition prevents UI "freeze"
+      startTransition(() => {
+        setStartQuiz(true);
+        setShowPasswordModal(false);
+      });
     } else {
       setPasswordError("លេខសម្ងាត់មិនត្រឹមត្រូវ");
     }
   };
 
-  // Get subjects based on grade and stream
-  const getSubjects = () => {
-    if (selectedGrade === "11" || selectedGrade === "12") {
-      return SUBJECTS[selectedGrade][selectedStream];
-    }
-    return SUBJECTS[selectedGrade].science;
-  };
+  // ✅ optional: prefetch Quiz chunk when modal opens (so after password it feels instant)
+  useEffect(() => {
+    if (!showPasswordModal) return;
+    // trigger dynamic import preloading
+    void import("@/app/quiz/[subject]/page");
+  }, [showPasswordModal]);
 
   // --- Direct Quiz Rendering ---
   if (startQuiz) {
@@ -207,19 +162,22 @@ export default function SubjectSelection({
                 </span>
               )}
             </h1>
+
             <Link href="/welcome">
-              <button className="
-              flex items-center gap-2
-              bg-green-600 hover:bg-green-700 text-white font-bold
-              px-3 py-2 text-xs
-              sm:px-4 sm:py-2 sm:text-sm
-              md:px-5 md:py-3 md:text-base
-              rounded-lg shadow-lg transition
-            ">
+              <button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm md:px-5 md:py-3 md:text-base rounded-lg shadow-lg transition">
                 <Home className="w-4 h-4 sm:w-5 sm:h-5" /> ទំព័រដើម
               </button>
             </Link>
           </div>
+
+          {/* small top loader when transition */}
+          {isPending && (
+            <div className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              កំពុងបើកសំណួរ...
+            </div>
+          )}
+
           <Quiz
             params={{ subject: selectedSubject }}
             examCode={examCode}
@@ -234,8 +192,6 @@ export default function SubjectSelection({
     );
   }
 
-  const subjects = getSubjects();
-
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -243,14 +199,18 @@ export default function SubjectSelection({
         <div className="bg-white p-6 rounded-3xl shadow-xl border border-blue-100">
           <h2 className="text-xl font-bold mb-4 text-gray-800">ព័ត៌មានបេក្ខជន</h2>
           <div className="space-y-2 text-l">
-            <p><span className="text-orange-500 ">ឈ្មោះ៖</span> <strong>{selectedStudent?.fullName}</strong></p>
-            <p><span className="text-orange-500">សាលា៖</span> {selectedSchool?.name}</p>
-            <p><span className="text-orange-500">កូដ៖</span> <code className="bg-gray-100 px-1 rounded">{examCode}</code></p>
+            <p>
+              <span className="text-orange-500 ">ឈ្មោះ៖</span> <strong>{selectedStudent?.fullName}</strong>
+            </p>
+            <p>
+              <span className="text-orange-500">សាលា៖</span> {selectedSchool?.name}
+            </p>
+            <p>
+              <span className="text-orange-500">កូដ៖</span>{" "}
+              <code className="bg-gray-100 px-1 rounded">{examCode}</code>
+            </p>
           </div>
-          <button
-            onClick={handleBackToCode}
-            className="mt-4 w-full text-blue-600 text-xl font-bold hover:underline"
-          >
+          <button onClick={handleBackToCode} className="mt-4 w-full text-blue-600 text-xl font-bold hover:underline">
             កែប្រែព័ត៌មាន
           </button>
         </div>
@@ -259,26 +219,23 @@ export default function SubjectSelection({
         <div className="md:col-span-2 bg-white p-6 rounded-3xl shadow-xl border border-purple-100">
           <h2 className="text-xl font-bold mb-6">សូមជ្រើសរើសមុខវិជ្ជា</h2>
 
-          {/* Stream selection for grades 11 and 12 */}
           {(selectedGrade === "11" || selectedGrade === "12") && (
             <div className="mb-6 p-4 bg-blue-50 rounded-xl">
               <h3 className="font-bold mb-3">ជ្រើសរើសថ្នាក់ទី {selectedGrade}</h3>
               <div className="flex gap-4">
                 <button
                   onClick={() => setSelectedStream("science")}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStream === "science"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-blue-600 border border-blue-300"
-                    }`}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    selectedStream === "science" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-300"
+                  }`}
                 >
                   ថ្នាក់វិទ្យាសាស្រ្ដ
                 </button>
                 <button
                   onClick={() => setSelectedStream("social")}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStream === "social"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-blue-600 border border-blue-300"
-                    }`}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    selectedStream === "social" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-300"
+                  }`}
                 >
                   ថ្នាក់វិទ្យាសាស្រ្ដសង្គម
                 </button>
@@ -291,8 +248,9 @@ export default function SubjectSelection({
               <button
                 key={subject}
                 onClick={() => handleSubjectClick(subject)}
-                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedSubject === subject ? "border-blue-500 bg-blue-50" : "border-gray-50 hover:border-blue-200"
-                  }`}
+                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  selectedSubject === subject ? "border-blue-500 bg-blue-50" : "border-gray-50 hover:border-blue-200"
+                }`}
               >
                 <div className="p-3 bg-white rounded-xl shadow-sm">
                   {SUBJECT_ICONS[subject] || <MessageSquare className="h-5 w-5" />}
@@ -314,6 +272,7 @@ export default function SubjectSelection({
             <p className="text-gray-600 text-sm mb-6">
               សូមបញ្ចូលលេខសម្ងាត់ដើម្បីចូលប្រឡងមុខវិជ្ជា <strong>{selectedSubject}</strong>
             </p>
+
             <input
               type="password"
               className="w-full text-center text-2xl tracking-[0.5em] p-4 border-2 border-gray-100 rounded-2xl focus:border-blue-500 outline-none mb-2"
@@ -321,8 +280,13 @@ export default function SubjectSelection({
               autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") verifyPassword();
+              }}
             />
+
             {passwordError && <p className="text-red-500 text-xs font-bold mb-4 text-center">{passwordError}</p>}
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowPasswordModal(false)}
@@ -332,8 +296,9 @@ export default function SubjectSelection({
               </button>
               <button
                 onClick={verifyPassword}
-                className="flex-1 py-3 font-bold bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition"
+                className="flex-1 py-3 font-bold bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
               >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 ចូលរួម
               </button>
             </div>
