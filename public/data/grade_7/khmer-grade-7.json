@@ -1,0 +1,46 @@
+{
+  "id": "exam_001",
+  "year": 2024,
+  "month": 1,
+  "grade": 7,
+  "subject": "ភាសាខ្មែរ",
+  "createdAt": "2026-01-13T07:00:00Z",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "តើអក្សរខ្មែរមានចំនួនប៉ុន្មាន?",
+      "image": null,
+      "score": 1,
+      "options": [
+        { "id": "q1_opt1", "text": "៣៣ អក្សរ", "image": null, "isCorrect": true },
+        { "id": "q1_opt2", "text": "៣៥ អក្សរ", "image": null, "isCorrect": false },
+        { "id": "q1_opt3", "text": "៣៦ អក្សរ", "image": null, "isCorrect": false },
+        { "id": "q1_opt4", "text": "៣៨ អក្សរ", "image": null, "isCorrect": false }
+      ]
+    },
+    {
+      "id": "q2",
+      "text": "ពាក្យណាខាងក្រោមជានាម?",
+      "image": null,
+      "score": 1,
+      "options": [
+        { "id": "q2_opt1", "text": "រត់", "image": null, "isCorrect": false },
+        { "id": "q2_opt2", "text": "សាលារៀន", "image": null, "isCorrect": true },
+        { "id": "q2_opt3", "text": "ល្អ", "image": null, "isCorrect": false },
+        { "id": "q2_opt4", "text": "លឿន", "image": null, "isCorrect": false }
+      ]
+    },
+    {
+      "id": "q3",
+      "text": "តើប្រយោគណាខាងក្រោមជាប្រយោគពេញលេញ?",
+      "image": null,
+      "score": 1,
+      "options": [
+        { "id": "q3_opt1", "text": "កំពុងអានសៀវភៅ", "image": null, "isCorrect": false },
+        { "id": "q3_opt2", "text": "សិស្សកំពងអានសៀវភៅ", "image": null, "isCorrect": true },
+        { "id": "q3_opt3", "text": "នៅសាលារៀន", "image": null, "isCorrect": false },
+        { "id": "q3_opt4", "text": "យ៉ាងល្អ", "image": null, "isCorrect": false }
+      ]
+    }
+  ]
+}
