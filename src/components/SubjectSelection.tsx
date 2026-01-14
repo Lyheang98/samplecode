@@ -42,6 +42,15 @@ import {
   CheckCircle,
   ChevronDown,
   X,
+  UserCircle,
+  School,
+  GraduationCap,
+  Star,
+  BarChart3,
+  Timer,
+  BookMarked,
+  PlayCircle,
+  Info,
 } from "lucide-react";
 
 import { getExamLink } from "@/utils/examLinks";
@@ -49,7 +58,7 @@ import QuizUI from "@/components/QuizUI";
 
 const Card = ({ children, className = "" }: any) => (
   <div
-    className={`bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}
+    className={`bg-white border border-gray-200 rounded-xl shadow-sm ${className}`}
   >
     {children}
   </div>
@@ -64,13 +73,14 @@ const Button = ({
   ...props
 }: any) => {
   const baseClasses =
-    "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-10 px-4 py-2";
+    "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none h-11 px-5 py-2";
 
   const variantClasses = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700",
+    primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
     secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200",
     outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
     ghost: "text-gray-700 hover:bg-gray-100",
+    success: "bg-green-600 text-white hover:bg-green-700 shadow-sm",
   };
 
   return (
@@ -99,7 +109,7 @@ const Input = ({
     value={value}
     onChange={(e) => onChange && onChange(e.target.value)}
     placeholder={placeholder}
-    className={`w-full h-10 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${className}`}
+    className={`w-full h-11 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${className}`}
     {...props}
   />
 );
@@ -117,16 +127,16 @@ interface SubjectSelectionProps {
 
 // Subject icons mapping
 const SUBJECT_ICONS: { [key: string]: JSX.Element } = {
-  ភាសាខ្មែរ: <MessageSquare className="h-5 w-5" />,
-  គណិតវិទ្យា: <Calculator className="h-5 w-5" />,
-  រូបវិទ្យា: <Zap className="h-5 w-5" />,
-  គីមីវិទ្យា: <FlaskConical className="h-5 w-5" />,
-  ជីវវិទ្យា: <Dna className="h-5 w-5" />,
-  ប្រវត្តិវិទ្យា: <Clock className="h-5 w-5" />,
-  ភូមិវិទ្យា: <Map className="h-5 w-5" />,
-  "សីលធម៌-ពលរដ្ឋវិជ្ជា": <Users className="h-5 w-5" />,
-  ផែនដីវិទ្យា: <Globe className="h-5 w-5" />,
-  អង់គ្លេស: <Languages className="h-5 w-5" />,
+  ភាសាខ្មែរ: <MessageSquare className="h-6 w-6" />,
+  គណិតវិទ្យា: <Calculator className="h-6 w-6" />,
+  រូបវិទ្យា: <Zap className="h-6 w-6" />,
+  គីមីវិទ្យា: <FlaskConical className="h-6 w-6" />,
+  ជីវវិទ្យា: <Dna className="h-6 w-6" />,
+  ប្រវត្តិវិទ្យា: <Clock className="h-6 w-6" />,
+  ភូមិវិទ្យា: <Map className="h-6 w-6" />,
+  "សីលធម៌-ពលរដ្ឋវិជ្ជា": <Users className="h-6 w-6" />,
+  ផែនដីវិទ្យា: <Globe className="h-6 w-6" />,
+  អង់គ្លេស: <Languages className="h-6 w-6" />,
 };
 
 // Subject colors mapping
@@ -431,15 +441,15 @@ export default function SubjectSelection({
   // If the quiz should be shown, render it instead of the normal content
   if (showGoogleForm) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3">
-                <BookOpen className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                <BookOpen className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-xl font-normal text-gray-800">
+              <h1 className="text-xl font-semibold text-gray-800">
                 ប្រព័ន្ធប្រឡងអនឡាញ
               </h1>
             </div>
@@ -451,26 +461,26 @@ export default function SubjectSelection({
         </div>
 
         {/* Exam Info Bar */}
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-4 shadow-md">
           <div className="max-w-4xl mx-auto flex items-center">
             <div
-              className={`p-2 rounded-md mr-3 ${
-                SUBJECT_BG_COLORS[selectedSubject] || "bg-gray-50"
-              }`}
+              className={`p-3 rounded-xl mr-4 bg-white/20 backdrop-blur-sm`}
             >
-              <div
-                className={SUBJECT_COLORS[selectedSubject] || "text-gray-600"}
-              >
+              <div className="text-white">
                 {SUBJECT_ICONS[selectedSubject] || (
-                  <BookOpen className="h-5 w-5" />
+                  <BookOpen className="h-6 w-6" />
                 )}
               </div>
             </div>
-            <div>
-              <div className="font-medium text-gray-800">{selectedSubject}</div>
-              <div className="text-sm text-gray-500">
-                សម្រាប់ថ្នាក់ {selectedGrade}
+            <div className="flex-1">
+              <div className="font-semibold text-lg">{selectedSubject}</div>
+              <div className="text-sm opacity-90">
+                សម្រាប់ថ្នាក់ {selectedGrade} • កូដប្រឡង: {examCode}
               </div>
+            </div>
+            <div className="flex items-center bg-white/20 px-3 py-1 rounded-full">
+              <Timer className="h-4 w-4 mr-1" />
+              <span className="text-sm">កំពុងប្រឡង</span>
             </div>
           </div>
         </div>
@@ -495,276 +505,352 @@ export default function SubjectSelection({
 
   // Normal content rendering when Google Form is not shown
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3">
-              <BookOpen className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+              <BookOpen className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-xl font-normal text-gray-800">
+            <h1 className="text-xl font-semibold text-gray-800">
               ប្រព័ន្ធប្រឡងអនឡាញ
             </h1>
           </div>
-          {/* <Button variant="ghost" onClick={handleBackToCode}>
+          <Button variant="ghost" onClick={handleBackToCode}>
             <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
             ត្រឡប់
-          </Button> */}
+          </Button>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2">
-        <div className="max-w-4xl mx-auto">
+      <div className="bg-white px-4 py-3 shadow-sm">
+        <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>ជំហាន 1 នៃ 2</span>
+            <div className="flex items-center">
+              <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-medium mr-2">1</div>
+              <span>ជ្រើសរើសមុខវិជ្ជា</span>
+            </div>
             <div className="flex-1 mx-4 bg-gray-200 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full"
                 style={{ width: "50%" }}
               ></div>
             </div>
-            <span>បញ្ចប់បញ្ចូល</span>
+            <div className="flex items-center">
+              <span>បញ្ចប់បញ្ចូល</span>
+              <div className="w-6 h-6 bg-gray-300 text-white rounded-full flex items-center justify-center text-xs font-medium ml-2">2</div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto p-4 md:p-6">
+      <div className="max-w-5xl mx-auto p-4 md:p-6">
         {/* Student Information Section */}
-        <Card className="mb-6 p-6">
-          <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
-            ព័ត៌មានសិស្ស
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="pb-4 border-b border-gray-100">
-              <div className="text-sm text-gray-500 mb-1">ឈ្មោះ</div>
-              <div className="text-base">{selectedStudent?.fullName || ""}</div>
-            </div>
-
-            <div className="pb-4 border-b border-gray-100">
-              <div className="text-sm text-gray-500 mb-1">សាលារៀន</div>
-              <div className="text-base">{selectedSchool?.name || ""}</div>
-            </div>
-
-            <div className="pb-4 border-b border-gray-100">
-              <div className="text-sm text-gray-500 mb-1">ថ្នាក់</div>
-              <div className="text-base">{selectedGrade}</div>
-            </div>
-
-            <div className="pb-4 border-b border-gray-100">
-              <div className="text-sm text-gray-500 mb-1">ខេត្ត/ក្រុង</div>
-              <div className="text-base">
-                {PROVINCES.find((p) => p.id === selectedProvinceId)?.name || ""}
+        <Card className="mb-6 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <UserCircle className="h-5 w-5 mr-2" />
+              ព័ត៌មានសិស្ស
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-start">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">ឈ្មោះ</div>
+                  <div className="text-base font-medium">{selectedStudent?.fullName || ""}</div>
+                </div>
               </div>
-            </div>
 
-            <div className="pb-4 border-b border-gray-100">
-              <div className="text-sm text-gray-500 mb-1">កូដប្រឡង</div>
-              <div className="text-base font-mono">{examCode}</div>
+              <div className="flex items-start">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                  <School className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">សាលារៀន</div>
+                  <div className="text-base font-medium">{selectedSchool?.name || ""}</div>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                  <GraduationCap className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">ថ្នាក់</div>
+                  <div className="text-base font-medium">{selectedGrade}</div>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                  <Map className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">ខេត្ត/ក្រុង</div>
+                  <div className="text-base font-medium">
+                    {PROVINCES.find((p) => p.id === selectedProvinceId)?.name || ""}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                  <Hash className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">កូដប្រឡង</div>
+                  <div className="text-base font-medium font-mono">{examCode}</div>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
 
         {/*Science Stream Selection for Grades 11-12*/}
         {(selectedGrade === "11" || selectedGrade === "12") && (
-          <Card className="mb-6 p-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
-              ជ្រើសរើសជំនាញវិទ្យាសាស្រ្ត
-            </h2>
-
-            <div className="space-y-3">
-              <div
-                className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${
-                  scienceStream === "វិទ្យាសាស្រ្ត"
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-300 hover:bg-gray-50"
-                }`}
-                onClick={() => setScienceStream("វិទ្យាសាស្រ្ត")}
-              >
+          <Card className="mb-6 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4">
+              <h2 className="text-lg font-semibold flex items-center">
+                <BookMarked className="h-5 w-5 mr-2" />
+                ជ្រើសរើសជំនាញវិទ្យាសាស្រ្ត
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
-                  className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
                     scienceStream === "វិទ្យាសាស្រ្ត"
-                      ? "border-blue-500"
-                      : "border-gray-400"
+                      ? "border-purple-500 bg-purple-50 shadow-md"
+                      : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                   }`}
+                  onClick={() => setScienceStream("វិទ្យាសាស្រ្ត")}
                 >
-                  {scienceStream === "វិទ្យាសាស្រ្ត" && (
-                    <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
-                  )}
+                  <div className="flex items-center">
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${
+                        scienceStream === "វិទ្យាសាស្រ្ត"
+                          ? "border-purple-500"
+                          : "border-gray-400"
+                      }`}
+                    >
+                      {scienceStream === "វិទ្យាសាស្រ្ត" && (
+                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                      )}
+                    </div>
+                    <div className="text-base font-medium">វិទ្យាសាស្រ្ត</div>
+                  </div>
+                  <div className="mt-3 text-sm text-gray-600">
+                    ផ្តោតលើវិទ្យាសាស្រ្តធម្មជាតិដូចជា រូបវិទ្យា គីមីវិទ្យា ជីវវិទ្យា និងគណិតវិទ្យា
+                  </div>
                 </div>
-                <div className="text-base">វិទ្យាសាស្រ្ត</div>
-              </div>
 
-              <div
-                className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${
-                  scienceStream === "វិទ្យាសាស្រ្តសង្គម"
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-300 hover:bg-gray-50"
-                }`}
-                onClick={() => setScienceStream("វិទ្យាសាស្រ្តសង្គម")}
-              >
                 <div
-                  className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
                     scienceStream === "វិទ្យាសាស្រ្តសង្គម"
-                      ? "border-blue-500"
-                      : "border-gray-400"
+                      ? "border-purple-500 bg-purple-50 shadow-md"
+                      : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                   }`}
+                  onClick={() => setScienceStream("វិទ្យាសាស្រ្តសង្គម")}
                 >
-                  {scienceStream === "វិទ្យាសាស្រ្តសង្គម" && (
-                    <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
-                  )}
+                  <div className="flex items-center">
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${
+                        scienceStream === "វិទ្យាសាស្រ្តសង្គម"
+                          ? "border-purple-500"
+                          : "border-gray-400"
+                      }`}
+                    >
+                      {scienceStream === "វិទ្យាសាស្រ្តសង្គម" && (
+                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                      )}
+                    </div>
+                    <div className="text-base font-medium">វិទ្យាសាស្រ្តសង្គម</div>
+                  </div>
+                  <div className="mt-3 text-sm text-gray-600">
+                    ផ្តោតលើវិទ្យាសាស្រ្តសង្គមដូចជា ប្រវត្តិវិទ្យា ភូមិវិទ្យា សីលធម៌ និងអក្សរសាស្រ្ត
+                  </div>
                 </div>
-                <div className="text-base">វិទ្យាសាស្រ្តសង្គម</div>
               </div>
             </div>
           </Card>
         )}
 
         {/* Subject Selection */}
-        <Card className="mb-6 p-6">
-          <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
-            ជ្រើសរើសមុខវិជ្ជា
-          </h2>
-
-          {(selectedGrade === "11" || selectedGrade === "12") &&
-          !scienceStream ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertTriangle className="h-12 w-12 text-amber-500 mb-3" />
-              <p className="text-lg text-gray-700 mb-1">
-                សូមជ្រើសរើសជំនាញវិទ្យាសាស្រ្តជាមុនសិន
-              </p>
-              <p className="text-sm text-gray-500">
-                សូមជ្រើសរើសជំនាញវិទ្យាសាស្រ្តនៅក្នុងផ្នែកខាងលើ
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {subjects.length > 0 ? (
-                subjects.map((subject) => {
-                  const points = getSubjectPoints(subject);
-                  const isSelected = selectedSubject === subject;
-                  const subjectColor =
-                    SUBJECT_COLORS[subject] || "text-gray-600";
-                  const subjectBgColor =
-                    SUBJECT_BG_COLORS[subject] || "bg-gray-50";
-
-                  return (
-                    <div
-                      key={subject}
-                      className={`p-4 border rounded-md cursor-pointer transition-all ${
-                        isSelected
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300 hover:bg-gray-50"
-                      }`}
-                      onClick={() => {
-                        setSelectedSubject(subject);
-                        setPasswordVerified(false);
-                      }}
-                    >
-                      <div className="flex items-start mb-3">
-                        <div
-                          className={`p-2 rounded-md mr-3 ${
-                            isSelected ? "bg-blue-100" : subjectBgColor
-                          }`}
-                        >
-                          <div
-                            className={
-                              isSelected ? "text-blue-600" : subjectColor
-                            }
-                          >
-                            {SUBJECT_ICONS[subject] || (
-                              <BookOpen className="h-5 w-5" />
-                            )}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <CheckCircle className="h-5 w-5 text-blue-600" />
-                        )}
-                      </div>
-
-                      <div className="text-base font-medium text-gray-800 mb-2">
-                        {subject}
-                      </div>
-
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Award className="h-4 w-4 mr-1 text-amber-500" />
-                        <span>{points} ពិន្ទុ</span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                  <BookOpen className="h-12 w-12 text-gray-400 mb-3" />
-                  <p className="text-lg text-gray-700">
-                    មិនមានមុខវិជ្ជាសម្រាប់ថ្នាក់ {selectedGrade}
-                  </p>
+        <Card className="mb-6 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <BookOpen className="h-5 w-5 mr-2" />
+              ជ្រើសរើសមុខវិជ្ជា
+            </h2>
+          </div>
+          <div className="p-6">
+            {(selectedGrade === "11" || selectedGrade === "12") &&
+            !scienceStream ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                  <Info className="h-8 w-8 text-amber-600" />
                 </div>
-              )}
-            </div>
-          )}
+                <p className="text-lg text-gray-700 mb-2 font-medium">
+                  សូមជ្រើសរើសជំនាញវិទ្យាសាស្រ្តជាមុនសិន
+                </p>
+                <p className="text-sm text-gray-500 max-w-md">
+                  សូមជ្រើសរើសជំនាញវិទ្យាសាស្រ្តនៅក្នុងផ្នែកខាងលើដើម្បីបង្ហាញមុខវិជ្ជាដែលអាចជ្រើសរើសបាន
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {subjects.length > 0 ? (
+                  subjects.map((subject) => {
+                    const points = getSubjectPoints(subject);
+                    const isSelected = selectedSubject === subject;
+                    const subjectColor =
+                      SUBJECT_COLORS[subject] || "text-gray-600";
+                    const subjectBgColor =
+                      SUBJECT_BG_COLORS[subject] || "bg-gray-50";
+
+                    return (
+                      <div
+                        key={subject}
+                        className={`p-5 border-2 rounded-xl cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-50 shadow-md"
+                            : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                        }`}
+                        onClick={() => {
+                          setSelectedSubject(subject);
+                          setPasswordVerified(false);
+                        }}
+                      >
+                        <div className="flex items-start mb-4">
+                          <div
+                            className={`p-3 rounded-xl mr-3 ${
+                              isSelected ? "bg-blue-100" : subjectBgColor
+                            }`}
+                          >
+                            <div
+                              className={
+                                isSelected ? "text-blue-600" : subjectColor
+                              }
+                            >
+                              {SUBJECT_ICONS[subject] || (
+                                <BookOpen className="h-6 w-6" />
+                              )}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <CheckCircle className="h-6 w-6 text-blue-600" />
+                          )}
+                        </div>
+
+                        <div className="text-base font-semibold text-gray-800 mb-3">
+                          {subject}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Award className="h-4 w-4 mr-1 text-amber-500" />
+                            <span>{points} ពិន្ទុ</span>
+                          </div>
+                          {isSelected && (
+                            <div className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">
+                              បានជ្រើសរើស
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <BookOpen className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <p className="text-lg text-gray-700 font-medium">
+                      មិនមានមុខវិជ្ជាសម្រាប់ថ្នាក់ {selectedGrade}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Exam Link Section */}
         {selectedSubject && (
-          <Card className="mb-6 p-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-4 pb-2 border-b border-gray-200">
-              តំណភ្ជាប់ទៅកាន់កម្មវិធីប្រឡង
-            </h2>
-
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="flex items-center mb-3">
-                <div
-                  className={`p-2 rounded-md mr-3 ${
-                    SUBJECT_BG_COLORS[selectedSubject] || "bg-gray-50"
-                  }`}
-                >
+          <Card className="mb-6 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white px-6 py-4">
+              <h2 className="text-lg font-semibold flex items-center">
+                <PlayCircle className="h-5 w-5 mr-2" />
+                តំណភ្ជាប់ទៅកាន់កម្មវិធីប្រឡង
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-5 rounded-xl">
+                <div className="flex items-center mb-4">
                   <div
-                    className={
-                      SUBJECT_COLORS[selectedSubject] || "text-gray-600"
-                    }
+                    className={`p-3 rounded-xl mr-4 ${
+                      SUBJECT_BG_COLORS[selectedSubject] || "bg-gray-50"
+                    }`}
                   >
-                    {SUBJECT_ICONS[selectedSubject] || (
-                      <BookOpen className="h-5 w-5" />
-                    )}
+                    <div
+                      className={
+                        SUBJECT_COLORS[selectedSubject] || "text-gray-600"
+                      }
+                    >
+                      {SUBJECT_ICONS[selectedSubject] || (
+                        <BookOpen className="h-6 w-6" />
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="font-medium text-gray-800">
-                    {selectedSubject}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    សម្រាប់ថ្នាក់ {selectedGrade}
-                  </div>
-                </div>
-              </div>
-
-              {linkLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin text-blue-600" />
-                  <span className="text-gray-700">កំពុងរកតំណភ្ជាប់...</span>
-                </div>
-              ) : examLink ? (
-                <Button onClick={handleExamLinkClick} className="w-full">
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  ចូលរួមប្រឡង
-                </Button>
-              ) : (
-                <div className="flex items-center justify-center py-4 text-center">
-                  <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
-                  <div>
-                    <div className="font-medium text-gray-700">
-                      មិនមានតំណភ្ជាប់សម្រាប់មុខវិជ្ជានេះ
+                  <div className="flex-1">
+                    <div className="font-semibold text-lg text-gray-800">
+                      {selectedSubject}
                     </div>
                     <div className="text-sm text-gray-500">
-                      សូមព្យាយាមមុខវិជ្ជាផ្សេងទៀត
+                      សម្រាប់ថ្នាក់ {selectedGrade} • {getSubjectPoints(selectedSubject)} ពិន្ទុ
                     </div>
                   </div>
                 </div>
-              )}
+
+                {linkLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-6 w-6 mr-3 animate-spin text-blue-600" />
+                    <span className="text-gray-700 font-medium">កំពុងរកតំណភ្ជាប់...</span>
+                  </div>
+                ) : examLink ? (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button onClick={handleExamLinkClick} className="flex-1">
+                      <PlayCircle className="h-4 w-4 mr-2" />
+                      ចូលរួមប្រឡង
+                    </Button>
+                    
+                    
+                    
+                    
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-6 text-center">
+                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mr-4">
+                      <AlertTriangle className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-700 text-base">
+                        មិនមានតំណភ្ជាប់សម្រាប់មុខវិជ្ជានេះ
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        សូមព្យាយាមមុខវិជ្ជាផ្សេងទៀត
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
         )}
@@ -773,21 +859,20 @@ export default function SubjectSelection({
       {/* Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+              <h3 className="text-lg font-semibold flex items-center">
+                <Lock className="h-5 w-5 mr-2" />
+                តម្រូវឱ្យមានលេខសម្ងាត់
+              </h3>
+            </div>
             <div className="p-6">
-              <div className="flex items-center mb-4">
-                <Lock className="h-6 w-6 text-gray-600 mr-3" />
-                <h3 className="text-lg font-medium text-gray-800">
-                  តម្រូវឱ្យមានលេខសម្ងាត់
-                </h3>
-              </div>
-
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-6">
                 សូមបញ្ចូលលេខសម្ងាត់ 4 ខ្ទង់ដើម្បីចូលប្រើប្រាស់ការប្រឡងមុខវិជ្ជា{" "}
-                {selectedSubject}
+                <span className="font-medium">{selectedSubject}</span>
               </p>
 
-              <div className="mb-4">
+              <div className="mb-6">
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
@@ -797,7 +882,7 @@ export default function SubjectSelection({
                     maxLength={4}
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    className="pr-10"
+                    className="pr-12 text-center text-lg tracking-widest"
                   />
                   <button
                     type="button"
@@ -805,20 +890,21 @@ export default function SubjectSelection({
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-5 w-5 text-gray-400" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-5 w-5 text-gray-400" />
                     )}
                   </button>
                 </div>
                 {passwordError && (
-                  <div className="mt-2 text-sm text-red-600">
+                  <div className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
                     {passwordError}
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-end space-x-3">
                 <Button
                   variant="ghost"
                   onClick={() => {

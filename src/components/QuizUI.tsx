@@ -54,6 +54,7 @@ const Quiz: FC<QuizProps> = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState<boolean>(false);
   const [resultsSaved, setResultsSaved] = useState<boolean>(false);
+  const [submittedAnswers, setSubmittedAnswers] = useState<{[key: number]: string}>({});
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -168,31 +169,44 @@ const Quiz: FC<QuizProps> = ({
 
   const currentQuestion = questions[currentQuestionIndex];
 
+  // Handle option selection - allows changing the answer
   const handleAnswer = (option: string) => {
-    if (isAnswered) return;
-
     setSelectedOption(option);
-    setIsAnswered(true);
-    setShowExplanation(true);
+    // Store the selected answer for this question
+    setSubmittedAnswers(prev => ({
+      ...prev,
+      [currentQuestionIndex]: option
+    }));
+  };
 
+  // Handle submitting the current answer and moving to the next question
+  const handleSubmitAnswer = () => {
+    if (!selectedOption) {
+      // If no option is selected, count as unattempted
+      setUnattemptedQuestions((prev) => prev + 1);
+    } else {
+      // Check if the answer is correct
+      if (selectedOption === currentQuestion.answer) {
+        setPoints((prevPoints) => prevPoints + 4);
+        setCorrectAnswers((prev) => prev + 1);
+      } else {
+        setWrongAnswers((prev) => prev + 1);
+      }
+    }
+    
     // Track time spent
     setTotalTimeSpent((prev) => prev + timePerQuestion);
-
-    if (option === currentQuestion.answer) {
-      setPoints((prevPoints) => prevPoints + 4);
-      setCorrectAnswers((prev) => prev + 1);
-    } else {
-      setWrongAnswers((prev) => prev + 1);
-    }
+    
+    // Move to the next question or show results
+    handleNext();
   };
 
   const handleNext = () => {
     const nextQuestion = currentQuestionIndex + 1;
     if (nextQuestion < questions.length) {
       setCurrentQuestionIndex(nextQuestion);
-      setSelectedOption(null);
-      setIsAnswered(false);
-      setShowExplanation(false);
+      // Restore the previously selected answer for the next question if it exists
+      setSelectedOption(submittedAnswers[nextQuestion] || null);
       setTimePerQuestion(0);
     } else {
       // Submit quiz results when showing results
@@ -203,12 +217,8 @@ const Quiz: FC<QuizProps> = ({
   };
 
   const handleTimeUp = () => {
-    if (isAnswered) return; // Prevent double trigger
-    setIsAnswered(true);
-    setShowExplanation(true);
-    setUnattemptedQuestions((prev) => prev + 1);
-    setTotalTimeSpent((prev) => prev + 10);
-    handleNext();
+    // If time is up, submit the current answer (or none if not selected)
+    handleSubmitAnswer();
   };
 
   // Calculations
@@ -319,7 +329,7 @@ const Quiz: FC<QuizProps> = ({
                 <QuestionTimer
                   onTimeUp={handleTimeUp}
                   setTimePerQuestion={setTimePerQuestion}
-                  isAnswered={isAnswered}
+                  isAnswered={false} // Always false since we're not showing answers
                   resetTimer={currentQuestionIndex}
                 />
               </div>
@@ -328,13 +338,16 @@ const Quiz: FC<QuizProps> = ({
               <AnimatePresence>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {currentQuestion?.options.map((option, index) => {
-                    const isCorrect = option === currentQuestion.answer;
                     const isSelected = option === selectedOption;
                     
-                    // Determine button styles
+                    // Determine button styles - simplified without showing right/wrong
                     let btnClass = "p-4 rounded-xl font-medium text-lg transition-all duration-300 border-2 relative flex justify-between items-center w-full text-left ";
                     
-  
+                    if (isSelected) {
+                      btnClass += "bg-indigo-100 border-indigo-500 text-indigo-800";
+                    } else {
+                      btnClass += "bg-white border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 text-gray-800";
+                    }
 
                     return (
                       <motion.button
@@ -344,26 +357,18 @@ const Quiz: FC<QuizProps> = ({
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ duration: 0.3, delay: index * 0.1 }}
                         onClick={() => handleAnswer(option)}
-                        disabled={isAnswered}
                         className={btnClass}
                       >
                         <div className="flex items-center gap-3">
                           <span className="flex-1">{option}</span>
                         </div>
 
-                        {/* Icons Section */}
-                        {isAnswered && (
+                        {/* Selection indicator - just shows which option is selected */}
+                        {isSelected && (
                           <div className="flex-shrink-0 ml-2">
-                            {isCorrect && 
-                              <div className="p-1 rounded-full text-white shadow-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                              </div>
-                            }
-                            {isSelected && !isCorrect && (
-                              <div className="p-1 rounded-full  text-white shadow-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                              </div>
-                            )}
+                            <div className="p-1 rounded-full bg-indigo-500 text-white shadow-sm">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
                           </div>
                         )}
                       </motion.button>
@@ -372,23 +377,18 @@ const Quiz: FC<QuizProps> = ({
                 </div>
               </AnimatePresence>
 
-              {/* Explanation */}
-             
-
-              {/* Next Button */}
+              {/* Submit Button */}
               <AnimatePresence>
-                {isAnswered && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.3 }}
-                    onClick={handleNext}
-                    className={`w-full py-4 px-6 ${colors.primary} text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-opacity-50 focus:ring-blue-300`}
-                  >
-                    {currentQuestionIndex === questions.length - 1 ? "Submit Quiz" : "Next Question"}
-                  </motion.button>
-                )}
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                  onClick={handleSubmitAnswer}
+                  className={`w-full py-4 px-6 ${colors.primary} text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-opacity-50 focus:ring-blue-300`}
+                >
+                  {currentQuestionIndex === questions.length - 1 ? "Submit Quiz" : "Submit Answer"}
+                </motion.button>
               </AnimatePresence>
             </div>
           </motion.div>
